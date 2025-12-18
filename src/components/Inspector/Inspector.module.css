@@ -1,0 +1,222 @@
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: var(--bg-dark);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.content {
+  padding: 0;
+}
+
+.section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.checkboxWrapper {
+  flex-shrink: 0;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.nameInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.nameInput:focus {
+  border-color: var(--accent-primary);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag {
+  padding: 3px 8px;
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius-sm);
+}
+
+.id {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sectionHeader svg {
+  color: var(--text-muted);
+}
+
+.addBtn {
+  margin-left: auto;
+}
+
+.transformGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transformRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.transformLabel {
+  width: 60px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.transformInputs {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.inputGroup {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.inputGroup:focus-within {
+  border-color: var(--accent-primary);
+}
+
+.axisLabel {
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.axisLabel[data-axis="x"] {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.axisLabel[data-axis="y"] {
+  color: #2ecc71;
+  background: rgba(46, 204, 113, 0.1);
+}
+
+.axisLabel[data-axis="z"] {
+  color: #3498db;
+  background: rgba(52, 152, 219, 0.1);
+}
+
+.numberInput {
+  flex: 1;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  text-align: right;
+  background: transparent;
+}
+
+.numberInput::-webkit-inner-spin-button,
+.numberInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.emptyComponents {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.addComponentBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 12px;
+  transition: all var(--transition-fast);
+}
+
+.addComponentBtn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+.componentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.component {
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+

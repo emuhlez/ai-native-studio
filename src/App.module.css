@@ -1,0 +1,60 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-darkest);
+  overflow: hidden;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 1px;
+  background: var(--bg-darkest);
+}
+
+.leftPanel {
+  width: 280px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.viewport {
+  flex: 1;
+  min-height: 300px;
+  background: var(--bg-dark);
+}
+
+.bottom {
+  height: 220px;
+  display: flex;
+  gap: 1px;
+}
+
+.bottom > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.rightPanel {
+  width: 320px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-subtle);
+}
+
+

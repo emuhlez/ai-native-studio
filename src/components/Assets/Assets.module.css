@@ -1,0 +1,170 @@
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 8px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 120px;
+  padding: 5px 8px 5px 26px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+.searchInput:focus {
+  width: 160px;
+  border-color: var(--accent-primary);
+}
+
+.viewToggle {
+  display: flex;
+  background: var(--bg-dark);
+  border-radius: var(--radius-sm);
+}
+
+.content {
+  height: 100%;
+  overflow: auto;
+}
+
+.tree {
+  padding: 8px 0;
+}
+
+.assetItem {
+  user-select: none;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding-right: 8px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.itemRow:hover {
+  background: var(--bg-hover);
+}
+
+.itemRow.selected {
+  background: var(--accent-subtle);
+}
+
+.expandBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.expandBtn:hover {
+  color: var(--text-primary);
+}
+
+.spacer {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  color: var(--accent-secondary);
+  flex-shrink: 0;
+}
+
+.name {
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.children {
+  /* Children styling */
+}
+
+/* Grid view */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
+
+.gridItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 70px;
+  padding: 10px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.gridItem:hover {
+  background: var(--bg-hover);
+}
+
+.gridItem.selected {
+  background: var(--accent-subtle);
+}
+
+.gridIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--accent-secondary);
+}
+
+.gridIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.gridName {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
