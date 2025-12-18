@@ -146,14 +146,20 @@ export function Toolbar() {
 
       <div className={styles.section}>
         <div className={styles.group}>
-          <img src={annotationIcon} alt="Annotation" width={16} height={16} />
-          <img src={aiAssistantIcon} alt="AI Assistant" width={16} height={16} />
-          <img src={notificationIcon} alt="Notifications" width={16} height={16} />
+          <div>
+            <img src={annotationIcon} alt="Annotation" width={16} height={16} />
+          </div>
+          <div>
+            <img src={aiAssistantIcon} alt="AI Assistant" width={16} height={16} />
+          </div>
+          <div>
+            <img src={notificationIcon} alt="Notifications" width={16} height={16} />
+          </div>
         </div>
         <div className={styles.group}>
-          <img src={avatar1} alt="Avatar 1" width={16} height={16} />
-          <img src={avatar2} alt="Avatar 2" width={16} height={16} />
-          <img src={avatar3} alt="Avatar 3" width={16} height={16} />
+          <img src={avatar1} alt="Avatar 1" width={24} height={24} className={styles.avatar} />
+          <img src={avatar2} alt="Avatar 2" width={24} height={24} className={styles.avatar} />
+          <img src={avatar3} alt="Avatar 3" width={24} height={24} className={styles.avatar} />
         </div>
         <button className={styles.testDropdownButton}>
           <img src={partBlockIcon} alt="Part Block" width={16} height={16} />

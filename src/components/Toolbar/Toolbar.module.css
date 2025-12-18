@@ -48,6 +48,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
+  justify-content: flex-start;
 }
 
 .actionIconContainer {
@@ -70,8 +71,12 @@
 
 .section {
   display: flex;
+  flex-flow: row;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  width: fit-content;
+  margin: 0;
+  padding: 0;
 }
 
 .section:nth-child(2) {
@@ -117,12 +122,26 @@
 
 .group {
   display: flex;
+  flex-flow: row;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
+  gap: 0px;
+  padding: 0px;
+  height: 28px;
+  width: fit-content;
   background: transparent;
   border-radius: var(--radius-md);
   border: none;
+  justify-content: center;
+  box-sizing: content-box;
+}
+
+.avatar {
+  margin-left: -4px;
+  border-radius: 50%;
+}
+
+.avatar:first-child {
+  margin-left: 0;
 }
 
 .divider {
@@ -302,7 +321,7 @@
 .searchWrapper {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
   width: 100%;
 }
 
@@ -311,12 +330,14 @@
   align-items: center;
   gap: 8px;
   padding: 4px 12px;
-  width: fit-content;
+  width: 232px;
+  height: 28px;
   max-width: 500px;
   background: rgba(208, 217, 251, 0.08);
   border: none;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  justify-content: flex-start;
 }
 
 .searchContainer:focus-within {
@@ -336,7 +357,7 @@
   border: none;
   background: transparent;
   color: #BBBCBE;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   outline: none;
   width: 100%;
@@ -346,5 +367,28 @@
 
 .searchInput::placeholder {
   color: var(--text-muted);
+}
+
+/* Group wrapper divs for icon containers */
+.group > div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+}
+
+/* Images within group */
+.group img {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+}
+
+/* Override avatar specific styles */
+.group .avatar {
+  width: 24px;
+  height: 24px;
+  padding: 0;
 }
 
