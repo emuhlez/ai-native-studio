@@ -57,9 +57,14 @@ export interface ConsoleMessage {
   source?: string
 }
 
+export interface ViewportSelectedAsset {
+  name: string
+}
+
 export interface EditorState {
   selectedObjectId: string | null
   selectedAssetId: string | null
+  viewportSelectedAsset: ViewportSelectedAsset | null
   isPlaying: boolean
   isPaused: boolean
   activeTool: 'select' | 'move' | 'rotate' | 'scale'
@@ -68,5 +73,15 @@ export interface EditorState {
   snapToGrid: boolean
   gridSize: number
 }
+
+export type DockZone = 'left' | 'center-top' | 'center-bottom' | 'right-top' | 'right-bottom'
+
+export interface DockedWidget {
+  id: string
+  zone: DockZone
+  order: number
+}
+
+
 
 

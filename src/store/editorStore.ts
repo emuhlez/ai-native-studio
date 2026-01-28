@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { GameObject, Asset, ConsoleMessage, EditorState, GameObjectType } from '../types'
+import type { GameObject, Asset, ConsoleMessage, EditorState, GameObjectType, ViewportSelectedAsset } from '../types'
 
 interface EditorStore extends EditorState {
   // Scene hierarchy
@@ -16,6 +16,7 @@ interface EditorStore extends EditorState {
   // Actions - Selection
   selectObject: (id: string | null) => void
   selectAsset: (id: string | null) => void
+  setViewportSelectedAsset: (asset: ViewportSelectedAsset | null) => void
   
   // Actions - Scene
   createGameObject: (type: GameObjectType, name?: string, parentId?: string | null) => string
@@ -227,10 +228,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   // Initial state
   selectedObjectId: null,
   selectedAssetId: null,
+  viewportSelectedAsset: null,
   isPlaying: false,
   isPaused: false,
   activeTool: 'select',
-  viewMode: '2d',
+  viewMode: '3d',
   showGrid: true,
   snapToGrid: true,
   gridSize: 1,
@@ -241,8 +243,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   consoleMessages: [],
   
   // Selection
-  selectObject: (id) => set({ selectedObjectId: id }),
+  selectObject: (id) => set({ selectedObjectId: id, viewportSelectedAsset: null }),
   selectAsset: (id) => set({ selectedAssetId: id }),
+  setViewportSelectedAsset: (asset) => set({ viewportSelectedAsset: asset, selectedObjectId: null }),
   
   // Scene manipulation
   createGameObject: (type, name, parentId = null) => {
@@ -415,5 +418,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
   clearConsole: () => set({ consoleMessages: [] }),
 }))
+
+
+
 
 

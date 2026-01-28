@@ -1,22 +1,63 @@
 import { Settings, ChevronDown, Plus, Trash2 } from 'lucide-react'
-import { Panel } from '../shared/Panel'
+import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import styles from './Inspector.module.css'
 
 export function Inspector() {
-  const { selectedObjectId, gameObjects, updateGameObject, deleteGameObject } = useEditorStore()
+  const {
+    selectedObjectId,
+    gameObjects,
+    updateGameObject,
+    deleteGameObject,
+    viewportSelectedAsset,
+  } = useEditorStore()
   const selectedObject = selectedObjectId ? gameObjects[selectedObjectId] : null
 
-  if (!selectedObject) {
+  if (!selectedObject && !viewportSelectedAsset) {
     return (
-      <Panel title="Inspector" icon={<Settings size={16} />}>
+      <DockablePanel widgetId="inspector" title="Inspector" icon={<Settings size={16} />}>
         <div className={styles.empty}>
           <p>Select an object to inspect</p>
         </div>
-      </Panel>
+      </DockablePanel>
     )
   }
+
+  if (viewportSelectedAsset && !selectedObject) {
+    return (
+      <DockablePanel widgetId="inspector" title="Inspector" icon={<Settings size={16} />}>
+        <div className={styles.content}>
+          <section className={styles.section}>
+            <div className={styles.header}>
+              <div className={styles.checkboxWrapper} />
+              <input
+                type="text"
+                value={viewportSelectedAsset.name}
+                readOnly
+                className={styles.nameInput}
+              />
+            </div>
+            <div className={styles.meta}>
+              <span className={styles.tag}>3D Model</span>
+              <span className={styles.id}>Viewport asset</span>
+            </div>
+          </section>
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <ChevronDown size={14} />
+              <span>Transform</span>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--content-muted)', margin: '8px 0 0' }}>
+              Transform editing for viewport assets coming soon.
+            </p>
+          </section>
+        </div>
+      </DockablePanel>
+    )
+  }
+
+  if (!selectedObject) return null
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateGameObject(selectedObjectId!, { name: e.target.value })
@@ -40,7 +81,8 @@ export function Inspector() {
   }
 
   return (
-    <Panel
+    <DockablePanel
+      widgetId="inspector"
       title="Inspector"
       icon={<Settings size={16} />}
       actions={
@@ -137,7 +179,7 @@ export function Inspector() {
           )}
         </section>
       </div>
-    </Panel>
+    </DockablePanel>
   )
 }
 
@@ -186,5 +228,7 @@ function TransformRow({ label, values, onChange }: TransformRowProps) {
     </div>
   )
 }
+
+
 
 

@@ -1,0 +1,161 @@
+.dockLayout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 1px;
+  background: var(--bg-darkest);
+  position: relative;
+}
+
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.leftColumn.emptyColumn {
+  width: 0;
+  min-width: 0;
+  overflow: visible; /* Changed to visible so drop targets work */
+  border: none;
+  flex-shrink: 0;
+  pointer-events: none; /* Prevent interaction when empty */
+}
+
+.leftColumn.emptyColumn > * {
+  pointer-events: auto; /* Re-enable for drop zones */
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+  width: 320px;
+  min-width: 260px;
+}
+
+.rightTop {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+}
+
+.rightBottom {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+}
+
+.rightColumn.emptyColumn {
+  width: 0;
+  min-width: 0;
+  overflow: visible; /* Changed to visible so drop targets work */
+  border: none;
+  flex-shrink: 0;
+  pointer-events: none; /* Prevent interaction when empty */
+}
+
+.rightColumn.emptyColumn > * {
+  pointer-events: auto; /* Re-enable for drop zones */
+}
+
+.centerColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.centerColumn.emptyColumn {
+  min-height: 300px;
+}
+
+.centerTop {
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+}
+
+.centerBottom {
+  height: 220px;
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+  min-height: 0;
+  transition: height 0.15s ease, min-height 0.15s ease, overflow 0.15s ease;
+}
+
+.centerBottom.centerBottomHidden {
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: none;
+}
+
+.dockZone {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dockZone.empty {
+  background: var(--bg-panel);
+}
+
+.dockZone.left {
+  width: 280px;
+  min-width: 200px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.dockZone.right-top,
+.dockZone.right-bottom {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+}
+
+.dockZone.right-top {
+  border-left: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dockZone.right-bottom {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.dockZone.center-top {
+  flex: 1;
+  background: var(--bg-dark);
+  flex-direction: row;
+}
+
+.dockZone.center-bottom {
+  flex: 1;
+  min-width: 0;
+}
+
+.dockZone.center-bottom > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Drag overlay styles */
+.dockZone.dragOver {
+  background: rgba(230, 126, 34, 0.1) !important;
+  border: 2px dashed var(--accent-primary) !important;
+}
+

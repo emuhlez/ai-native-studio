@@ -17,10 +17,10 @@ import {
   Volume2,
   Layers
 } from 'lucide-react'
-import { Panel } from '../shared/Panel'
+import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
-import type { GameObject, GameObjectType } from '../../types'
+import type { GameObjectType } from '../../types'
 import styles from './Hierarchy.module.css'
 
 const typeIcons: Record<GameObjectType, React.ReactNode> = {
@@ -135,8 +135,9 @@ export function Hierarchy() {
   ]
 
   return (
-    <Panel
-      title="Hierarchy"
+    <DockablePanel
+      widgetId="explorer"
+      title="Explorer"
       icon={<Layers size={16} />}
       actions={
         <div className={styles.createWrapper}>
@@ -145,6 +146,7 @@ export function Hierarchy() {
             tooltip="Create GameObject"
             onClick={() => setShowCreateMenu(!showCreateMenu)}
             size="sm"
+            variant="ghost"
           />
           {showCreateMenu && (
             <div className={styles.createMenu}>
@@ -171,8 +173,10 @@ export function Hierarchy() {
           <TreeNode key={id} objectId={id} depth={0} />
         ))}
       </div>
-    </Panel>
+    </DockablePanel>
   )
 }
+
+
 
 

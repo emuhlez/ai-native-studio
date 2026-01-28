@@ -19,7 +19,6 @@ export function PanelHeader({ title, icon, actions }: PanelHeaderProps) {
   return (
     <div className={styles.header}>
       <div className={styles.titleArea}>
-        {icon && <span className={styles.icon}>{icon}</span>}
         <h2 className={styles.title}>{title}</h2>
       </div>
       {actions && <div className={styles.actions}>{actions}</div>}

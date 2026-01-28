@@ -3,26 +3,26 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--content-default);
   transition: all var(--transition-fast);
 }
 
 .button:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--bg-hover);
+  color: var(--content-emphasis);
+  background: var(--content-hover);
 }
 
 .button:active:not(:disabled) {
-  background: var(--bg-active);
+  background: var(--content-hover);
 }
 
 .button.active {
   color: var(--accent-primary);
-  background: var(--accent-subtle);
+  background: var(--content-hover);
 }
 
 .button.active:hover {
-  background: var(--accent-glow);
+  background: var(--content-hover);
 }
 
 /* Sizes */
@@ -61,13 +61,20 @@
   background: transparent;
 }
 
+.ghost:hover:not(:disabled),
+.ghost:active:not(:disabled) {
+  background: transparent;
+}
+
 .accent {
   color: var(--accent-primary);
 }
 
 .accent:hover:not(:disabled) {
-  color: var(--accent-light);
-  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  background: var(--content-hover);
 }
+
+
 
 
