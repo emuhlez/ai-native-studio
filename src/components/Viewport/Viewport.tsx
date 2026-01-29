@@ -6,7 +6,6 @@ import styles from './Viewport.module.css'
 export function Viewport() {
   const canvas3DRef = useRef<HTMLDivElement>(null)
   const {
-    showGrid,
     isPlaying,
     selectedObjectId,
     gameObjects,
@@ -21,34 +20,6 @@ export function Viewport() {
         {/* 3D workspace – assets from /3d-space */}
         <div ref={canvas3DRef} className={styles.canvas3D} aria-hidden />
         <Viewport3D containerRef={canvas3DRef} />
-
-        {/* Grid overlay */}
-        {showGrid && (
-          <div className={styles.grid}>
-            <svg width="100%" height="100%">
-              <defs>
-                <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path 
-                    d="M 20 0 L 0 0 0 20" 
-                    fill="none" 
-                    stroke="rgba(255,255,255,0.03)" 
-                    strokeWidth="0.5"
-                  />
-                </pattern>
-                <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
-                  <rect width="100" height="100" fill="url(#smallGrid)"/>
-                  <path 
-                    d="M 100 0 L 0 0 0 100" 
-                    fill="none" 
-                    stroke="rgba(255,255,255,0.06)" 
-                    strokeWidth="1"
-                  />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-          </div>
-        )}
 
         {/* Center crosshair */}
         <div className={styles.origin}>

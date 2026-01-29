@@ -24,6 +24,12 @@ const MAX_RADIUS = 400
 const MIN_PHI = 0.05
 const MAX_PHI = Math.PI - 0.05
 const DRAG_THRESHOLD_PX = 4
+const PAN_SPEED = 0.35
+const PAN_KEYS = new Set(['w', 'a', 's', 'd', 'q', 'e', 'r'])
+const INITIAL_TARGET = new THREE.Vector3(0, 0, 0)
+const INITIAL_RADIUS = Math.sqrt(40 * 40 + 35 * 35 + 40 * 40)
+const INITIAL_THETA = Math.atan2(40, 40)
+const INITIAL_PHI = Math.acos(Math.max(-1, Math.min(1, 35 / INITIAL_RADIUS)))
 
 function getAssetDisplayName(filename: string): string {
   return filename.replace(/\.glb$/i, '')
@@ -66,9 +72,11 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   const frameRef = useRef<number>(0)
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
+  const resetViewRef = useRef(false)
 
   const viewportSelectedAsset = useEditorStore((s) => s.viewportSelectedAsset)
   const setViewportSelectedAsset = useEditorStore((s) => s.setViewportSelectedAsset)
+  const addWorkspaceModel = useEditorStore((s) => s.addWorkspaceModel)
 
   useEffect(() => {
     const container = containerRef.current
@@ -110,6 +118,10 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     const canvas = renderer.domElement
     canvas.className = styles.viewport3dCanvas
     canvas.style.pointerEvents = 'auto'
+    canvas.setAttribute('tabindex', '0')
+
+    const keysPressed = new Set<string>()
+    let lastPanTime = performance.now()
 
     const wrapper = document.createElement('div')
     wrapper.className = styles.canvas3DInner
@@ -120,8 +132,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     ;(canvas as HTMLCanvasElement).style.cursor = 'grab'
 
     const enforceCanvasLock = () => {
-      canvas.style.setProperty('left', '0', 'important')
-      canvas.style.setProperty('top', '0', 'important')
+      canvas.style.setProperty('inset', '0', 'important')
     }
     enforceCanvasLock()
 
@@ -147,6 +158,13 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     const fillLight = new THREE.DirectionalLight(0xffffff, 0.5)
     fillLight.position.set(-20, 15, 10)
     scene.add(fillLight)
+
+    // Floor grid to simulate 3D workspace (XZ plane at y=0)
+    const gridSize = 120
+    const gridDivisions = 60
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x444466, 0x2a2a35)
+    gridHelper.position.y = 0
+    scene.add(gridHelper)
 
     const loader = new GLTFLoader()
     const modelsGroup = new THREE.Group()
@@ -175,7 +193,9 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         url,
         (gltf: { scene: THREE.Group }) => {
           const root = gltf.scene
-          root.userData.assetName = getAssetDisplayName(filename)
+          const displayName = getAssetDisplayName(filename)
+          root.userData.assetName = displayName
+          addWorkspaceModel(displayName)
           root.traverse((node: THREE.Object3D) => {
             if ((node as THREE.Mesh).isMesh) {
               (node as THREE.Mesh).castShadow = true
@@ -217,6 +237,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
 
     const onPointerDown = (e: MouseEvent) => {
       if (e.button !== 0) return
+      ;(canvas as HTMLCanvasElement).focus()
       dragStartX = e.clientX
       dragStartY = e.clientY
       isOrbiting = false
@@ -274,8 +295,56 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase()
+      if (PAN_KEYS.has(key) && document.activeElement === canvas) {
+        if (key === 'r') {
+          resetViewRef.current = true
+        } else {
+          keysPressed.add(key)
+        }
+        e.preventDefault()
+      }
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      keysPressed.delete(e.key.toLowerCase())
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+
     const animate = () => {
       frameRef.current = requestAnimationFrame(animate)
+      const now = performance.now()
+      const delta = (now - lastPanTime) / 1000
+      lastPanTime = now
+
+      if (resetViewRef.current && cameraRef.current) {
+        resetViewRef.current = false
+        target.copy(INITIAL_TARGET)
+        radius = INITIAL_RADIUS
+        theta = INITIAL_THETA
+        phi = INITIAL_PHI
+        updateCameraFromOrbit()
+      }
+
+      if (keysPressed.size > 0 && cameraRef.current) {
+        const speed = PAN_SPEED * (delta * 60)
+        const forward = new THREE.Vector3()
+          .subVectors(camera.position, target)
+          .setY(0)
+        if (forward.lengthSq() > 1e-6) {
+          forward.normalize()
+          const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize()
+          if (keysPressed.has('w')) target.addScaledVector(forward, -speed)
+          if (keysPressed.has('s')) target.addScaledVector(forward, speed)
+          if (keysPressed.has('a')) target.addScaledVector(right, -speed)
+          if (keysPressed.has('d')) target.addScaledVector(right, speed)
+        }
+        if (keysPressed.has('e')) target.y += speed
+        if (keysPressed.has('q')) target.y -= speed
+        updateCameraFromOrbit()
+      }
+
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current)
       }
@@ -306,6 +375,8 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       canvas.removeEventListener('wheel', onWheel, { passive: false })
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('resize', onResize)
       if (frameRef.current) cancelAnimationFrame(frameRef.current)
       if (containerRef.current && wrapper.parentNode === containerRef.current) {
@@ -317,7 +388,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       cameraRef.current = null
       modelsGroupRef.current = null
     }
-  }, [containerRef, setViewportSelectedAsset])
+  }, [containerRef, setViewportSelectedAsset, addWorkspaceModel])
 
   // Highlight selected asset
   useEffect(() => {

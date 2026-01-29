@@ -20,6 +20,7 @@ interface EditorStore extends EditorState {
   
   // Actions - Scene
   createGameObject: (type: GameObjectType, name?: string, parentId?: string | null) => string
+  addWorkspaceModel: (name: string) => string
   deleteGameObject: (id: string) => void
   updateGameObject: (id: string, updates: Partial<GameObject>) => void
   duplicateGameObject: (id: string) => void
@@ -233,7 +234,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   // Selection
   selectObject: (id) => set({ selectedObjectId: id, viewportSelectedAsset: null }),
   selectAsset: (id) => set({ selectedAssetId: id }),
-  setViewportSelectedAsset: (asset) => set({ viewportSelectedAsset: asset, selectedObjectId: null }),
+  setViewportSelectedAsset: (asset) => {
+    if (!asset) {
+      set({ viewportSelectedAsset: null, selectedObjectId: null })
+      return
+    }
+    const state = get()
+    const workspaceId = state.rootObjectIds[0]
+    const workspace = state.gameObjects[workspaceId]
+    const matchingId = workspace?.children.find((id) => state.gameObjects[id]?.name === asset.name) ?? null
+    set({ viewportSelectedAsset: asset, selectedObjectId: matchingId })
+  },
   
   // Scene manipulation
   createGameObject: (type, name, parentId = null) => {
@@ -272,7 +283,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     get().log(`Created ${gameObject.name}`, 'info')
     return id
   },
-  
+
+  addWorkspaceModel: (name) => {
+    const state = get()
+    const workspaceId = state.rootObjectIds[0]
+    const workspace = state.gameObjects[workspaceId]
+    if (!workspace) return ''
+    const existing = workspace.children.find((id) => state.gameObjects[id]?.name === name)
+    if (existing) return existing
+    return get().createGameObject('mesh', name, workspaceId)
+  },
+
   deleteGameObject: (id) => {
     const state = get()
     const obj = state.gameObjects[id]
