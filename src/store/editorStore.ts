@@ -64,68 +64,56 @@ const getDefaultName = (type: GameObjectType) => {
 
 // Initial demo scene
 const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: string[] } => {
+  const workspaceId = uuid()
   const cameraId = uuid()
   const lightId = uuid()
-  const playerId = uuid()
-  const playerSpriteId = uuid()
   const environmentId = uuid()
   const groundId = uuid()
   const platformId = uuid()
 
   const objects: Record<string, GameObject> = {
+    [workspaceId]: {
+      id: workspaceId,
+      name: 'Workspace',
+      type: 'empty',
+      transform: createDefaultTransform(),
+      visible: true,
+      locked: false,
+      children: [cameraId, lightId, environmentId],
+      parentId: null,
+      components: [],
+    },
     [cameraId]: {
       id: cameraId,
-      name: 'Main Camera',
+      name: 'Camera',
       type: 'camera',
       transform: { ...createDefaultTransform(), position: { x: 0, y: 0, z: -10 } },
       visible: true,
       locked: false,
       children: [],
-      parentId: null,
+      parentId: workspaceId,
       components: [],
     },
     [lightId]: {
       id: lightId,
-      name: 'Directional Light',
+      name: 'Terrain',
       type: 'light',
       transform: { ...createDefaultTransform(), rotation: { x: 50, y: -30, z: 0 } },
       visible: true,
       locked: false,
       children: [],
-      parentId: null,
-      components: [],
-    },
-    [playerId]: {
-      id: playerId,
-      name: 'Player',
-      type: 'empty',
-      transform: createDefaultTransform(),
-      visible: true,
-      locked: false,
-      children: [playerSpriteId],
-      parentId: null,
-      components: [],
-    },
-    [playerSpriteId]: {
-      id: playerSpriteId,
-      name: 'PlayerSprite',
-      type: 'sprite',
-      transform: createDefaultTransform(),
-      visible: true,
-      locked: false,
-      children: [],
-      parentId: playerId,
+      parentId: workspaceId,
       components: [],
     },
     [environmentId]: {
       id: environmentId,
-      name: 'Environment',
+      name: 'Drops',
       type: 'empty',
       transform: createDefaultTransform(),
       visible: true,
       locked: false,
       children: [groundId, platformId],
-      parentId: null,
+      parentId: workspaceId,
       components: [],
     },
     [groundId]: {
@@ -154,7 +142,7 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
 
   return {
     objects,
-    rootIds: [cameraId, lightId, playerId, environmentId],
+    rootIds: [workspaceId],
   }
 }
 

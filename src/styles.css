@@ -1,40 +1,89 @@
 /* Studio Shell - Game Editor Styles */
 
 /* ========================================
+   BuilderSans Font Family
+   ======================================== */
+@font-face {
+  font-family: 'BuilderSans';
+  src: url('/fonts/BuilderSans-Thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderSans';
+  src: url('/fonts/BuilderSans-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderSans';
+  src: url('/fonts/BuilderSans-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderSans';
+  src: url('/fonts/BuilderSans-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderSans';
+  src: url('/fonts/BuilderSans-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderSans';
+  src: url('/fonts/BuilderSans-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderSans';
+  src: url('/fonts/BuilderSans-ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ========================================
    CSS Variables
    ======================================== */
 :root {
-  /* Forge-inspired color palette - industrial, warm metallic tones */
-  --bg-darkest: #121215;
-  --bg-dark: #13151a;
-  --bg-panel: #181b22;
-  --bg-surface: #1e222b;
-  --bg-elevated: #252a36;
-  --bg-hover: #2d3342;
-  --bg-active: #363d50;
+  /* Surface colors */
+  --bg-surface0: #121215;
+  --bg-surface100: #191A1F;
+  --bg-surface200: #202227;
+  --bg-surface300: #272930;
   
-  /* Accent - molten amber/copper */
-  --accent-primary: #e67e22;
-  --accent-light: #f39c12;
-  --accent-dark: #d35400;
-  --accent-glow: rgba(230, 126, 34, 0.3);
-  --accent-subtle: rgba(230, 126, 34, 0.1);
+  /* Accent - blue */
+  --accent-primary: #335FFF;
   
-  /* Secondary accent - electric cyan */
-  --accent-secondary: #00d4aa;
-  --accent-secondary-glow: rgba(0, 212, 170, 0.3);
-  
-  /* Text colors */
-  --text-primary: #e8eaed;
-  --text-secondary: #9aa0a9;
-  --text-muted: #5f6673;
-  --text-disabled: #3d4452;
+  /* Content colors */
+  --content-emphasis: #F7F7F8;
+  --content-default: #D5D7DD;
+  --content-muted: #BCBEC8;
+  --content-link: #528BFF;
+  --content-hover: rgba(208, 217, 251, 0.08);
   
   /* Semantic colors */
-  --color-success: #2ecc71;
-  --color-warning: #f1c40f;
-  --color-error: #e74c3c;
-  --color-info: #3498db;
+  --color-success: #39C582;
+  --color-warning: #F2BA2A;
+  --color-error: #DF281F;
+  --color-emphasis: #335FFF;
   
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.06);
@@ -48,8 +97,8 @@
   --shadow-glow: 0 0 20px var(--accent-glow);
   
   /* Typography */
-  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  --font-sans: 'BuilderSans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'BuilderSans', 'SF Mono', Menlo, monospace;
   
   /* Sizing */
   --toolbar-height: 48px;

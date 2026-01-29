@@ -15,7 +15,7 @@ import {
   Grid2X2,
   List
 } from 'lucide-react'
-import { Panel } from '../shared/Panel'
+import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
@@ -99,7 +99,8 @@ export function Assets() {
   const [searchQuery, setSearchQuery] = useState('')
 
   return (
-    <Panel
+    <DockablePanel
+      widgetId="assets"
       title="Assets"
       icon={<Folder size={16} />}
       actions={
@@ -149,8 +150,10 @@ export function Assets() {
           </div>
         )}
       </div>
-    </Panel>
+    </DockablePanel>
   )
 }
+
+
 
 

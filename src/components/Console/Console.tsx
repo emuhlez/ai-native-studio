@@ -7,7 +7,7 @@ import {
   FileText,
   Filter
 } from 'lucide-react'
-import { Panel } from '../shared/Panel'
+import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import type { ConsoleMessage } from '../../types'
@@ -28,7 +28,8 @@ export function Console() {
   }
 
   return (
-    <Panel
+    <DockablePanel
+      widgetId="console"
       title="Console"
       icon={<Terminal size={16} />}
       actions={
@@ -76,8 +77,10 @@ export function Console() {
           </div>
         )}
       </div>
-    </Panel>
+    </DockablePanel>
   )
 }
+
+
 
 

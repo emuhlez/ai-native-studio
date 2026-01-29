@@ -3,8 +3,8 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  background-color: var(--bg-dark);
-  color: var(--text-muted);
+  background-color: var(--bg-surface0);
+  color: var(--content-muted);
   font-size: 13px;
 }
 
@@ -42,12 +42,12 @@
 .nameInput {
   flex: 1;
   padding: 8px 12px;
-  background: var(--bg-surface);
+  background: var(--bg-surface200);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--content-emphasis);
   transition: border-color var(--transition-fast);
 }
 
@@ -63,7 +63,7 @@
 
 .tag {
   padding: 3px 8px;
-  background: var(--accent-subtle);
+  background: var(--content-hover);
   color: var(--accent-primary);
   font-size: 10px;
   font-weight: 600;
@@ -75,7 +75,7 @@
 .id {
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--text-muted);
+  color: var(--content-muted);
 }
 
 .sectionHeader {
@@ -83,7 +83,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  color: var(--text-secondary);
+  color: var(--content-default);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -91,7 +91,7 @@
 }
 
 .sectionHeader svg {
-  color: var(--text-muted);
+  color: var(--content-muted);
 }
 
 .addBtn {
@@ -113,7 +113,7 @@
 .transformLabel {
   width: 60px;
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--content-default);
   flex-shrink: 0;
 }
 
@@ -127,7 +127,7 @@
   display: flex;
   align-items: center;
   flex: 1;
-  background: var(--bg-surface);
+  background: var(--bg-surface200);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -165,7 +165,7 @@
   padding: 6px 8px;
   font-size: 12px;
   font-family: var(--font-mono);
-  color: var(--text-primary);
+  color: var(--content-emphasis);
   text-align: right;
   background: transparent;
 }
@@ -182,7 +182,7 @@
   align-items: center;
   gap: 12px;
   padding: 20px;
-  color: var(--text-muted);
+  color: var(--content-muted);
   font-size: 12px;
 }
 
@@ -191,10 +191,10 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: var(--bg-surface);
+  background: var(--bg-surface200);
   border: 1px dashed var(--border-default);
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  color: var(--content-default);
   font-size: 12px;
   transition: all var(--transition-fast);
 }
@@ -202,7 +202,7 @@
 .addComponentBtn:hover {
   border-color: var(--accent-primary);
   color: var(--accent-primary);
-  background: var(--accent-subtle);
+  background: var(--content-hover);
 }
 
 .componentsList {
@@ -213,10 +213,10 @@
 
 .component {
   padding: 12px;
-  background: var(--bg-surface);
+  background: var(--bg-surface200);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--content-default);
 }
 

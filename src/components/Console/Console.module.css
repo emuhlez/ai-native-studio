@@ -15,7 +15,7 @@
   justify-content: center;
   height: 100%;
   gap: 8px;
-  color: var(--text-muted);
+  color: var(--content-muted);
   font-size: 12px;
 }
 
@@ -26,10 +26,10 @@
 .testBtn {
   margin-top: 8px;
   padding: 6px 12px;
-  background: var(--bg-surface);
+  background: var(--bg-surface200);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--content-default);
   font-size: 11px;
   transition: all var(--transition-fast);
 }
@@ -56,23 +56,23 @@
 }
 
 .message:hover {
-  background: var(--bg-hover);
+  background: var(--content-hover);
 }
 
 .message.log {
-  color: var(--text-secondary);
+  color: var(--content-default);
 }
 
 .message.log .icon {
-  color: var(--text-muted);
+  color: var(--content-muted);
 }
 
 .message.info {
-  color: var(--color-info);
+  color: var(--content-link);
 }
 
 .message.info .icon {
-  color: var(--color-info);
+  color: var(--content-link);
 }
 
 .message.warning {
@@ -106,17 +106,19 @@
 
 .time {
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--content-muted);
   flex-shrink: 0;
 }
 
 .source {
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--content-muted);
   padding: 2px 6px;
-  background: var(--bg-surface);
+  background: var(--bg-surface200);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
+
+
 
 

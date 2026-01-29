@@ -303,7 +303,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointerenter', onPointerEnter)
       canvas.removeEventListener('pointerleave', onPointerLeave)
-      canvas.removeEventListener('wheel', onWheel)
+      canvas.removeEventListener('wheel', onWheel, { passive: false })
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('resize', onResize)

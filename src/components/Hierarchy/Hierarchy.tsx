@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { 
-  ChevronRight, 
-  ChevronDown, 
+import {
   Plus,
   Eye,
   EyeOff,
@@ -24,16 +22,40 @@ import type { GameObjectType } from '../../types'
 import styles from './Hierarchy.module.css'
 
 const typeIcons: Record<GameObjectType, React.ReactNode> = {
-  empty: <Layers size={14} />,
-  mesh: <Box size={14} />,
-  light: <Sun size={14} />,
-  camera: <Camera size={14} />,
-  audio: <Volume2 size={14} />,
-  sprite: <Image size={14} />,
-  tilemap: <Grid2X2 size={14} />,
-  particle: <Sparkles size={14} />,
-  script: <FileCode size={14} />,
+  empty: <Layers size={16} />,
+  mesh: <Box size={16} />,
+  light: <img src="/icons/terrain.svg" alt="Light" width={16} height={16} />,
+  camera: <img src="/icons/camera.svg" alt="Camera" width={16} height={16} />,
+  audio: <Volume2 size={16} />,
+  sprite: <Image size={16} />,
+  tilemap: <Grid2X2 size={16} />,
+  particle: <Sparkles size={16} />,
+  script: <FileCode size={16} />,
 }
+
+const ExpandDownIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M4 6L8 10L12 6H4Z" />
+  </svg>
+)
+
+const ExpandRightIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M6 4L10 8L6 12V4Z" />
+  </svg>
+)
 
 interface TreeNodeProps {
   objectId: string
@@ -54,6 +76,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
 
   const hasChildren = obj.children.length > 0
   const isSelected = selectedObjectId === objectId
+  const isWorkspaceRoot = obj.parentId === null && obj.name === 'Workspace'
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -71,7 +94,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   }
 
   return (
-    <div className={styles.treeNode}>
+    <div className={`${styles.treeNode} ${isWorkspaceRoot ? styles.workspaceGroup : ''}`}>
       <div
         className={`${styles.nodeRow} ${isSelected ? styles.selected : ''}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -81,11 +104,17 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
           className={`${styles.expandBtn} ${!hasChildren ? styles.hidden : ''}`}
           onClick={toggleExpanded}
         >
-          {hasChildren && (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
+          {hasChildren && (isExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />)}
         </button>
 
         <span className={styles.typeIcon}>
-          {typeIcons[obj.type]}
+          {obj.parentId === null && obj.name === 'Workspace' ? (
+            <img src="/icons/workspace.svg" alt="Workspace" width={16} height={16} />
+          ) : obj.name === 'Drops' ? (
+            <img src="/icons/folder.svg" alt="Drops" width={16} height={16} />
+          ) : (
+            typeIcons[obj.type]
+          )}
         </span>
 
         <span className={`${styles.name} ${!obj.visible ? styles.dimmed : ''}`}>
@@ -97,13 +126,13 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
             className={`${styles.actionBtn} ${!obj.visible ? styles.active : ''}`}
             onClick={toggleVisibility}
           >
-            {obj.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+            {obj.visible ? <Eye size={16} /> : <EyeOff size={16} />}
           </button>
           <button 
             className={`${styles.actionBtn} ${obj.locked ? styles.active : ''}`}
             onClick={toggleLock}
           >
-            {obj.locked ? <Lock size={12} /> : <Unlock size={12} />}
+            {obj.locked ? <Lock size={16} /> : <Unlock size={16} />}
           </button>
         </div>
       </div>

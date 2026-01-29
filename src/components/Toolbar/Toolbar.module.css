@@ -4,7 +4,7 @@
   justify-content: space-between;
   height: var(--toolbar-height);
   padding: 0 12px;
-  background: #1F2024;
+  background: var(--bg-surface100);
   border-bottom: 1px solid var(--border-default);
   gap: 16px;
 }
@@ -57,16 +57,49 @@
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
+  border-radius: var(--radius-sm);
+  position: relative;
 }
 
 .actionIconContainer:hover {
-  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.actionIconContainer:active,
+.actionIconContainer.pressed {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.menuDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  background: var(--bg-surface200);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+  z-index: 1000;
+}
+
+.menuHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--content-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .actionIcon {
   width: 28px;
   height: 28px;
   display: block;
+  border-radius: 4px;
 }
 
 .section {
@@ -108,7 +141,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: var(--bg-elevated);
+  background: var(--bg-surface300);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
 }
@@ -116,8 +149,11 @@
 .logoText {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--content-emphasis);
   letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .group {
@@ -183,7 +219,7 @@
 
 .viewToggle {
   display: flex;
-  background: var(--bg-darkest);
+  background: var(--bg-surface0);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
@@ -192,16 +228,16 @@
   padding: 6px 12px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--content-muted);
   transition: all var(--transition-fast);
 }
 
 .viewButton:hover {
-  color: var(--text-secondary);
+  color: var(--content-default);
 }
 
 .viewButton.active {
-  background: rgba(230, 126, 34, 1);
+  background: var(--accent-primary);
   color: white;
 }
 
@@ -218,25 +254,29 @@
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  width: fit-content;
+  width: 100px;
   height: 28px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
-  background: rgba(187, 194, 209, 0.12);
+  color: var(--content-default);
+  background: var(--content-hover);
   border-radius: 6px;
   transition: all var(--transition-fast);
 }
 
 .testDropdownButton span {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
   font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .testDropdownButton:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--content-hover);
+  color: var(--content-emphasis);
 }
 
 .testDropdownMenu {
@@ -244,7 +284,7 @@
   top: calc(100% + 4px);
   left: 0;
   min-width: 180px;
-  background: var(--bg-elevated);
+  background: var(--bg-surface300);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
@@ -258,14 +298,14 @@
   padding: 8px 12px;
   text-align: left;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--content-default);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
 }
 
 .dropdownItem:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--accent-primary);
+  color: var(--content-emphasis);
 }
 
 .dropdownDivider {
@@ -288,27 +328,30 @@
 }
 
 .testPlayButton {
-  color: #4a9eff;
+  color: var(--content-link);
 }
 
 .testPlayButton:hover {
+  background: var(--content-hover);
   transform: scale(1.05);
 }
 
 .testPauseButton {
-  color: var(--text-secondary);
+  color: var(--content-default);
 }
 
 .testPauseButton:hover {
-  color: var(--text-primary);
+  background: var(--content-hover);
+  color: var(--content-emphasis);
 }
 
 .testStopButton {
-  color: var(--text-secondary);
+  color: var(--content-default);
 }
 
 .testStopButton:hover {
-  color: var(--text-primary);
+  background: var(--content-hover);
+  color: var(--content-emphasis);
 }
 
 .testPauseButton img,
@@ -320,9 +363,11 @@
 
 .searchWrapper {
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
+  justify-content: flex-start;
+  align-items: flex-start;
   width: 100%;
+  color: rgba(0, 0, 0, 0.01);
+  position: relative;
 }
 
 .searchContainer {
@@ -333,32 +378,37 @@
   width: 232px;
   height: 28px;
   max-width: 500px;
-  background: rgba(208, 217, 251, 0.08);
+  background: var(--bg-surface300);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   transition: all var(--transition-fast);
   justify-content: flex-start;
+  color: rgba(40, 41, 49, 1);
+}
+
+.searchContainer:hover {
+  background: var(--content-hover);
 }
 
 .searchContainer:focus-within {
-  border-color: var(--accent-primary);
-  background: var(--bg-surface);
+  background: var(--bg-surface300);
+  color: rgba(40, 41, 49, 1);
 }
 
 .searchIcon {
   width: 16px;
   height: 16px;
   display: block;
-  opacity: 0.7;
+  opacity: 0.4;
   flex-shrink: 0;
 }
 
 .searchInput {
   border: none;
   background: transparent;
-  color: #BBBCBE;
+  color: var(--content-muted);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   outline: none;
   width: 100%;
   min-width: 0;
@@ -366,7 +416,98 @@
 }
 
 .searchInput::placeholder {
-  color: var(--text-muted);
+  color: var(--content-muted);
+}
+
+.clearButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.clearButton:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.searchResultsMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 232px;
+  background: var(--bg-surface200);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.searchResultItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.searchResultItem:hover {
+  background: var(--content-hover);
+}
+
+.resultType {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--content-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.resultInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.resultName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--content-emphasis);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultPath {
+  font-size: 11px;
+  color: var(--content-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.noResults {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--content-muted);
 }
 
 /* Group wrapper divs for icon containers */

@@ -7,6 +7,9 @@
   background: var(--bg-surface200);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .zoneTitle {
@@ -54,10 +57,13 @@
   align-items: center;
   justify-content: space-between;
   height: var(--panel-header-height);
-  padding: 0 12px 0 0;
+  padding: 0;
   background: transparent;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .tabs {

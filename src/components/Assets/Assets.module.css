@@ -13,23 +13,23 @@
 .searchIcon {
   position: absolute;
   left: 8px;
-  color: var(--text-muted);
+  color: var(--content-muted);
   pointer-events: none;
 }
 
 .searchInput {
   width: 120px;
   padding: 5px 8px 5px 26px;
-  background: var(--bg-dark);
+  background: var(--bg-surface0);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   font-size: 11px;
-  color: var(--text-primary);
+  color: var(--content-emphasis);
   transition: all var(--transition-fast);
 }
 
 .searchInput::placeholder {
-  color: var(--text-muted);
+  color: var(--content-muted);
 }
 
 .searchInput:focus {
@@ -39,7 +39,7 @@
 
 .viewToggle {
   display: flex;
-  background: var(--bg-dark);
+  background: var(--bg-surface0);
   border-radius: var(--radius-sm);
 }
 
@@ -67,11 +67,11 @@
 }
 
 .itemRow:hover {
-  background: var(--bg-hover);
+  background: var(--content-hover);
 }
 
 .itemRow.selected {
-  background: var(--accent-subtle);
+  background: var(--content-hover);
 }
 
 .expandBtn {
@@ -80,12 +80,12 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  color: var(--text-muted);
+  color: var(--content-muted);
   flex-shrink: 0;
 }
 
 .expandBtn:hover {
-  color: var(--text-primary);
+  color: var(--content-emphasis);
 }
 
 .spacer {
@@ -96,13 +96,13 @@
 .icon {
   display: flex;
   align-items: center;
-  color: var(--accent-secondary);
+  color: var(--content-link);
   flex-shrink: 0;
 }
 
 .name {
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--content-emphasis);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -133,11 +133,11 @@
 }
 
 .gridItem:hover {
-  background: var(--bg-hover);
+  background: var(--content-hover);
 }
 
 .gridItem.selected {
-  background: var(--accent-subtle);
+  background: var(--content-hover);
 }
 
 .gridIcon {
@@ -146,10 +146,10 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: var(--bg-surface);
+  background: var(--bg-surface200);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  color: var(--accent-secondary);
+  color: var(--content-link);
 }
 
 .gridIcon svg {
@@ -159,12 +159,14 @@
 
 .gridName {
   font-size: 10px;
-  color: var(--text-secondary);
+  color: var(--content-default);
   text-align: center;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
 
 

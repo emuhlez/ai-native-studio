@@ -11,7 +11,8 @@ interface DockZoneRendererProps {
 
 export function DockZoneRenderer({ zone, widgetMap }: DockZoneRendererProps) {
   const widgets = useDockingStore((state) => state.getWidgetsInZone(zone))
-  const getTab = useWidgetMetadataStore((state) => state.getTab)
+  // Subscribe to metadata so we re-render once widgets register themselves.
+  const metadata = useWidgetMetadataStore((state) => state.metadata)
   
   if (widgets.length === 0) {
     return null
@@ -20,11 +21,20 @@ export function DockZoneRenderer({ zone, widgetMap }: DockZoneRendererProps) {
   // If multiple widgets, group them in a tabbed panel
   if (widgets.length > 1) {
     const tabs = widgets
-      .map((widget) => getTab(widget.id))
+      .map((widget) => {
+        const meta = metadata[widget.id]
+        if (!meta) return null
+        return {
+          id: meta.id,
+          title: meta.title,
+          icon: meta.icon,
+          actions: meta.actions,
+        }
+      })
       .filter((tab): tab is NonNullable<typeof tab> => tab !== null)
     
     // If we don't have metadata yet, render widgets normally until metadata is available
-    if (tabs.length === 0) {
+    if (tabs.length !== widgets.length) {
       return (
         <>
           {widgets.map((widget) => (
@@ -41,7 +51,7 @@ export function DockZoneRenderer({ zone, widgetMap }: DockZoneRendererProps) {
       tabContents[widget.id] = widgetMap[widget.id]
     })
     
-    const zoneTitle = zone === 'right-top' ? 'Explorer' : undefined
+    const zoneTitle = undefined
 
     return (
       <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
