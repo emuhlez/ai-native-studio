@@ -4,7 +4,7 @@ import styles from './IconButton.module.css'
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon: ReactNode
   active?: boolean
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   variant?: 'default' | 'ghost' | 'accent'
   tooltip?: string
 }

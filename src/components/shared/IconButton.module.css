@@ -26,6 +26,16 @@
 }
 
 /* Sizes */
+.xs {
+  width: 16px;
+  height: 16px;
+}
+
+.xs svg {
+  width: 14px;
+  height: 14px;
+}
+
 .sm {
   width: 24px;
   height: 24px;

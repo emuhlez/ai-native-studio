@@ -37,12 +37,6 @@
   border-color: var(--accent-primary);
 }
 
-.viewToggle {
-  display: flex;
-  background: var(--bg-surface0);
-  border-radius: var(--radius-sm);
-}
-
 .body {
   display: flex;
   flex: 1;
@@ -196,6 +190,11 @@
   display: none;
 }
 
+/* Row with chevron + icon (e.g. Assets): show expand, keep icon visible */
+.sideNavRowWithChevron .sideNavExpand {
+  visibility: visible;
+}
+
 .sideNavIcon {
   display: flex;
   align-items: center;
@@ -211,6 +210,7 @@
 .sideNavName {
   flex: 1;
   font-size: 14px;
+  font-weight: 400;
   color: var(--content-emphasis);
   white-space: nowrap;
   overflow: hidden;
@@ -238,6 +238,39 @@
   flex: 1;
   min-width: 0;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Permanent row aligned with side nav search (same height: 8 + 28 + 6 = 42px) */
+.contentRow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 42px;
+  padding: 0 12px;
+  background: var(--bg-surface200);
+  border-left: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.contentRowSpacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.contentRowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.contentScroll {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 
