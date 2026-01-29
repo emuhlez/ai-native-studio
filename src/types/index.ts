@@ -62,9 +62,9 @@ export interface ViewportSelectedAsset {
 }
 
 export interface EditorState {
-  selectedObjectId: string | null
+  selectedObjectIds: string[]
   selectedAssetId: string | null
-  viewportSelectedAsset: ViewportSelectedAsset | null
+  viewportSelectedAssetNames: string[]
   isPlaying: boolean
   isPaused: boolean
   activeTool: 'select' | 'move' | 'rotate' | 'scale'

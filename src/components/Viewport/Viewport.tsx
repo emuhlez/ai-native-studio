@@ -7,12 +7,21 @@ export function Viewport() {
   const canvas3DRef = useRef<HTMLDivElement>(null)
   const {
     isPlaying,
-    selectedObjectId,
+    selectedObjectIds,
     gameObjects,
-    viewportSelectedAsset,
+    viewportSelectedAssetNames,
   } = useEditorStore()
-  const selectedObject = selectedObjectId ? gameObjects[selectedObjectId] : null
-  const displaySelection = viewportSelectedAsset ?? (selectedObject ? { name: selectedObject.name } : null)
+  const primaryId = selectedObjectIds.length > 0 ? selectedObjectIds[selectedObjectIds.length - 1] : null
+  const selectedObject = primaryId ? gameObjects[primaryId] : null
+  const primaryName =
+    viewportSelectedAssetNames.length > 0
+      ? viewportSelectedAssetNames[viewportSelectedAssetNames.length - 1]
+      : selectedObject?.name ?? null
+  const hasMulti = selectedObjectIds.length > 1 || viewportSelectedAssetNames.length > 1
+  const displaySelection =
+    primaryName != null
+      ? { name: primaryName, count: hasMulti ? Math.max(selectedObjectIds.length, viewportSelectedAssetNames.length) : 1 }
+      : null
 
   return (
     <div className={styles.viewport}>
@@ -36,8 +45,12 @@ export function Viewport() {
         {/* Selection info – hierarchy object or viewport 3D asset */}
         {displaySelection && (
           <div className={styles.selectionInfo}>
-            <span className={styles.selectionName}>{displaySelection.name}</span>
-            {selectedObject && (
+            <span className={styles.selectionName}>
+              {displaySelection.count > 1
+                ? `${displaySelection.count} selected`
+                : displaySelection.name}
+            </span>
+            {selectedObject && displaySelection.count === 1 && (
               <span className={styles.selectionCoords}>
                 ({selectedObject.transform.position.x.toFixed(1)}, 
                 {selectedObject.transform.position.y.toFixed(1)}, 

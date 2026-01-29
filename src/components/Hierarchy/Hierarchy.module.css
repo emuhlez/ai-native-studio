@@ -10,12 +10,18 @@
   position: relative;
 }
 
-.workspaceGroup::before {
+/* Vertical line for any node with children (Workspace, Drops, nested groups, etc.) */
+.hasChildrenGroup {
+  position: relative;
+}
+
+.hasChildrenGroup::before {
   content: '';
   position: absolute;
-  left: 16px;
+  left: var(--tree-line-left, 16px);
   top: 28px;
   bottom: 0;
+  width: 0;
   border-left: 1px solid var(--border-subtle);
 }
 
@@ -36,11 +42,28 @@
 
 .nodeRow.selected {
   background: var(--content-hover);
-  border-left: 2px solid var(--accent-primary);
 }
 
 .nodeRow.selected:hover {
   background: var(--content-hover);
+}
+
+/* Selected parent (has children): accent tint at 16% */
+.nodeRow.selectedParent {
+  background: rgba(60, 100, 250, 0.16);
+}
+
+.nodeRow.selectedParent:hover {
+  background: rgba(60, 100, 250, 0.16);
+}
+
+/* Selected child (no children): accent tint at 8% */
+.nodeRow.selectedChild {
+  background: rgba(60, 100, 250, 0.08);
+}
+
+.nodeRow.selectedChild:hover {
+  background: rgba(60, 100, 250, 0.08);
 }
 
 .expandBtn {
@@ -90,7 +113,8 @@
   transition: opacity var(--transition-fast);
 }
 
-.nodeRow:hover .nodeActions {
+.nodeRow:hover .nodeActions,
+.nodeRow:has(.actionBtn.active) .nodeActions {
   opacity: 1;
 }
 
@@ -104,13 +128,8 @@
   border-radius: 3px;
 }
 
-.actionBtn:hover {
-  color: var(--content-emphasis);
-  background: var(--content-hover);
-}
-
 .actionBtn.active {
-  color: var(--accent-primary);
+  color: var(--content-emphasis);
 }
 
 .children {

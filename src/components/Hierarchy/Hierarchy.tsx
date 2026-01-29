@@ -66,7 +66,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const { 
     gameObjects, 
-    selectedObjectId, 
+    selectedObjectIds, 
     selectObject,
     updateGameObject 
   } = useEditorStore()
@@ -75,7 +75,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   if (!obj) return null
 
   const hasChildren = obj.children.length > 0
-  const isSelected = selectedObjectId === objectId
+  const isSelected = selectedObjectIds.includes(objectId)
   const isWorkspaceRoot = obj.parentId === null && obj.name === 'Workspace'
 
   const toggleExpanded = (e: React.MouseEvent) => {
@@ -94,11 +94,19 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   }
 
   return (
-    <div className={`${styles.treeNode} ${isWorkspaceRoot ? styles.workspaceGroup : ''}`}>
+    <div
+      className={`${styles.treeNode} ${isWorkspaceRoot ? styles.workspaceGroup : ''} ${hasChildren ? styles.hasChildrenGroup : ''}`}
+      style={hasChildren ? ({ '--tree-line-left': `${depth * 16 + 16}px` } as React.CSSProperties) : undefined}
+    >
       <div
-        className={`${styles.nodeRow} ${isSelected ? styles.selected : ''}`}
+        className={`${styles.nodeRow} ${isSelected ? styles.selected : ''} ${isSelected && hasChildren ? styles.selectedParent : ''} ${isSelected && !hasChildren ? styles.selectedChild : ''}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        onClick={() => selectObject(objectId)}
+        onClick={(e) =>
+          selectObject(objectId, {
+            additive: e.ctrlKey || e.metaKey,
+            range: e.shiftKey,
+          })
+        }
       >
         <button 
           className={`${styles.expandBtn} ${!hasChildren ? styles.hidden : ''}`}

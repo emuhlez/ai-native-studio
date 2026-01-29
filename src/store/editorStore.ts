@@ -14,9 +14,9 @@ interface EditorStore extends EditorState {
   consoleMessages: ConsoleMessage[]
   
   // Actions - Selection
-  selectObject: (id: string | null) => void
+  selectObject: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
   selectAsset: (id: string | null) => void
-  setViewportSelectedAsset: (asset: ViewportSelectedAsset | null) => void
+  setViewportSelectedAsset: (asset: ViewportSelectedAsset | null, options?: { additive?: boolean }) => void
   
   // Actions - Scene
   createGameObject: (type: GameObjectType, name?: string, parentId?: string | null) => string
@@ -215,9 +215,9 @@ const initialAssets: Asset[] = [
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
   // Initial state
-  selectedObjectId: null,
+  selectedObjectIds: [],
   selectedAssetId: null,
-  viewportSelectedAsset: null,
+  viewportSelectedAssetNames: [],
   isPlaying: false,
   isPaused: false,
   activeTool: 'select',
@@ -232,18 +232,99 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   consoleMessages: [],
   
   // Selection
-  selectObject: (id) => set({ selectedObjectId: id, viewportSelectedAsset: null }),
-  selectAsset: (id) => set({ selectedAssetId: id }),
-  setViewportSelectedAsset: (asset) => {
-    if (!asset) {
-      set({ viewportSelectedAsset: null, selectedObjectId: null })
+  selectObject: (id, options) => {
+    if (id == null) {
+      set({ selectedObjectIds: [], viewportSelectedAssetNames: [] })
       return
     }
     const state = get()
     const workspaceId = state.rootObjectIds[0]
     const workspace = state.gameObjects[workspaceId]
-    const matchingId = workspace?.children.find((id) => state.gameObjects[id]?.name === asset.name) ?? null
-    set({ viewportSelectedAsset: asset, selectedObjectId: matchingId })
+
+    const getFlatTreeOrder = (): string[] => {
+      const order: string[] = []
+      const walk = (ids: string[]) => {
+        ids.forEach((objId) => {
+          order.push(objId)
+          const obj = state.gameObjects[objId]
+          if (obj?.children.length) walk(obj.children)
+        })
+      }
+      walk(state.rootObjectIds)
+      return order
+    }
+
+    const idsToNames = (ids: string[]) =>
+      ids
+        .map((objId) => workspace?.children.includes(objId) ? state.gameObjects[objId]?.name : null)
+        .filter((n): n is string => n != null)
+
+    const namesToIds = (names: string[]) =>
+      names
+        .map((name) => workspace?.children.find((cid) => state.gameObjects[cid]?.name === name))
+        .filter((id): id is string => id != null)
+
+    if (options?.range && state.selectedObjectIds.length > 0) {
+      const flat = getFlatTreeOrder()
+      const lastId = state.selectedObjectIds[state.selectedObjectIds.length - 1]
+      const lastIdx = flat.indexOf(lastId)
+      const clickIdx = flat.indexOf(id)
+      if (lastIdx === -1 || clickIdx === -1) {
+        set({ selectedObjectIds: [id], viewportSelectedAssetNames: idsToNames([id]) })
+        return
+      }
+      const [lo, hi] = lastIdx < clickIdx ? [lastIdx, clickIdx] : [clickIdx, lastIdx]
+      const rangeIds = flat.slice(lo, hi + 1)
+      set({ selectedObjectIds: rangeIds, viewportSelectedAssetNames: idsToNames(rangeIds) })
+      return
+    }
+
+    if (options?.additive) {
+      const has = state.selectedObjectIds.includes(id)
+      const newIds = has
+        ? state.selectedObjectIds.filter((x) => x !== id)
+        : [...state.selectedObjectIds, id]
+      set({ selectedObjectIds: newIds, viewportSelectedAssetNames: idsToNames(newIds) })
+      return
+    }
+
+    set({ selectedObjectIds: [id], viewportSelectedAssetNames: idsToNames([id]) })
+  },
+  selectAsset: (id) => set({ selectedAssetId: id }),
+  setViewportSelectedAsset: (asset, options) => {
+    if (!asset) {
+      set({ viewportSelectedAssetNames: [], selectedObjectIds: [] })
+      return
+    }
+    const state = get()
+    const workspaceId = state.rootObjectIds[0]
+    const workspace = state.gameObjects[workspaceId]
+    const matchingId = workspace?.children.find((cid) => state.gameObjects[cid]?.name === asset.name) ?? null
+
+    const namesToIds = (names: string[]) =>
+      names
+        .map((name) => workspace?.children.find((cid) => state.gameObjects[cid]?.name === name))
+        .filter((id): id is string => id != null)
+
+    const idsToNames = (ids: string[]) =>
+      ids
+        .map((objId) => workspace?.children.includes(objId) ? state.gameObjects[objId]?.name : null)
+        .filter((n): n is string => n != null)
+
+    if (options?.additive) {
+      const has = state.viewportSelectedAssetNames.includes(asset.name)
+      const newNames = has
+        ? state.viewportSelectedAssetNames.filter((n) => n !== asset.name)
+        : [...state.viewportSelectedAssetNames, asset.name]
+      const newIds = namesToIds(newNames)
+      set({ viewportSelectedAssetNames: newNames, selectedObjectIds: newIds })
+      return
+    }
+
+    set({
+      viewportSelectedAssetNames: [asset.name],
+      selectedObjectIds: matchingId ? [matchingId] : [],
+    })
   },
   
   // Scene manipulation
@@ -277,7 +358,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         newRootIds = [...state.rootObjectIds, id]
       }
       
-      return { gameObjects: newObjects, rootObjectIds: newRootIds, selectedObjectId: id }
+      return { gameObjects: newObjects, rootObjectIds: newRootIds, selectedObjectIds: [id] }
     })
     
     get().log(`Created ${gameObject.name}`, 'info')
@@ -326,7 +407,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return {
         gameObjects: newObjects,
         rootObjectIds: newRootIds,
-        selectedObjectId: state.selectedObjectId === id ? null : state.selectedObjectId,
+        selectedObjectIds: state.selectedObjectIds.filter((x) => x !== id),
       }
     })
     

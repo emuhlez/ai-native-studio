@@ -6,15 +6,19 @@ import styles from './Inspector.module.css'
 
 export function Inspector() {
   const {
-    selectedObjectId,
+    selectedObjectIds,
     gameObjects,
     updateGameObject,
     deleteGameObject,
-    viewportSelectedAsset,
+    viewportSelectedAssetNames,
   } = useEditorStore()
-  const selectedObject = selectedObjectId ? gameObjects[selectedObjectId] : null
+  const primaryId = selectedObjectIds.length > 0 ? selectedObjectIds[selectedObjectIds.length - 1] : null
+  const selectedObject = primaryId ? gameObjects[primaryId] : null
+  const primaryAssetName =
+    viewportSelectedAssetNames.length > 0 ? viewportSelectedAssetNames[viewportSelectedAssetNames.length - 1] : null
+  const hasMulti = selectedObjectIds.length > 1 || viewportSelectedAssetNames.length > 1
 
-  if (!selectedObject && !viewportSelectedAsset) {
+  if (!selectedObject && !primaryAssetName) {
     return (
       <DockablePanel widgetId="inspector" title="Inspector" icon={<Settings size={16} />}>
         <div className={styles.empty}>
@@ -24,16 +28,21 @@ export function Inspector() {
     )
   }
 
-  if (viewportSelectedAsset && !selectedObject) {
+  if (primaryAssetName && !selectedObject) {
     return (
       <DockablePanel widgetId="inspector" title="Inspector" icon={<Settings size={16} />}>
         <div className={styles.content}>
+          {hasMulti && (
+            <p style={{ fontSize: 12, color: 'var(--content-muted)', margin: '8px 12px' }}>
+              {selectedObjectIds.length || viewportSelectedAssetNames.length} selected. Inspecting last selected.
+            </p>
+          )}
           <section className={styles.section}>
             <div className={styles.header}>
               <div className={styles.checkboxWrapper} />
               <input
                 type="text"
-                value={viewportSelectedAsset.name}
+                value={primaryAssetName}
                 readOnly
                 className={styles.nameInput}
               />
@@ -60,7 +69,7 @@ export function Inspector() {
   if (!selectedObject) return null
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateGameObject(selectedObjectId!, { name: e.target.value })
+    if (primaryId) updateGameObject(primaryId, { name: e.target.value })
   }
 
   const handleTransformChange = (
@@ -68,8 +77,9 @@ export function Inspector() {
     axis: 'x' | 'y' | 'z',
     value: string
   ) => {
+    if (!primaryId) return
     const numValue = parseFloat(value) || 0
-    updateGameObject(selectedObjectId!, {
+    updateGameObject(primaryId, {
       transform: {
         ...selectedObject.transform,
         [component]: {
@@ -90,24 +100,29 @@ export function Inspector() {
           icon={<Trash2 size={14} />}
           tooltip="Delete Object"
           size="sm"
-          onClick={() => deleteGameObject(selectedObjectId!)}
+          onClick={() => primaryId && deleteGameObject(primaryId)}
         />
       }
     >
       <div className={styles.content}>
         {/* Header section */}
         <section className={styles.section}>
-          <div className={styles.header}>
-            <div className={styles.checkboxWrapper}>
-              <input
-                type="checkbox"
-                checked={selectedObject.visible}
-                onChange={(e) =>
-                  updateGameObject(selectedObjectId!, { visible: e.target.checked })
-                }
-                className={styles.checkbox}
-              />
-            </div>
+            {hasMulti && (
+              <p style={{ fontSize: 12, color: 'var(--content-muted)', margin: '8px 12px' }}>
+                {selectedObjectIds.length} selected. Inspecting last selected.
+              </p>
+            )}
+            <div className={styles.header}>
+              <div className={styles.checkboxWrapper}>
+                <input
+                  type="checkbox"
+                  checked={selectedObject.visible}
+                  onChange={(e) =>
+                    primaryId && updateGameObject(primaryId, { visible: e.target.checked })
+                  }
+                  className={styles.checkbox}
+                />
+              </div>
             <input
               type="text"
               value={selectedObject.name}

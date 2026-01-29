@@ -19,6 +19,11 @@ const SELECTION_EMISSIVE_INTENSITY = 0.4
 
 const ORBIT_SENSITIVITY = 0.004
 const ZOOM_SENSITIVITY = 0.001
+/** macOS/iOS use "natural" scroll; invert vertical orbit so drag-up = tilt view up */
+const VERTICAL_ORBIT_INVERTED =
+  typeof navigator !== 'undefined' &&
+  (/Mac|iPhone|iPad|iPod/.test(navigator.platform) ||
+    (navigator as { userAgentData?: { platform: string } }).userAgentData?.platform === 'macOS')
 const MIN_RADIUS = 8
 const MAX_RADIUS = 400
 const MIN_PHI = 0.05
@@ -74,7 +79,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const resetViewRef = useRef(false)
 
-  const viewportSelectedAsset = useEditorStore((s) => s.viewportSelectedAsset)
+  const viewportSelectedAssetNames = useEditorStore((s) => s.viewportSelectedAssetNames)
   const setViewportSelectedAsset = useEditorStore((s) => s.setViewportSelectedAsset)
   const addWorkspaceModel = useEditorStore((s) => s.addWorkspaceModel)
 
@@ -220,7 +225,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     let dragStartX = 0
     let dragStartY = 0
 
-    const performPick = (clientX: number, clientY: number) => {
+    const performPick = (clientX: number, clientY: number, additive: boolean) => {
       const rect = canvas.getBoundingClientRect()
       mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
@@ -229,8 +234,8 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       if (hits.length > 0) {
         const root = findRootWithAssetName(hits[0].object, modelsGroup)
         const name = root?.userData.assetName as string | undefined
-        if (name) setViewportSelectedAsset({ name })
-      } else {
+        if (name) setViewportSelectedAsset({ name }, { additive })
+      } else if (!additive) {
         setViewportSelectedAsset(null)
       }
     }
@@ -253,7 +258,8 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       }
       if (isOrbiting) {
         theta -= dx * ORBIT_SENSITIVITY
-        phi = Math.max(MIN_PHI, Math.min(MAX_PHI, phi + dy * ORBIT_SENSITIVITY))
+        const orbitDy = VERTICAL_ORBIT_INVERTED ? -dy : dy
+        phi = Math.max(MIN_PHI, Math.min(MAX_PHI, phi - orbitDy * ORBIT_SENSITIVITY))
         updateCameraFromOrbit()
         dragStartX = e.clientX
         dragStartY = e.clientY
@@ -263,7 +269,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     const onPointerUp = (e: MouseEvent) => {
       if (e.button !== 0) return
       if (!isOrbiting) {
-        performPick(e.clientX, e.clientY)
+        performPick(e.clientX, e.clientY, e.ctrlKey || e.metaKey || e.shiftKey)
       }
       isOrbiting = false
       canvas.style.cursor = 'grab'
@@ -390,16 +396,16 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     }
   }, [containerRef, setViewportSelectedAsset, addWorkspaceModel])
 
-  // Highlight selected asset
+  // Highlight selected assets
   useEffect(() => {
     const group = modelsGroupRef.current
     if (!group) return
-
+    const names = new Set(viewportSelectedAssetNames)
     group.children.forEach((root) => {
       const name = root.userData.assetName as string | undefined
-      setHighlight(root, !!viewportSelectedAsset && name === viewportSelectedAsset.name)
+      setHighlight(root, !!name && names.has(name))
     })
-  }, [viewportSelectedAsset])
+  }, [viewportSelectedAssetNames])
 
   return null
 }

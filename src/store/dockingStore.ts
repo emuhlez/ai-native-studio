@@ -1,14 +1,30 @@
 import { create } from 'zustand'
 import type { DockZone, DockedWidget } from '../types'
 
+export const DEFAULT_LEFT_WIDTH = 280
+export const DEFAULT_RIGHT_WIDTH = 320
+export const DEFAULT_CENTER_BOTTOM_HEIGHT = 220
+export const DEFAULT_RIGHT_BOTTOM_HEIGHT = 220
+
+export type PanelSizeKey = 'leftWidth' | 'rightWidth' | 'centerBottomHeight' | 'rightBottomHeight'
+
+interface PanelSizes {
+  leftWidth: number
+  rightWidth: number
+  centerBottomHeight: number
+  rightBottomHeight: number
+}
+
 interface DockingStore {
   widgets: Record<string, DockedWidget>
-  
+  panelSizes: PanelSizes
+
   // Actions
   dockWidget: (widgetId: string, zone: DockZone, order?: number) => void
   undockWidget: (widgetId: string) => void
   moveWidget: (widgetId: string, newZone: DockZone, newOrder: number) => void
   getWidgetsInZone: (zone: DockZone) => DockedWidget[]
+  setPanelSize: (key: PanelSizeKey, value: number) => void
 }
 
 export const useDockingStore = create<DockingStore>((set, get) => ({
@@ -18,6 +34,12 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
     explorer: { id: 'explorer', zone: 'right-top', order: 0 },
     assets: { id: 'assets', zone: 'center-bottom', order: 0 },
     console: { id: 'console', zone: 'right-top', order: 1 },
+  },
+  panelSizes: {
+    leftWidth: DEFAULT_LEFT_WIDTH,
+    rightWidth: DEFAULT_RIGHT_WIDTH,
+    centerBottomHeight: DEFAULT_CENTER_BOTTOM_HEIGHT,
+    rightBottomHeight: DEFAULT_RIGHT_BOTTOM_HEIGHT,
   },
   
   dockWidget: (widgetId, zone, order) => {
@@ -90,6 +112,14 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
     return Object.values(get().widgets)
       .filter((w) => w.zone === zone)
       .sort((a, b) => a.order - b.order)
+  },
+
+  setPanelSize: (key, value) => {
+    const min = key === 'leftWidth' ? 200 : key === 'rightWidth' ? 260 : 120
+    const clamped = Math.max(min, value)
+    set((state) => ({
+      panelSizes: { ...state.panelSizes, [key]: clamped },
+    }))
   },
 }))
 

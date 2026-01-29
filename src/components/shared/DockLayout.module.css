@@ -2,15 +2,45 @@
   display: flex;
   flex: 1;
   overflow: hidden;
-  gap: 1px;
+  gap: 0;
   background: var(--bg-darkest);
   position: relative;
+}
+
+/* Resize handles – thin divider, subtle on hover, cursor indicates direction */
+.resizeHandle {
+  flex-shrink: 0;
+  background: transparent;
+  transition: background 0.12s ease;
+  z-index: 2;
+}
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--border-subtle);
+}
+
+.resizeHandle_e {
+  width: 2px;
+  min-width: 2px;
+  cursor: ew-resize;
+}
+.resizeHandle_w {
+  width: 2px;
+  min-width: 2px;
+  cursor: ew-resize;
+}
+.resizeHandle_n,
+.resizeHandle_s {
+  height: 1px;
+  min-height: 1px;
+  cursor: ns-resize;
 }
 
 .leftColumn {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  position: relative;
 }
 
 .leftColumn.emptyColumn {
@@ -26,13 +56,40 @@
   pointer-events: auto; /* Re-enable for drop zones */
 }
 
+.resizeHandleLeft {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  min-width: 2px;
+}
+
+.resizeHandleRight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  min-width: 2px;
+}
+
+.resizeHandleCenterBottom,
+.resizeHandleRightSplit {
+  flex-shrink: 0;
+  height: 1px;
+  min-height: 1px;
+}
+
 .rightColumn {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 1px;
+  gap: 0;
   width: 320px;
   min-width: 260px;
+  position: relative;
+  background: var(--bg-panel);
 }
 
 .rightTop {
@@ -40,7 +97,7 @@
   min-height: 0;
   display: flex;
   flex-direction: row;
-  gap: 1px;
+  gap: 0;
 }
 
 .rightBottom {
@@ -48,16 +105,16 @@
   min-height: 0;
   display: flex;
   flex-direction: row;
-  gap: 1px;
+  gap: 0;
 }
 
 .rightColumn.emptyColumn {
   width: 0;
   min-width: 0;
-  overflow: visible; /* Changed to visible so drop targets work */
+  overflow: visible; /* so drop targets work */
   border: none;
   flex-shrink: 0;
-  pointer-events: none; /* Prevent interaction when empty */
+  pointer-events: none;
 }
 
 .rightColumn.emptyColumn > * {
@@ -69,7 +126,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 1px;
+  gap: 0;
 }
 
 .centerColumn.emptyColumn {
@@ -81,14 +138,14 @@
   min-height: 300px;
   display: flex;
   flex-direction: row;
-  gap: 1px;
+  gap: 0;
 }
 
 .centerBottom {
   height: 220px;
   display: flex;
   flex-direction: row;
-  gap: 1px;
+  gap: 0;
   min-height: 0;
   transition: height 0.15s ease, min-height 0.15s ease, overflow 0.15s ease;
 }
@@ -114,8 +171,8 @@
 }
 
 .dockZone.left {
-  width: 280px;
-  min-width: 200px;
+  width: 100%;
+  min-width: 0;
   background: var(--bg-panel);
   border-right: 1px solid var(--border-subtle);
 }
