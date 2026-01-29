@@ -224,6 +224,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     let isOrbiting = false
     let dragStartX = 0
     let dragStartY = 0
+    let pointerSessionStartedOnCanvas = false
 
     const performPick = (clientX: number, clientY: number, additive: boolean) => {
       const rect = canvas.getBoundingClientRect()
@@ -242,6 +243,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
 
     const onPointerDown = (e: MouseEvent) => {
       if (e.button !== 0) return
+      pointerSessionStartedOnCanvas = true
       ;(canvas as HTMLCanvasElement).focus()
       dragStartX = e.clientX
       dragStartY = e.clientY
@@ -250,6 +252,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
 
     const onPointerMove = (e: MouseEvent) => {
       if (e.buttons !== 1) return
+      if (!pointerSessionStartedOnCanvas) return
       const dx = e.clientX - dragStartX
       const dy = e.clientY - dragStartY
       if (!isOrbiting && (Math.abs(dx) > DRAG_THRESHOLD_PX || Math.abs(dy) > DRAG_THRESHOLD_PX)) {
@@ -268,9 +271,10 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
 
     const onPointerUp = (e: MouseEvent) => {
       if (e.button !== 0) return
-      if (!isOrbiting) {
+      if (pointerSessionStartedOnCanvas && !isOrbiting) {
         performPick(e.clientX, e.clientY, e.ctrlKey || e.metaKey || e.shiftKey)
       }
+      pointerSessionStartedOnCanvas = false
       isOrbiting = false
       canvas.style.cursor = 'grab'
     }
