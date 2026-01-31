@@ -147,7 +147,6 @@
   user-select: none;
 }
 
-/* Tree rows – same structure as Explorer (expand spacer, icon, name) */
 .sideNavRow {
   display: flex;
   align-items: center;
@@ -188,6 +187,10 @@
 
 .sideNavRowProject .sideNavIcon {
   display: none;
+}
+
+.sideNavRowProject .sideNavName {
+  font-weight: 600;
 }
 
 /* Row with chevron + icon (e.g. Assets): show expand, keep icon visible */
@@ -268,126 +271,132 @@
   flex-shrink: 0;
 }
 
+.contentRowSeparator {
+  width: 1px;
+  height: 16px;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.importButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  min-height: 24px;
+  padding: 0 12px;
+  margin: 0;
+  border: none;
+  background: rgba(208, 217, 251, 0.12); /* #D0D9FB at 12% */
+  color: var(--content-emphasis);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.importButton:hover {
+  background: rgba(208, 217, 251, 0.2);
+}
+
 .contentScroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 
-.tree {
-  padding: 8px 0;
-}
-
-.assetItem {
-  user-select: none;
-}
-
-.itemRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 26px;
-  padding-right: 8px;
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-
-.itemRow:hover {
-  background: var(--content-hover);
-}
-
-.itemRow.selected {
-  background: var(--content-hover);
-}
-
-.expandBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  color: var(--content-muted);
-  flex-shrink: 0;
-}
-
-.expandBtn:hover {
-  color: var(--content-emphasis);
-}
-
-.spacer {
-  width: 16px;
-  flex-shrink: 0;
-}
-
-.icon {
-  display: flex;
-  align-items: center;
-  color: var(--content-link);
-  flex-shrink: 0;
-}
-
-.name {
-  font-size: 12px;
-  color: var(--content-emphasis);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.children {
-  /* Children styling */
-}
-
-/* Grid view */
-.grid {
+/* Grid view – tile structure based on AM-tile.svg (109×157, preview 108×108 rx 8, label below) */
+.gridView {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   padding: 12px;
 }
 
-.gridItem {
+.assetTile {
+  width: 109px;
+  height: 157px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 70px;
-  padding: 10px 6px;
-  border-radius: var(--radius-sm);
+  flex-shrink: 0;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  padding: 0;
+  box-sizing: border-box;
+  transition: background var(--transition-fast), padding var(--transition-fast), width var(--transition-fast), height var(--transition-fast), margin var(--transition-fast);
+  border-radius: 8px;
 }
 
-.gridItem:hover {
+/* Hover: 4px padding without shrinking content – tile grows so content area stays 109×157 */
+.assetTile:hover {
   background: var(--content-hover);
+  padding: 4px;
+  width: 117px;
+  height: 165px;
+  margin: -4px;
 }
 
-.gridItem.selected {
-  background: var(--content-hover);
+/* Pressed (:active): same 4px padding/size, blue highlight */
+.assetTile:active {
+  background: rgba(60, 100, 250, 0.08);
+  padding: 4px;
+  width: 117px;
+  height: 165px;
+  margin: -4px;
 }
 
-.gridIcon {
+/* Selected: same 4px padding/size so content doesn’t shrink */
+.assetTile.selected {
+  background: rgba(60, 100, 250, 0.08);
+  padding: 4px;
+  width: 117px;
+  height: 165px;
+  margin: -4px;
+}
+
+.assetTile.selected:hover {
+  background: rgba(60, 100, 250, 0.08);
+}
+
+.assetTilePreview {
+  width: 100%;
+  height: 108px;
+  min-height: 108px;
+  border-radius: 8px;
+  background: rgba(208, 217, 251, 0.08); /* #D0D9FB at 8% */
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--content-link);
+  flex-shrink: 0;
+}
+
+.assetTilePreview svg {
   width: 40px;
   height: 40px;
-  background: var(--bg-surface200);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--content-link);
 }
 
-.gridIcon svg {
-  width: 20px;
-  height: 20px;
+.assetTileLabel {
+  flex-shrink: 0;
+  padding: 6px 4px 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--content-emphasis);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
 }
 
-.gridName {
-  font-size: 10px;
-  color: var(--content-default);
-  text-align: center;
-  max-width: 100%;
+.assetTileSublabel {
+  flex-shrink: 0;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--content-muted);
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

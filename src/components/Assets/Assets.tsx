@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import {
   Folder,
-  FolderOpen,
   Image,
   FileCode,
   Volume2,
@@ -40,82 +39,13 @@ const assetIcons: Record<Asset['type'], React.ReactNode> = {
   scene: <Film size={14} />,
 }
 
-interface AssetItemProps {
-  asset: Asset
-  depth: number
-  viewMode: 'list' | 'grid'
-}
-
-function AssetItem({ asset, depth, viewMode }: AssetItemProps) {
-  const [isExpanded, setIsExpanded] = useState(true)
-  const { selectedAssetId, selectAsset } = useEditorStore()
-  const isSelected = selectedAssetId === asset.id
-  const isFolder = asset.type === 'folder'
-  const hasChildren = asset.children && asset.children.length > 0
-
-  if (viewMode === 'grid' && !isFolder) {
-    return (
-      <div
-        className={`${styles.gridItem} ${isSelected ? styles.selected : ''}`}
-        onClick={() => selectAsset(asset.id)}
-      >
-        <div className={styles.gridIcon}>{assetIcons[asset.type]}</div>
-        <span className={styles.gridName}>{asset.name}</span>
-      </div>
-    )
-  }
-
-  return (
-    <div className={styles.assetItem}>
-      <div
-        className={`${styles.itemRow} ${isSelected ? styles.selected : ''}`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        onClick={() => selectAsset(asset.id)}
-      >
-        {isFolder && (
-          <button
-            className={styles.expandBtn}
-            onClick={(e) => {
-              e.stopPropagation()
-              setIsExpanded(!isExpanded)
-            }}
-          >
-            {isExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
-          </button>
-        )}
-        {!isFolder && <span className={styles.spacer} />}
-        <span className={styles.icon}>
-          {isFolder && isExpanded ? <FolderOpen size={14} /> : assetIcons[asset.type]}
-        </span>
-        <span className={styles.name}>{asset.name}</span>
-      </div>
-
-      {isFolder && hasChildren && isExpanded && (
-        <div className={styles.children}>
-          {asset.children!.map((child) => (
-            <AssetItem key={child.id} asset={child} depth={depth + 1} viewMode={viewMode} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 const SPECIAL_NAV_ITEMS = [
-  { id: 'recent', label: 'Recent', icon: <img src="/icons/recent.svg" alt="Recent" width={16} height={16} /> },
-  { id: 'favorites', label: 'Favorites', icon: <img src="/icons/favorites.svg" alt="Favorites" width={16} height={16} /> },
-  { id: 'import-queue', label: 'Import Queue', icon: <img src="/icons/import-queue.svg" alt="Import Queue" width={16} height={16} /> },
+  { id: 'recent', label: 'Recently Imported', icon: <img src="/icons/recently-imported.svg" alt="Recently Imported" width={16} height={16} /> },
+  { id: 'import-queue', label: 'Experience Name', icon: <img src="/icons/experience-folder.svg" alt="Experience Name" width={16} height={16} /> },
 ] as const
 
-/* Nested folders under Assets (replacing Audio, Scripts, Materials, Prefabs as top-level rows) */
-const NESTED_ASSET_FOLDERS = [
-  { id: 'assets-natural', label: 'Natural' },
-  { id: 'assets-architecture', label: 'Architecture' },
-  { id: 'assets-npcs', label: "NPC's" },
-  { id: 'assets-junk', label: 'Junk' },
-] as const
-
-const nestedFolderIcon = <img src="/icons/folder.svg" alt="" width={16} height={16} />
+const INVENTORIES_NAV_ID = 'inventories'
+const EHOPE_NAV_ID = 'ehopehopehope'
 
 const topLevelFolderIcons: Record<string, React.ReactNode> = {
   Sprites: <Image size={16} />,
@@ -131,12 +61,13 @@ const SIDE_NAV_MAX = 400
 const SIDE_NAV_DEFAULT = 220
 
 export function Assets() {
-  const { assets } = useEditorStore()
+  const { assets, selectedAssetId, selectAsset } = useEditorStore()
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
+  const [projectExpanded, setProjectExpanded] = useState(true)
+  const [inventoriesExpanded, setInventoriesExpanded] = useState(true)
   const [assetsExpanded, setAssetsExpanded] = useState(true)
-  const [nestedExpanded, setNestedExpanded] = useState<Record<string, boolean>>({})
   const [sideNavWidth, setSideNavWidth] = useState(SIDE_NAV_DEFAULT)
   const resizeStartRef = useRef({ x: 0, w: 0 })
 
@@ -145,20 +76,16 @@ export function Assets() {
   }
   const isTopFolderExpanded = (folderName: string) =>
     folderName === 'Sprites' ? assetsExpanded : false
-  const toggleNested = (id: string) =>
-    setNestedExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   /* Only show Assets (Sprites) in side nav; Audio, Scripts, Materials, Prefabs, Scenes are not in side nav */
   const sideNavTopFolders = topLevelFolders.filter((f) => f.name === 'Sprites')
-  const isNestedAssetId = (id: string | null): id is string =>
-    id !== null && NESTED_ASSET_FOLDERS.some((n) => n.id === id)
   const isSpecialNavId = (id: string | null): id is string =>
-    id !== null && SPECIAL_NAV_ITEMS.some((s) => s.id === id)
+    id !== null && (SPECIAL_NAV_ITEMS.some((s) => s.id === id) || id === INVENTORIES_NAV_ID || id === EHOPE_NAV_ID)
   const displayAssets: Asset[] =
     selectedNavId === null
       ? assets
-      : isSpecialNavId(selectedNavId) || isNestedAssetId(selectedNavId)
+      : isSpecialNavId(selectedNavId)
         ? []
         : topLevelFolders.find((f) => f.id === selectedNavId)
           ? [topLevelFolders.find((f) => f.id === selectedNavId)!]
@@ -220,115 +147,123 @@ export function Assets() {
           </div>
           <nav className={styles.sideNav} aria-label="Asset categories">
             <div className={styles.sideNavTree}>
-              <div
-                className={`${styles.sideNavRow} ${styles.sideNavRowProject} ${selectedNavId === null ? styles.sideNavRowSelected : ''}`}
-                style={{ paddingLeft: '8px' }}
-                onClick={() => setSelectedNavId(null)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(null)}
-              >
-                <span className={styles.sideNavExpand}>
-                  <ExpandDownIcon />
-                </span>
-                <span className={styles.sideNavIcon} aria-hidden />
-                <span className={styles.sideNavName}>Project</span>
-              </div>
-              {SPECIAL_NAV_ITEMS.map((item) => (
+              <div>
                 <div
-                  key={item.id}
-                  className={`${styles.sideNavRow} ${selectedNavId === item.id ? styles.sideNavRowSelected : ''}`}
+                  className={`${styles.sideNavRow} ${styles.sideNavRowProject}`}
                   style={{ paddingLeft: '8px' }}
-                  onClick={() => setSelectedNavId(item.id)}
+                  onClick={() => setProjectExpanded(!projectExpanded)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(item.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && setProjectExpanded((p) => !p)}
                 >
-                  <span className={styles.sideNavExpand} aria-hidden />
-                  <span className={styles.sideNavIcon}>{item.icon}</span>
-                  <span className={styles.sideNavName}>{item.label}</span>
+                  <span className={styles.sideNavExpand} aria-hidden={false}>
+                    {projectExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
+                  </span>
+                  <span className={styles.sideNavIcon} aria-hidden />
+                  <span className={styles.sideNavName}>Project</span>
                 </div>
-              ))}
-              {sideNavTopFolders.map((folder) => {
-                const isAssetsRow = folder.name === 'Sprites'
-                const topExpanded = isTopFolderExpanded(folder.name)
-                return (
-                  <div key={folder.id}>
+                {projectExpanded && (
+                  <>
+                    {SPECIAL_NAV_ITEMS.map((item) => {
+                      const isExperienceName = item.id === 'import-queue'
+                      return (
+                        <div
+                          key={item.id}
+                          className={`${styles.sideNavRow} ${isExperienceName ? styles.sideNavRowWithChevron : ''} ${selectedNavId === item.id ? styles.sideNavRowSelected : ''}`}
+                          style={{ paddingLeft: '24px' }}
+                          onClick={() => setSelectedNavId(item.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(item.id)}
+                        >
+                          <span className={styles.sideNavExpand} aria-hidden={!isExperienceName}>
+                            {isExperienceName ? <ExpandDownIcon /> : null}
+                          </span>
+                          <span className={styles.sideNavIcon}>{item.icon}</span>
+                          <span className={styles.sideNavName}>{item.label}</span>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+              </div>
+              <div>
+                <div
+                  className={`${styles.sideNavRow} ${styles.sideNavRowProject}`}
+                  style={{ paddingLeft: '8px' }}
+                  onClick={() => setInventoriesExpanded(!inventoriesExpanded)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && setInventoriesExpanded((i) => !i)}
+                >
+                  <span className={styles.sideNavExpand} aria-hidden={false}>
+                    {inventoriesExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
+                  </span>
+                  <span className={styles.sideNavIcon} aria-hidden />
+                  <span className={styles.sideNavName}>Inventories</span>
+                </div>
+                {inventoriesExpanded && (
+                  <>
+                    {sideNavTopFolders.map((folder) => {
+                      const isAssetsRow = folder.name === 'Sprites'
+                      const topExpanded = isTopFolderExpanded(folder.name)
+                      return (
+                        <div
+                          key={folder.id}
+                          className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === folder.id ? styles.sideNavRowSelected : ''}`}
+                          style={{ paddingLeft: '24px' }}
+                          onClick={() => setSelectedNavId(folder.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(folder.id)}
+                        >
+                          <span
+                            className={styles.sideNavExpand}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setFolderExpanded(folder.name, !topExpanded)
+                            }}
+                            role="button"
+                            aria-hidden={false}
+                          >
+                            {topExpanded ? (
+                              <ExpandDownIcon />
+                            ) : (
+                              <ExpandRightIcon />
+                            )}
+                          </span>
+                          <span className={styles.sideNavIcon}>
+                            {isAssetsRow ? (
+                              <img src="/icons/group-inventory.svg" alt="AlphaStrike" width={16} height={16} />
+                            ) : (
+                              topLevelFolderIcons[folder.name] ?? <Folder size={16} />
+                            )}
+                          </span>
+                          <span className={styles.sideNavName}>
+                            {isAssetsRow ? 'AlphaStrike' : folder.name}
+                          </span>
+                        </div>
+                      )
+                    })}
                     <div
-                      className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === folder.id ? styles.sideNavRowSelected : ''}`}
-                      style={{ paddingLeft: '8px' }}
-                      onClick={() => setSelectedNavId(folder.id)}
+                      className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === EHOPE_NAV_ID ? styles.sideNavRowSelected : ''}`}
+                      style={{ paddingLeft: '24px' }}
+                      onClick={() => setSelectedNavId(EHOPE_NAV_ID)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(folder.id)}
+                      onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(EHOPE_NAV_ID)}
                     >
-                      <span
-                        className={styles.sideNavExpand}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setFolderExpanded(folder.name, !topExpanded)
-                        }}
-                        role="button"
-                        aria-hidden={false}
-                      >
-                        {topExpanded ? (
-                          <ExpandDownIcon />
-                        ) : (
-                          <ExpandRightIcon />
-                        )}
+                      <span className={styles.sideNavExpand}>
+                        <ExpandDownIcon />
                       </span>
                       <span className={styles.sideNavIcon}>
-                        {isAssetsRow ? (
-                          <img src="/icons/folder.svg" alt="Assets" width={16} height={16} />
-                        ) : (
-                          topLevelFolderIcons[folder.name] ?? <Folder size={16} />
-                        )}
+                        <img src="/icons/inventory.svg" alt="ehopehopehope" width={16} height={16} />
                       </span>
-                      <span className={styles.sideNavName}>
-                        {isAssetsRow ? 'Assets' : folder.name}
-                      </span>
+                      <span className={styles.sideNavName}>ehopehopehope</span>
                     </div>
-                    {isAssetsRow && assetsExpanded &&
-                      NESTED_ASSET_FOLDERS.map((nest) => {
-                        const nestExpanded = nestedExpanded[nest.id] ?? false
-                        return (
-                          <div key={nest.id}>
-                            <div
-                              className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === nest.id ? styles.sideNavRowSelected : ''}`}
-                              style={{ paddingLeft: '26px' }}
-                              onClick={() => setSelectedNavId(nest.id)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(nest.id)}
-                            >
-                              <span
-                                className={styles.sideNavExpand}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  toggleNested(nest.id)
-                                }}
-                                role="button"
-                                aria-hidden={false}
-                              >
-                                {nestExpanded ? (
-                                  <ExpandDownIcon />
-                                ) : (
-                                  <ExpandRightIcon />
-                                )}
-                              </span>
-                              <span className={styles.sideNavIcon}>{nestedFolderIcon}</span>
-                              <span className={styles.sideNavName}>{nest.label}</span>
-                            </div>
-                            {nestExpanded && (
-                              /* placeholder for future sub-children */
-                              null
-                            )}
-                          </div>
-                        )
-                      })}
-                  </div>
-                )
-              })}
+                  </>
+                )}
+              </div>
             </div>
           </nav>
           <div
@@ -344,26 +279,43 @@ export function Assets() {
           <div className={styles.contentRow}>
             <div className={styles.contentRowSpacer} aria-hidden />
             <div className={styles.contentRowActions}>
-              <IconButton icon={<img src="/icons/type.svg" alt="Import Asset" width={24} height={24} />} size="sm" tooltip="Import Asset" />
-              <IconButton icon={<img src="/icons/collaborators.svg" alt="Collaborators" width={24} height={24} />} size="sm" tooltip="Collaborators" />
-              <IconButton icon={<img src="/icons/sort-by.svg" alt="Sort by" width={24} height={24} />} size="sm" tooltip="Sort by" />
-              <IconButton icon={<img src="/icons/grid.svg" alt="Grid" width={24} height={24} />} size="sm" tooltip="Grid" />
+              <IconButton icon={<img src="/icons/refresh.svg" alt="Import Asset" width={16} height={16} />} size="xs" tooltip="Import Asset" />
+              <IconButton icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />} size="xs" tooltip="Filter" />
+              <IconButton icon={<img src="/icons/list-view.svg" alt="List view" width={16} height={16} />} size="xs" tooltip="List view" />
+              <div className={styles.contentRowSeparator} aria-hidden />
+              <button type="button" className={styles.importButton} title="Import" aria-label="Import">
+                <span>Import</span>
+              </button>
             </div>
           </div>
           <div className={styles.contentScroll}>
-            {viewMode === 'list' ? (
-              <div className={styles.tree}>
-                {displayAssets.map((asset) => (
-                  <AssetItem key={asset.id} asset={asset} depth={0} viewMode={viewMode} />
-                ))}
-              </div>
-            ) : (
-              <div className={styles.grid}>
-                {displayAssets.map((asset) => (
-                  <AssetItem key={asset.id} asset={asset} depth={0} viewMode={viewMode} />
-                ))}
-              </div>
-            )}
+            <div className={styles.gridView}>
+              {displayAssets.map((asset) => {
+                const isSelected = selectedAssetId === asset.id
+                const isFolder = asset.type === 'folder'
+                const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={40} height={40} /> : assetIcons[asset.type]
+                return (
+                  <div
+                    key={asset.id}
+                    className={`${styles.assetTile} ${isSelected ? styles.selected : ''}`}
+                    onClick={() => selectAsset(isSelected ? null : asset.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && selectAsset(isSelected ? null : asset.id)}
+                  >
+                    <div className={styles.assetTilePreview}>
+                      {icon}
+                    </div>
+                    <span className={styles.assetTileLabel} title={asset.name === 'Sprites' ? 'Interior Props' : asset.name}>
+                      {asset.name === 'Sprites' ? 'Interior Props' : asset.name}
+                    </span>
+                    <span className={styles.assetTileSublabel}>
+                      {asset.type.charAt(0).toUpperCase() + asset.type.slice(1)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
