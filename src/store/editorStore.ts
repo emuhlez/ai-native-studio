@@ -40,6 +40,9 @@ interface EditorStore extends EditorState {
   // Actions - Console
   log: (message: string, type?: ConsoleMessage['type'], source?: string) => void
   clearConsole: () => void
+
+  // Actions - Assets
+  importAssets: (files: File[]) => void
 }
 
 const createDefaultTransform = () => ({
@@ -507,6 +510,61 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     }))
   },
   clearConsole: () => set({ consoleMessages: [] }),
+
+  // Assets
+  importAssets: (files) => {
+    const EXCLUDED_EXT = new Set(['.gif', '.pdf'])
+    const EXT_TO_TYPE: Record<string, Asset['type']> = {
+      '.gltf': 'model', '.glb': 'model', '.fbx': 'model', '.obj': 'model', '.dae': 'model',
+      '.mp3': 'audio', '.mp4': 'audio', '.m4a': 'audio', '.wav': 'audio', '.ogg': 'audio', '.aac': 'audio', '.flac': 'audio',
+      '.mov': 'video', '.webm': 'video', '.avi': 'video', '.mkv': 'video',
+      '.png': 'texture', '.jpg': 'texture', '.jpeg': 'texture', '.webp': 'texture', '.tga': 'texture', '.tif': 'texture', '.tiff': 'texture', '.bmp': 'texture',
+      '.js': 'script', '.ts': 'script', '.cjs': 'script', '.mjs': 'script',
+      '.mat': 'material',
+      '.prefab': 'prefab',
+      '.scene': 'scene',
+    }
+    const TYPE_TO_FOLDER: Record<Asset['type'], string> = {
+      texture: 'Sprites', model: 'Models', audio: 'Audio', video: 'Videos',
+      script: 'Scripts', material: 'Materials', prefab: 'Prefabs', scene: 'Scenes', folder: 'Sprites',
+    }
+
+    const toAdd: { file: File; type: Asset['type'] }[] = []
+    for (const file of files) {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase() ?? ''
+      if (EXCLUDED_EXT.has(ext)) continue
+      const type = EXT_TO_TYPE[ext]
+      if (!type) continue
+      toAdd.push({ file, type })
+    }
+    if (toAdd.length === 0) return
+
+    set((state) => {
+      const assets = state.assets.map((a) => ({ ...a, children: a.children ? [...a.children] : [] }))
+      const ensureFolder = (name: string): Asset => {
+        let folder = assets.find((a) => a.type === 'folder' && a.name === name)
+        if (!folder) {
+          folder = { id: uuid(), name, type: 'folder', path: `/${name}`, children: [] }
+          assets.push(folder)
+        }
+        return folder
+      }
+
+      for (const { file, type } of toAdd) {
+        const folderName = TYPE_TO_FOLDER[type]
+        const folder = ensureFolder(folderName)
+        const path = `${folder.path}/${file.name}`
+        const child: Asset = {
+          id: uuid(),
+          name: file.name,
+          type,
+          path,
+        }
+        folder.children = [...(folder.children ?? []), child]
+      }
+      return { assets }
+    })
+  },
 }))
 
 

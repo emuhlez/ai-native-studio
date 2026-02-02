@@ -43,7 +43,7 @@ export interface Component {
 export interface Asset {
   id: string
   name: string
-  type: 'texture' | 'model' | 'audio' | 'script' | 'material' | 'prefab' | 'scene' | 'folder'
+  type: 'texture' | 'model' | 'audio' | 'video' | 'script' | 'material' | 'prefab' | 'scene' | 'folder'
   path: string
   thumbnail?: string
   children?: Asset[]

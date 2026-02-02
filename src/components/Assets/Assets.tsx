@@ -7,6 +7,7 @@ import {
   Box,
   Layers,
   Film,
+  Video,
   X,
 } from 'lucide-react'
 
@@ -26,6 +27,7 @@ import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
+import { AssetTile } from './AssetTile'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -33,6 +35,7 @@ const assetIcons: Record<Asset['type'], React.ReactNode> = {
   texture: <Image size={14} />,
   model: <Box size={14} />,
   audio: <Volume2 size={14} />,
+  video: <Video size={14} />,
   script: <FileCode size={14} />,
   material: <Layers size={14} />,
   prefab: <Box size={14} />,
@@ -40,7 +43,7 @@ const assetIcons: Record<Asset['type'], React.ReactNode> = {
 }
 
 const SPECIAL_NAV_ITEMS = [
-  { id: 'recent', label: 'Recently Imported', icon: <img src="/icons/recently-imported.svg" alt="Recently Imported" width={16} height={16} /> },
+  { id: 'recent', label: 'Import Queue', icon: <img src="/icons/recently-imported.svg" alt="Import Queue" width={16} height={16} /> },
   { id: 'import-queue', label: 'Experience Name', icon: <img src="/icons/experience-folder.svg" alt="Experience Name" width={16} height={16} /> },
 ] as const
 
@@ -60,8 +63,11 @@ const SIDE_NAV_MIN = 220
 const SIDE_NAV_MAX = 400
 const SIDE_NAV_DEFAULT = 220
 
+/** Accepted file extensions for import (excludes gif, pdf) */
+const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
+
 export function Assets() {
-  const { assets, selectedAssetId, selectAsset } = useEditorStore()
+  const { assets, selectedAssetId, selectAsset, importAssets } = useEditorStore()
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
@@ -70,6 +76,7 @@ export function Assets() {
   const [assetsExpanded, setAssetsExpanded] = useState(true)
   const [sideNavWidth, setSideNavWidth] = useState(SIDE_NAV_DEFAULT)
   const resizeStartRef = useRef({ x: 0, w: 0 })
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const setFolderExpanded = (folderName: string, expanded: boolean) => {
     if (folderName === 'Sprites') setAssetsExpanded(expanded)
@@ -283,7 +290,25 @@ export function Assets() {
               <IconButton icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />} size="xs" tooltip="Filter" />
               <IconButton icon={<img src="/icons/list-view.svg" alt="List view" width={16} height={16} />} size="xs" tooltip="List view" />
               <div className={styles.contentRowSeparator} aria-hidden />
-              <button type="button" className={styles.importButton} title="Import" aria-label="Import">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={IMPORT_ACCEPT}
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const files = e.target.files ? Array.from(e.target.files) : []
+                  if (files.length) importAssets(files)
+                  e.target.value = ''
+                }}
+              />
+              <button
+                type="button"
+                className={styles.importButton}
+                title="Import"
+                aria-label="Import"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <span>Import</span>
               </button>
             </div>
@@ -294,25 +319,18 @@ export function Assets() {
                 const isSelected = selectedAssetId === asset.id
                 const isFolder = asset.type === 'folder'
                 const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={40} height={40} /> : assetIcons[asset.type]
+                const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
+                const typeLabel = asset.type.charAt(0).toUpperCase() + asset.type.slice(1)
                 return (
-                  <div
+                  <AssetTile
                     key={asset.id}
-                    className={`${styles.assetTile} ${isSelected ? styles.selected : ''}`}
-                    onClick={() => selectAsset(isSelected ? null : asset.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && selectAsset(isSelected ? null : asset.id)}
-                  >
-                    <div className={styles.assetTilePreview}>
-                      {icon}
-                    </div>
-                    <span className={styles.assetTileLabel} title={asset.name === 'Sprites' ? 'Interior Props' : asset.name}>
-                      {asset.name === 'Sprites' ? 'Interior Props' : asset.name}
-                    </span>
-                    <span className={styles.assetTileSublabel}>
-                      {asset.type.charAt(0).toUpperCase() + asset.type.slice(1)}
-                    </span>
-                  </div>
+                    id={asset.id}
+                    name={displayName}
+                    typeLabel={typeLabel}
+                    icon={icon}
+                    isSelected={isSelected}
+                    onSelect={() => selectAsset(isSelected ? null : asset.id)}
+                  />
                 )
               })}
             </div>
