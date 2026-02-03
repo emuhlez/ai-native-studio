@@ -9,21 +9,30 @@
 }
 
 .content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 0;
 }
 
 .section {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
-.section:last-child {
-  border-bottom: none;
+.sectionDivider {
+  height: 1px;
+  background: var(--border-default);
+  margin: 0 12px;
 }
 
 .header {
   display: flex;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: center;
   gap: 12px;
   margin-bottom: 10px;
 }
@@ -104,6 +113,12 @@
   color: var(--content-default);
   font-size: 12px;
   font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sectionHeader[role="button"]:hover {
+  color: var(--content-emphasis);
 }
 
 .sectionHeader svg {
