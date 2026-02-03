@@ -82,6 +82,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   const viewportSelectedAssetNames = useEditorStore((s) => s.viewportSelectedAssetNames)
   const setViewportSelectedAsset = useEditorStore((s) => s.setViewportSelectedAsset)
   const addWorkspaceModel = useEditorStore((s) => s.addWorkspaceModel)
+  const updateGameObject = useEditorStore((s) => s.updateGameObject)
 
   useEffect(() => {
     const container = containerRef.current
@@ -199,18 +200,27 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         (gltf: { scene: THREE.Group }) => {
           const root = gltf.scene
           const displayName = getAssetDisplayName(filename)
+          const objId = addWorkspaceModel(displayName)
           root.userData.assetName = displayName
-          addWorkspaceModel(displayName)
+          root.userData.objectId = objId
           root.traverse((node: THREE.Object3D) => {
             if ((node as THREE.Mesh).isMesh) {
               (node as THREE.Mesh).castShadow = true
               ;(node as THREE.Mesh).receiveShadow = true
             }
           })
-          const scale = fitScale(root)
-          root.scale.setScalar(scale)
+          const baseScale = fitScale(root)
+          root.userData.baseScale = baseScale
           const { x, z } = placeModel(index)
+          updateGameObject(objId, {
+            transform: {
+              position: { x, y: 0, z },
+              rotation: { x: 0, y: 0, z: 0 },
+              scale: { x: 1, y: 1, z: 1 },
+            },
+          })
           root.position.set(x, 0, z)
+          root.scale.setScalar(baseScale)
           modelsGroup.add(root)
         },
         undefined,
@@ -355,6 +365,53 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         updateCameraFromOrbit()
       }
 
+      // Sync game object transforms to 3D models (runs every frame)
+      const group = modelsGroupRef.current
+      if (group) {
+        const state = useEditorStore.getState()
+        const { gameObjects, rootObjectIds } = state
+        const DEG2RAD = Math.PI / 180
+
+        const syncObject = (objId: string) => {
+          const obj = gameObjects[objId]
+          if (!obj?.transform) return
+          const root = group.children.find(
+            (c) => (c.userData.objectId as string) === objId
+          ) as THREE.Object3D | undefined
+          if (!root) return
+          root.userData.assetName = obj.name
+          const { position, rotation, scale } = obj.transform
+          root.position.set(position.x, position.y, position.z)
+          root.rotation.set(
+            rotation.x * DEG2RAD,
+            rotation.y * DEG2RAD,
+            rotation.z * DEG2RAD
+          )
+          const baseScale = (root.userData.baseScale as number) ?? 1
+          root.scale.set(
+            baseScale * scale.x,
+            baseScale * scale.y,
+            baseScale * scale.z
+          )
+        }
+
+        const walkAndSync = (ids: string[]) => {
+          ids.forEach((id) => {
+            syncObject(id)
+            const obj = gameObjects[id]
+            if (obj?.children?.length) walkAndSync(obj.children)
+          })
+        }
+
+        if (rootObjectIds.length > 0) {
+          const workspaceId = rootObjectIds[0]
+          const workspace = gameObjects[workspaceId]
+          if (workspace?.children) {
+            walkAndSync(workspace.children)
+          }
+        }
+      }
+
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current)
       }
@@ -398,7 +455,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       cameraRef.current = null
       modelsGroupRef.current = null
     }
-  }, [containerRef, setViewportSelectedAsset, addWorkspaceModel])
+  }, [containerRef, setViewportSelectedAsset, addWorkspaceModel, updateGameObject])
 
   // Highlight selected assets
   useEffect(() => {

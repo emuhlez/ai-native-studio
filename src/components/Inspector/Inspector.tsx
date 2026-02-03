@@ -1,21 +1,49 @@
-import { Settings, ChevronDown, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Settings, Plus } from 'lucide-react'
 import { DockablePanel } from '../shared/DockablePanel'
+import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import styles from './Inspector.module.css'
 
 export function Inspector() {
+  const [transformExpanded, setTransformExpanded] = useState(true)
+  const [pivotExpanded, setPivotExpanded] = useState(true)
+  const [componentsExpanded, setComponentsExpanded] = useState(true)
+
   const {
     selectedObjectIds,
     gameObjects,
+    rootObjectIds,
     updateGameObject,
     viewportSelectedAssetNames,
   } = useEditorStore()
   const primaryId = selectedObjectIds.length > 0 ? selectedObjectIds[selectedObjectIds.length - 1] : null
-  const selectedObject = primaryId ? gameObjects[primaryId] : null
+  let selectedObject = primaryId ? gameObjects[primaryId] : null
   const primaryAssetName =
     viewportSelectedAssetNames.length > 0 ? viewportSelectedAssetNames[viewportSelectedAssetNames.length - 1] : null
   const hasMulti = selectedObjectIds.length > 1 || viewportSelectedAssetNames.length > 1
+
+  // Fallback: when viewport selected an asset by name but selectedObjectIds wasn't set,
+  // find the game object by name in the workspace tree so we can show transform editing
+  if (primaryAssetName && !selectedObject && rootObjectIds.length > 0) {
+    const workspace = gameObjects[rootObjectIds[0]]
+    const findByName = (ids: string[]): string | null => {
+      for (const id of ids) {
+        if (gameObjects[id]?.name === primaryAssetName) return id
+        const child = gameObjects[id]
+        if (child?.children?.length) {
+          const found = findByName(child.children)
+          if (found) return found
+        }
+      }
+      return null
+    }
+    const fallbackId = workspace ? findByName(workspace.children) : null
+    if (fallbackId) selectedObject = gameObjects[fallbackId] ?? null
+  }
+
+  const effectivePrimaryId = selectedObject?.id ?? primaryId ?? null
 
   if (!selectedObject && !primaryAssetName) {
     return (
@@ -49,7 +77,7 @@ export function Inspector() {
           </section>
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
-              <ChevronDown size={14} />
+              <ExpandDownIcon />
               <span>Transform</span>
             </div>
             <p style={{ fontSize: 12, color: 'var(--content-muted)', margin: '8px 0 0' }}>
@@ -64,7 +92,7 @@ export function Inspector() {
   if (!selectedObject) return null
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (primaryId) updateGameObject(primaryId, { name: e.target.value })
+    if (effectivePrimaryId) updateGameObject(effectivePrimaryId, { name: e.target.value })
   }
 
   const handleTransformChange = (
@@ -72,9 +100,9 @@ export function Inspector() {
     axis: 'x' | 'y' | 'z',
     value: string
   ) => {
-    if (!primaryId) return
+    if (!effectivePrimaryId) return
     const numValue = parseFloat(value) || 0
-    updateGameObject(primaryId, {
+    updateGameObject(effectivePrimaryId, {
       transform: {
         ...selectedObject.transform,
         [component]: {
@@ -90,10 +118,10 @@ export function Inspector() {
     axis: 'x' | 'y' | 'z',
     value: string
   ) => {
-    if (!primaryId) return
+    if (!effectivePrimaryId) return
     const pivot = selectedObject.pivot ?? { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } }
     const numValue = parseFloat(value) || 0
-    updateGameObject(primaryId, {
+    updateGameObject(effectivePrimaryId, {
       pivot: {
         ...pivot,
         [component]: {
@@ -124,7 +152,7 @@ export function Inspector() {
                   type="checkbox"
                   checked={selectedObject.visible}
                   onChange={(e) =>
-                    primaryId && updateGameObject(primaryId, { visible: e.target.checked })
+                    effectivePrimaryId && updateGameObject(effectivePrimaryId, { visible: e.target.checked })
                   }
                   className={styles.checkbox}
                 />
@@ -140,11 +168,18 @@ export function Inspector() {
 
         {/* Transform section */}
         <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <ChevronDown size={14} />
+          <div
+            className={styles.sectionHeader}
+            role="button"
+            tabIndex={0}
+            onClick={() => setTransformExpanded((v) => !v)}
+            onKeyDown={(e) => e.key === 'Enter' && setTransformExpanded((v) => !v)}
+          >
+            {transformExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
             <span>Transform</span>
           </div>
           
+          {transformExpanded && (
           <div className={styles.transformGrid}>
             <TransformRow
               label="Position"
@@ -163,14 +198,22 @@ export function Inspector() {
               onChange={(axis, value) => handleTransformChange('scale', axis, value)}
             />
           </div>
+          )}
         </section>
 
         {/* Pivot section */}
         <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <ChevronDown size={14} />
+          <div
+            className={styles.sectionHeader}
+            role="button"
+            tabIndex={0}
+            onClick={() => setPivotExpanded((v) => !v)}
+            onKeyDown={(e) => e.key === 'Enter' && setPivotExpanded((v) => !v)}
+          >
+            {pivotExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
             <span>Pivot</span>
           </div>
+          {pivotExpanded && (
           <div className={styles.transformGrid}>
             <TransformRow
               label="Position"
@@ -184,22 +227,32 @@ export function Inspector() {
               unit="degrees"
             />
           </div>
+          )}
         </section>
+
+        <div className={styles.sectionDivider} />
 
         {/* Components section */}
         <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <ChevronDown size={14} />
+          <div
+            className={styles.sectionHeader}
+            role="button"
+            tabIndex={0}
+            onClick={() => setComponentsExpanded((v) => !v)}
+            onKeyDown={(e) => e.key === 'Enter' && setComponentsExpanded((v) => !v)}
+          >
+            {componentsExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
             <span>Components</span>
             <IconButton
               icon={<Plus size={12} />}
               size="sm"
               tooltip="Add Component"
               className={styles.addBtn}
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
           
-          {selectedObject.components.length === 0 ? (
+          {componentsExpanded && (selectedObject.components.length === 0 ? (
             <div className={styles.emptyComponents}>
               <p>No components attached</p>
               <button className={styles.addComponentBtn}>
@@ -215,7 +268,7 @@ export function Inspector() {
                 </div>
               ))}
             </div>
-          )}
+          ))}
         </section>
       </div>
     </DockablePanel>

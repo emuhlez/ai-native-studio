@@ -16,6 +16,7 @@ import {
   Layers
 } from 'lucide-react'
 import { DockablePanel } from '../shared/DockablePanel'
+import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import type { GameObjectType } from '../../types'
@@ -33,29 +34,6 @@ const typeIcons: Record<GameObjectType, React.ReactNode> = {
   script: <FileCode size={16} />,
 }
 
-const ExpandDownIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M4 6L8 10L12 6H4Z" />
-  </svg>
-)
-
-const ExpandRightIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M6 4L10 8L6 12V4Z" />
-  </svg>
-)
 
 interface TreeNodeProps {
   objectId: string

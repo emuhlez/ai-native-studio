@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ExpandRightIcon } from './ExpandIcons'
 import styles from './MenuDropdown.module.css'
 
 export interface MenuDropdownProps {
@@ -52,7 +52,7 @@ export function MenuDropdown({ items, isOpen, onClose }: MenuDropdownProps) {
                 {item.shortcut && (
                   <span className={styles.shortcut}>{item.shortcut}</span>
                 )}
-                {hasSubmenu && <ChevronRight size={16} />}
+                {hasSubmenu && <ExpandRightIcon />}
               </span>
             </button>
             

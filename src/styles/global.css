@@ -187,12 +187,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Selection */
-::selection {
-  background: var(--accent-primary);
-  color: white;
-}
-
 /* Button reset */
 button {
   font-family: inherit;

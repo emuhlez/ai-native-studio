@@ -179,12 +179,6 @@ body {
   outline-offset: 2px;
 }
 
-::selection {
-  background: var(--accent-primary);
-  color: white;
-}
-
-
 /* ========================================
    Form Elements
    ======================================== */

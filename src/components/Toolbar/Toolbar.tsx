@@ -1,9 +1,9 @@
 import { 
   Play, 
   Square, 
-  ChevronDown,
   X
 } from 'lucide-react'
+import { ExpandDownIcon } from '../shared/ExpandIcons'
 import { useState, useRef, useEffect } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { MenuDropdown, MenuItem } from '../shared/MenuDropdown'
@@ -284,7 +284,7 @@ export function Toolbar() {
             onClick={() => setShowTestDropdown(!showTestDropdown)}
           >
             <span>{selectedTestMode}</span>
-            <ChevronDown size={14} />
+            <ExpandDownIcon />
           </button>
           <MenuDropdown
             items={testMenuItems}
@@ -373,7 +373,7 @@ export function Toolbar() {
         <button className={styles.testDropdownButton}>
           <img src={partBlockIcon} alt="Part Block" width={16} height={16} />
           <span>Build</span>
-          <ChevronDown size={14} />
+          <ExpandDownIcon />
         </button>
       </div>
     </header>

@@ -430,12 +430,23 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
   
   updateGameObject: (id, updates) => {
-    set((state) => ({
-      gameObjects: {
-        ...state.gameObjects,
-        [id]: { ...state.gameObjects[id], ...updates },
-      },
-    }))
+    set((state) => {
+      const next = {
+        gameObjects: {
+          ...state.gameObjects,
+          [id]: { ...state.gameObjects[id], ...updates },
+        },
+      }
+      if (updates.name != null) {
+        const oldName = state.gameObjects[id]?.name
+        if (oldName && state.viewportSelectedAssetNames.includes(oldName)) {
+          next.viewportSelectedAssetNames = state.viewportSelectedAssetNames.map(
+            (n) => (n === oldName ? updates.name as string : n)
+          )
+        }
+      }
+      return next
+    })
   },
   
   duplicateGameObject: (id) => {

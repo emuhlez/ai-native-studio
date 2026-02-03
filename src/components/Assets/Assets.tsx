@@ -11,17 +11,7 @@ import {
   X,
 } from 'lucide-react'
 
-/* Same filled expand chevrons as Explorer (Hierarchy) */
-const ExpandDownIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 6L8 10L12 6H4Z" />
-  </svg>
-)
-const ExpandRightIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6 4L10 8L6 12V4Z" />
-  </svg>
-)
+import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import searchIconImg from '../../../images/search.png'
 import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
