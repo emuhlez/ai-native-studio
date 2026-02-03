@@ -26,6 +26,7 @@ export interface GameObject {
   name: string
   type: GameObjectType
   transform: Transform
+  pivot?: { position: Vector3; rotation: Vector3 }
   visible: boolean
   locked: boolean
   children: string[]

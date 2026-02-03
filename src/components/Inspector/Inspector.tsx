@@ -1,4 +1,4 @@
-import { Settings, ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { Settings, ChevronDown, Plus } from 'lucide-react'
 import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
@@ -9,7 +9,6 @@ export function Inspector() {
     selectedObjectIds,
     gameObjects,
     updateGameObject,
-    deleteGameObject,
     viewportSelectedAssetNames,
   } = useEditorStore()
   const primaryId = selectedObjectIds.length > 0 ? selectedObjectIds[selectedObjectIds.length - 1] : null
@@ -20,7 +19,7 @@ export function Inspector() {
 
   if (!selectedObject && !primaryAssetName) {
     return (
-      <DockablePanel widgetId="inspector" title="Inspector" icon={<Settings size={16} />}>
+      <DockablePanel widgetId="inspector" title="Properties" icon={<Settings size={16} />}>
         <div className={styles.empty}>
           <p>Select an object to inspect</p>
         </div>
@@ -30,7 +29,7 @@ export function Inspector() {
 
   if (primaryAssetName && !selectedObject) {
     return (
-      <DockablePanel widgetId="inspector" title="Inspector" icon={<Settings size={16} />}>
+      <DockablePanel widgetId="inspector" title="Properties" icon={<Settings size={16} />}>
         <div className={styles.content}>
           {hasMulti && (
             <p style={{ fontSize: 12, color: 'var(--content-muted)', margin: '8px 12px' }}>
@@ -46,10 +45,6 @@ export function Inspector() {
                 readOnly
                 className={styles.nameInput}
               />
-            </div>
-            <div className={styles.meta}>
-              <span className={styles.tag}>3D Model</span>
-              <span className={styles.id}>Viewport asset</span>
             </div>
           </section>
           <section className={styles.section}>
@@ -90,19 +85,30 @@ export function Inspector() {
     })
   }
 
+  const handlePivotChange = (
+    component: 'position' | 'rotation',
+    axis: 'x' | 'y' | 'z',
+    value: string
+  ) => {
+    if (!primaryId) return
+    const pivot = selectedObject.pivot ?? { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } }
+    const numValue = parseFloat(value) || 0
+    updateGameObject(primaryId, {
+      pivot: {
+        ...pivot,
+        [component]: {
+          ...pivot[component],
+          [axis]: numValue,
+        },
+      },
+    })
+  }
+
   return (
     <DockablePanel
       widgetId="inspector"
-      title="Inspector"
+      title="Properties"
       icon={<Settings size={16} />}
-      actions={
-        <IconButton
-          icon={<Trash2 size={14} />}
-          tooltip="Delete Object"
-          size="sm"
-          onClick={() => primaryId && deleteGameObject(primaryId)}
-        />
-      }
     >
       <div className={styles.content}>
         {/* Header section */}
@@ -130,10 +136,6 @@ export function Inspector() {
               className={styles.nameInput}
             />
           </div>
-          <div className={styles.meta}>
-            <span className={styles.tag}>{selectedObject.type}</span>
-            <span className={styles.id}>ID: {selectedObject.id.slice(0, 8)}</span>
-          </div>
         </section>
 
         {/* Transform section */}
@@ -150,14 +152,36 @@ export function Inspector() {
               onChange={(axis, value) => handleTransformChange('position', axis, value)}
             />
             <TransformRow
-              label="Rotation"
+              label="Orientation"
               values={selectedObject.transform.rotation}
               onChange={(axis, value) => handleTransformChange('rotation', axis, value)}
+              unit="degrees"
             />
             <TransformRow
-              label="Scale"
+              label="Size"
               values={selectedObject.transform.scale}
               onChange={(axis, value) => handleTransformChange('scale', axis, value)}
+            />
+          </div>
+        </section>
+
+        {/* Pivot section */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <ChevronDown size={14} />
+            <span>Pivot</span>
+          </div>
+          <div className={styles.transformGrid}>
+            <TransformRow
+              label="Position"
+              values={selectedObject.pivot?.position ?? { x: 0, y: 0, z: 0 }}
+              onChange={(axis, value) => handlePivotChange('position', axis, value)}
+            />
+            <TransformRow
+              label="Orientation"
+              values={selectedObject.pivot?.rotation ?? { x: 0, y: 0, z: 0 }}
+              onChange={(axis, value) => handlePivotChange('rotation', axis, value)}
+              unit="degrees"
             />
           </div>
         </section>
@@ -202,42 +226,59 @@ interface TransformRowProps {
   label: string
   values: { x: number; y: number; z: number }
   onChange: (axis: 'x' | 'y' | 'z', value: string) => void
+  /** When 'degrees', use step 1 for whole-degree input */
+  unit?: 'number' | 'degrees'
 }
 
-function TransformRow({ label, values, onChange }: TransformRowProps) {
+function TransformRow({ label, values, onChange, unit = 'number' }: TransformRowProps) {
+  const step = unit === 'degrees' ? '1' : '0.1'
+  const inputWidth = (v: number) => Math.max(3, String(v).length + 1)
+
   return (
     <div className={styles.transformRow}>
       <label className={styles.transformLabel}>{label}</label>
       <div className={styles.transformInputs}>
-        <div className={styles.inputGroup}>
-          <span className={styles.axisLabel} data-axis="x">X</span>
-          <input
-            type="number"
-            value={values.x}
-            onChange={(e) => onChange('x', e.target.value)}
-            className={styles.numberInput}
-            step="0.1"
-          />
+        <div className={styles.inputGroup} data-axis="x">
+          <span className={styles.axisLine} aria-hidden />
+          <div className={`${styles.inputWithUnit} ${unit === 'degrees' ? styles.inputWithDegrees : ''}`}>
+            <input
+              type="number"
+              value={values.x}
+              onChange={(e) => onChange('x', e.target.value)}
+              className={styles.numberInput}
+              step={step}
+              style={unit === 'degrees' ? { width: `${inputWidth(values.x)}ch` } : undefined}
+            />
+            {unit === 'degrees' && <span className={styles.unitSuffix}>°</span>}
+          </div>
         </div>
-        <div className={styles.inputGroup}>
-          <span className={styles.axisLabel} data-axis="y">Y</span>
-          <input
-            type="number"
-            value={values.y}
-            onChange={(e) => onChange('y', e.target.value)}
-            className={styles.numberInput}
-            step="0.1"
-          />
+        <div className={styles.inputGroup} data-axis="y">
+          <span className={styles.axisLine} aria-hidden />
+          <div className={`${styles.inputWithUnit} ${unit === 'degrees' ? styles.inputWithDegrees : ''}`}>
+            <input
+              type="number"
+              value={values.y}
+              onChange={(e) => onChange('y', e.target.value)}
+              className={styles.numberInput}
+              step={step}
+              style={unit === 'degrees' ? { width: `${inputWidth(values.y)}ch` } : undefined}
+            />
+            {unit === 'degrees' && <span className={styles.unitSuffix}>°</span>}
+          </div>
         </div>
-        <div className={styles.inputGroup}>
-          <span className={styles.axisLabel} data-axis="z">Z</span>
-          <input
-            type="number"
-            value={values.z}
-            onChange={(e) => onChange('z', e.target.value)}
-            className={styles.numberInput}
-            step="0.1"
-          />
+        <div className={styles.inputGroup} data-axis="z">
+          <span className={styles.axisLine} aria-hidden />
+          <div className={`${styles.inputWithUnit} ${unit === 'degrees' ? styles.inputWithDegrees : ''}`}>
+            <input
+              type="number"
+              value={values.z}
+              onChange={(e) => onChange('z', e.target.value)}
+              className={styles.numberInput}
+              step={step}
+              style={unit === 'degrees' ? { width: `${inputWidth(values.z)}ch` } : undefined}
+            />
+            {unit === 'degrees' && <span className={styles.unitSuffix}>°</span>}
+          </div>
         </div>
       </div>
     </div>

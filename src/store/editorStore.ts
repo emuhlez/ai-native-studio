@@ -51,6 +51,11 @@ const createDefaultTransform = () => ({
   scale: { x: 1, y: 1, z: 1 },
 })
 
+const createDefaultPivot = () => ({
+  position: { x: 0, y: 0, z: 0 },
+  rotation: { x: 0, y: 0, z: 0 },
+})
+
 const getDefaultName = (type: GameObjectType) => {
   const names: Record<GameObjectType, string> = {
     empty: 'Empty Object',
@@ -81,6 +86,7 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
       name: 'Workspace',
       type: 'empty',
       transform: createDefaultTransform(),
+      pivot: createDefaultPivot(),
       visible: true,
       locked: false,
       children: [cameraId, lightId, environmentId],
@@ -92,6 +98,7 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
       name: 'Camera',
       type: 'camera',
       transform: { ...createDefaultTransform(), position: { x: 0, y: 0, z: -10 } },
+      pivot: createDefaultPivot(),
       visible: true,
       locked: false,
       children: [],
@@ -103,6 +110,7 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
       name: 'Terrain',
       type: 'light',
       transform: { ...createDefaultTransform(), rotation: { x: 50, y: -30, z: 0 } },
+      pivot: createDefaultPivot(),
       visible: true,
       locked: false,
       children: [],
@@ -114,6 +122,7 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
       name: 'Drops',
       type: 'empty',
       transform: createDefaultTransform(),
+      pivot: createDefaultPivot(),
       visible: true,
       locked: false,
       children: [groundId, platformId],
@@ -125,6 +134,7 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
       name: 'Ground',
       type: 'tilemap',
       transform: { ...createDefaultTransform(), position: { x: 0, y: -3, z: 0 } },
+      pivot: createDefaultPivot(),
       visible: true,
       locked: false,
       children: [],
@@ -136,6 +146,7 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
       name: 'Platform',
       type: 'mesh',
       transform: { ...createDefaultTransform(), position: { x: 3, y: 1, z: 0 } },
+      pivot: createDefaultPivot(),
       visible: true,
       locked: false,
       children: [],
@@ -338,6 +349,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       name: name || getDefaultName(type),
       type,
       transform: createDefaultTransform(),
+      pivot: createDefaultPivot(),
       visible: true,
       locked: false,
       children: [],
@@ -434,6 +446,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const newId = state.createGameObject(obj.type, `${obj.name} (Copy)`, obj.parentId)
     state.updateGameObject(newId, {
       transform: { ...obj.transform },
+      pivot: obj.pivot ? { ...obj.pivot } : createDefaultPivot(),
       visible: obj.visible,
       components: [...obj.components],
     })

@@ -35,17 +35,35 @@
 .checkbox {
   width: 16px;
   height: 16px;
-  accent-color: var(--accent-primary);
+  appearance: none;
+  -webkit-appearance: none;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
   cursor: pointer;
+  position: relative;
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid black;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .nameInput {
   flex: 1;
-  padding: 8px 12px;
+  height: 24px;
+  padding: 0 12px;
   background: var(--bg-surface200);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--content-emphasis);
   transition: border-color var(--transition-fast);
@@ -85,9 +103,7 @@
   margin-bottom: 12px;
   color: var(--content-default);
   font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 700;
 }
 
 .sectionHeader svg {
@@ -112,7 +128,7 @@
 
 .transformLabel {
   width: 60px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--content-default);
   flex-shrink: 0;
 }
@@ -125,48 +141,70 @@
 
 .inputGroup {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex: 1;
-  background: var(--bg-surface200);
-  border: 1px solid var(--border-subtle);
+  height: 20px;
+  background: rgba(208, 217, 251, 0.08); /* #D0D9FB at 8% */
+  border: none;
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
-.inputGroup:focus-within {
-  border-color: var(--accent-primary);
+.axisLine {
+  width: 2px;
+  flex-shrink: 0;
 }
 
-.axisLabel {
-  padding: 0 8px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--font-mono);
+.inputGroup[data-axis="x"] .axisLine {
+  background: #DF281F;
 }
 
-.axisLabel[data-axis="x"] {
-  color: #e74c3c;
-  background: rgba(231, 76, 60, 0.1);
+.inputGroup[data-axis="y"] .axisLine {
+  background: #39C582;
 }
 
-.axisLabel[data-axis="y"] {
-  color: #2ecc71;
-  background: rgba(46, 204, 113, 0.1);
+.inputGroup[data-axis="z"] .axisLine {
+  background: #335FFF;
 }
 
-.axisLabel[data-axis="z"] {
-  color: #3498db;
-  background: rgba(52, 152, 219, 0.1);
+.inputWithUnit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+}
+
+.unitSuffix {
+  flex-shrink: 0;
+  margin-left: 2px;
+  font-size: 12px;
+  color: var(--content-muted);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.inputWithDegrees {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.inputWithDegrees .numberInput {
+  flex: 0 0 auto;
+  width: auto;
 }
 
 .numberInput {
   flex: 1;
   width: 100%;
-  padding: 6px 8px;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 8px;
   font-size: 12px;
   font-family: var(--font-mono);
   color: var(--content-emphasis);
-  text-align: right;
+  text-align: left;
   background: transparent;
 }
 

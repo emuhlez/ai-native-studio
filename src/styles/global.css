@@ -55,6 +55,31 @@
   font-display: swap;
 }
 
+/* BuilderMono Font Family */
+@font-face {
+  font-family: 'BuilderMono';
+  src: url('/fonts/builder-mono/BuilderMono-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderMono';
+  src: url('/fonts/builder-mono/BuilderMono-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BuilderMono';
+  src: url('/fonts/builder-mono/BuilderMono-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Surface colors */
   --bg-surface0: #121215;
@@ -91,7 +116,7 @@
   
   /* Typography */
   --font-sans: 'BuilderSans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'BuilderSans', 'SF Mono', Menlo, monospace;
+  --font-mono: 'BuilderMono', 'SF Mono', Menlo, monospace;
   
   /* Sizing */
   --toolbar-height: 48px;
