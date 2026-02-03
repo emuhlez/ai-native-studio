@@ -273,11 +273,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         .map((objId) => workspace?.children.includes(objId) ? state.gameObjects[objId]?.name : null)
         .filter((n): n is string => n != null)
 
-    const namesToIds = (names: string[]) =>
-      names
-        .map((name) => workspace?.children.find((cid) => state.gameObjects[cid]?.name === name))
-        .filter((id): id is string => id != null)
-
     if (options?.range && state.selectedObjectIds.length > 0) {
       const flat = getFlatTreeOrder()
       const lastId = state.selectedObjectIds[state.selectedObjectIds.length - 1]
@@ -319,11 +314,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       names
         .map((name) => workspace?.children.find((cid) => state.gameObjects[cid]?.name === name))
         .filter((id): id is string => id != null)
-
-    const idsToNames = (ids: string[]) =>
-      ids
-        .map((objId) => workspace?.children.includes(objId) ? state.gameObjects[objId]?.name : null)
-        .filter((n): n is string => n != null)
 
     if (options?.additive) {
       const has = state.viewportSelectedAssetNames.includes(asset.name)
@@ -437,21 +427,22 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   
   updateGameObject: (id, updates) => {
     set((state) => {
-      const next = {
-        gameObjects: {
-          ...state.gameObjects,
-          [id]: { ...state.gameObjects[id], ...updates },
-        },
+      const newGameObjects = {
+        ...state.gameObjects,
+        [id]: { ...state.gameObjects[id], ...updates },
       }
       if (updates.name != null) {
         const oldName = state.gameObjects[id]?.name
         if (oldName && state.viewportSelectedAssetNames.includes(oldName)) {
-          next.viewportSelectedAssetNames = state.viewportSelectedAssetNames.map(
-            (n) => (n === oldName ? updates.name as string : n)
-          )
+          return {
+            gameObjects: newGameObjects,
+            viewportSelectedAssetNames: state.viewportSelectedAssetNames.map(
+              (n) => (n === oldName ? updates.name as string : n)
+            ),
+          }
         }
       }
-      return next
+      return { gameObjects: newGameObjects }
     })
   },
   
@@ -561,7 +552,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     const toAdd: { file: File; type: Asset['type'] }[] = []
     for (const file of files) {
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase() ?? ''
+      const ext = '.' + (file.name.split('.').pop()?.toLowerCase() ?? '')
       if (EXCLUDED_EXT.has(ext)) continue
       const type = EXT_TO_TYPE[ext]
       if (!type) continue

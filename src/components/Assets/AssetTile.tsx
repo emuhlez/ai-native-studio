@@ -13,7 +13,7 @@ export interface AssetTileProps {
   onSelect: () => void
 }
 
-export function AssetTile({ id, name, typeLabel, icon, isSelected, onSelect }: AssetTileProps) {
+export function AssetTile({ name, typeLabel, icon, isSelected, onSelect }: AssetTileProps) {
   return (
     <div
       className={`${styles.assetTile} ${isSelected ? styles.selected : ''}`}

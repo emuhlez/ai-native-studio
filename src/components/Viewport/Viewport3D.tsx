@@ -301,19 +301,21 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       canvas.style.cursor = 'default'
     }
 
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const factor = 1 - e.deltaY * ZOOM_SENSITIVITY
+    const onWheel = (e: Event) => {
+      const ev = e as WheelEvent
+      ev.preventDefault()
+      const factor = 1 - ev.deltaY * ZOOM_SENSITIVITY
       radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius * factor))
       updateCameraFromOrbit()
     }
 
+    const wheelOpts = { passive: false }
+    canvas.addEventListener('wheel', onWheel, wheelOpts as object)
     canvas.addEventListener('pointerdown', onPointerDown)
     canvas.addEventListener('pointermove', onPointerMove)
     canvas.addEventListener('pointerup', onPointerUp)
     canvas.addEventListener('pointerenter', onPointerEnter)
     canvas.addEventListener('pointerleave', onPointerLeave)
-    canvas.addEventListener('wheel', onWheel, { passive: false })
 
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
@@ -442,7 +444,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointerenter', onPointerEnter)
       canvas.removeEventListener('pointerleave', onPointerLeave)
-      canvas.removeEventListener('wheel', onWheel, { passive: false })
+      canvas.removeEventListener('wheel', onWheel, wheelOpts as object)
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('keydown', onKeyDown)

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader'
+import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import { assetUrl, THREE_SPACE_ASSETS } from '../Viewport/threeSpaceAssets'
 
 const DISPLAY_NAMES = new Set(THREE_SPACE_ASSETS.map((f) => f.replace(/\.glb$/i, '')))

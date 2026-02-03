@@ -58,7 +58,7 @@ const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.
 
 export function Assets() {
   const { assets, selectedAssetId, selectAsset, importAssets } = useEditorStore()
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [_viewMode, _setViewMode] = useState<'list' | 'grid'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)

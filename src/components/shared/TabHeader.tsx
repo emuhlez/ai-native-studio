@@ -21,7 +21,7 @@ export function TabHeader({
   tabs, 
   activeTabId, 
   onTabSelect, 
-  onTabClose,
+  onTabClose: _onTabClose,
   title,
   className 
 }: TabHeaderProps) {

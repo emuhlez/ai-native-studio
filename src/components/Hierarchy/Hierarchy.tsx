@@ -5,8 +5,6 @@ import {
   EyeOff,
   Lock,
   Unlock,
-  Camera,
-  Sun,
   Box,
   Image,
   Grid2X2,

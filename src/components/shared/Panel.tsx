@@ -15,7 +15,7 @@ interface PanelHeaderProps {
   actions?: ReactNode
 }
 
-export function PanelHeader({ title, icon, actions }: PanelHeaderProps) {
+export function PanelHeader({ title, actions }: PanelHeaderProps) {
   return (
     <div className={styles.header}>
       <div className={styles.titleArea}>
