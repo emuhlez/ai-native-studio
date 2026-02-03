@@ -1,7 +1,17 @@
 import { useState } from 'react'
 import { Settings, Plus } from 'lucide-react'
+
+function toMeshId(uuid: string): string {
+  let hash = 0
+  for (let i = 0; i < uuid.length; i++) {
+    hash = (hash << 5) - hash + uuid.charCodeAt(i)
+    hash = hash & hash
+  }
+  return Math.abs(hash).toString().padStart(10, '0').slice(-10)
+}
 import { DockablePanel } from '../shared/DockablePanel'
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
+import { ModelPreview } from './ModelPreview'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import styles from './Inspector.module.css'
@@ -9,6 +19,7 @@ import styles from './Inspector.module.css'
 export function Inspector() {
   const [transformExpanded, setTransformExpanded] = useState(true)
   const [pivotExpanded, setPivotExpanded] = useState(true)
+  const [appearanceExpanded, setAppearanceExpanded] = useState(true)
   const [componentsExpanded, setComponentsExpanded] = useState(true)
 
   const {
@@ -231,6 +242,35 @@ export function Inspector() {
         </section>
 
         <div className={styles.sectionDivider} />
+
+        {/* Appearance section */}
+        <section className={styles.section}>
+          <div
+            className={styles.sectionHeader}
+            role="button"
+            tabIndex={0}
+            onClick={() => setAppearanceExpanded((v) => !v)}
+            onKeyDown={(e) => e.key === 'Enter' && setAppearanceExpanded((v) => !v)}
+          >
+            {appearanceExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
+            <span>Appearance</span>
+          </div>
+          {appearanceExpanded && (
+            <div className={styles.transformGrid}>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Mesh ID</label>
+                <input
+                  type="text"
+                  value={toMeshId(selectedObject.id)}
+                  readOnly
+                  className={styles.nameInput}
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <ModelPreview modelName={selectedObject.name} className={styles.previewImage} />
+            </div>
+          )}
+        </section>
 
         {/* Components section */}
         <section className={styles.section}>
