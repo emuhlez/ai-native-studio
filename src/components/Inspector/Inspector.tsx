@@ -32,6 +32,7 @@ function getSourceFilename(modelName: string): string {
 const MESH_ACCEPT = '.glb,.gltf,.obj,.fbx,.dae'
 const TEXTURE_ACCEPT = '.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp'
 import { DockablePanel } from '../shared/DockablePanel'
+import { MenuDropdown } from '../shared/MenuDropdown'
 import { PropertiesLabel } from '../shared/PropertiesLabel'
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import { ModelPreview } from './ModelPreview'
@@ -39,6 +40,7 @@ import { TexturePreview } from './TexturePreview'
 import { THREE_SPACE_ASSETS } from '../Viewport/threeSpaceAssets'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
+import type { GameObject } from '../../types'
 import styles from './Inspector.module.css'
 
 export function Inspector() {
@@ -48,8 +50,10 @@ export function Inspector() {
   const [componentsExpanded, setComponentsExpanded] = useState(true)
   const [textureFilename, setTextureFilename] = useState('—')
   const [textureObjectUrl, setTextureObjectUrl] = useState<string | null>(null)
+  const [fidelityDropdownOpen, setFidelityDropdownOpen] = useState(false)
   const meshFileInputRef = useRef<HTMLInputElement>(null)
   const textureFileInputRef = useRef<HTMLInputElement>(null)
+  const fidelityDropdownRef = useRef<HTMLDivElement>(null)
 
   const {
     selectedObjectIds,
@@ -97,6 +101,18 @@ export function Inspector() {
       return null
     })
   }, [selectedObject?.id, selectedObject?.texturePath])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (fidelityDropdownRef.current && !fidelityDropdownRef.current.contains(event.target as Node)) {
+        setFidelityDropdownOpen(false)
+      }
+    }
+    if (fidelityDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [fidelityDropdownOpen])
 
   if (!selectedObject && !primaryAssetName) {
     return (
@@ -156,6 +172,11 @@ export function Inspector() {
     const meshUrl = URL.createObjectURL(file)
     if (selectedObject?.meshUrl) URL.revokeObjectURL(selectedObject.meshUrl)
     updateGameObject(effectivePrimaryId, { name: baseName, meshUrl, meshFilename: file.name })
+  }
+
+  const handleFidelitySelect = (value: GameObject['renderFidelity']) => {
+    if (effectivePrimaryId) updateGameObject(effectivePrimaryId, { renderFidelity: value })
+    setFidelityDropdownOpen(false)
   }
 
   const handleTextureFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -361,41 +382,61 @@ export function Inspector() {
                   <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
                 </button>
               </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Texture ID</label>
+                <PropertiesLabel value={textureId} />
+              </div>
+              <div className={styles.previewerContainer}>
+                <TexturePreview
+                  modelName={selectedObject.name}
+                  className={styles.textureCanvas}
+                  textureUrl={textureObjectUrl ?? undefined}
+                  onTextureInfo={(info) => {
+                    if (!selectedObject?.texturePath) {
+                      setTextureFilename(info?.name ? extractFileName(info.name) : '—')
+                    }
+                  }}
+                />
+              </div>
+              <div className={`${styles.transformRow} ${styles.sourceInputRow}`}>
+                <PropertiesLabel value={textureFilename} />
+                <button
+                  type="button"
+                  className={styles.sourceIconButton}
+                  onClick={() => textureFileInputRef.current?.click()}
+                  title="Select texture file"
+                  aria-label="Select texture file"
+                >
+                  <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
+                </button>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Render Fidelity</label>
+                <div className={styles.fidelityDropdownWrap} ref={fidelityDropdownRef}>
+                  <button
+                    type="button"
+                    className={styles.fidelityDropdownButton}
+                    onClick={() => setFidelityDropdownOpen((v) => !v)}
+                    aria-label="Render fidelity"
+                    aria-expanded={fidelityDropdownOpen}
+                  >
+                    <span>{selectedObject.renderFidelity ?? 'Automatic'}</span>
+                    <ExpandDownIcon />
+                  </button>
+                  <MenuDropdown
+                    items={[
+                      { label: 'Automatic', onClick: () => handleFidelitySelect('Automatic') },
+                      { label: 'Low', onClick: () => handleFidelitySelect('Low') },
+                      { label: 'Medium', onClick: () => handleFidelitySelect('Medium') },
+                      { label: 'High', onClick: () => handleFidelitySelect('High') },
+                    ]}
+                    isOpen={fidelityDropdownOpen}
+                    onClose={() => setFidelityDropdownOpen(false)}
+                  />
+                </div>
+              </div>
             </div>
           )}
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.transformGrid}>
-            <div className={styles.transformRow}>
-              <label className={styles.transformLabel}>Texture ID</label>
-              <PropertiesLabel value={textureId} />
-            </div>
-            <div className={styles.previewerContainer}>
-              <TexturePreview
-                modelName={selectedObject.name}
-                className={styles.textureCanvas}
-                textureUrl={textureObjectUrl ?? undefined}
-                onTextureInfo={(info) => {
-                  if (!selectedObject?.texturePath) {
-                    setTextureFilename(info?.name ? extractFileName(info.name) : '—')
-                  }
-                }}
-              />
-            </div>
-            <div className={`${styles.transformRow} ${styles.sourceInputRow}`}>
-              <PropertiesLabel value={textureFilename} />
-              <button
-                type="button"
-                className={styles.sourceIconButton}
-                onClick={() => textureFileInputRef.current?.click()}
-                title="Select texture file"
-                aria-label="Select texture file"
-              >
-                <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
-              </button>
-            </div>
-          </div>
         </section>
 
         {/* Components section */}

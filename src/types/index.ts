@@ -38,6 +38,8 @@ export interface GameObject {
   meshUrl?: string
   /** Filename of user-selected mesh (e.g. "MyModel.glb") for display */
   meshFilename?: string
+  /** Render fidelity: Automatic | Low | Medium | High */
+  renderFidelity?: 'Automatic' | 'Low' | 'Medium' | 'High'
 }
 
 export interface Component {

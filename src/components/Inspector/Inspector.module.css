@@ -193,6 +193,55 @@
   opacity: 1;
 }
 
+.fidelityDropdownWrap {
+  flex: 1;
+  position: relative;
+}
+
+.fidelityDropdownButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 24px;
+  padding: 0 12px;
+  background: rgba(208, 217, 251, 0.04);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--content-emphasis);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  outline: none;
+}
+
+.fidelityDropdownButton:hover {
+  border-color: var(--border-subtle);
+}
+
+.fidelityDropdownButton:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+
+.fidelityDropdownButton span {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fidelityDropdownButton svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--content-muted);
+}
+
 .transformRow {
   display: flex;
   align-items: center;
@@ -201,9 +250,24 @@
 
 .transformLabel {
   width: 60px;
+  min-width: 60px;
   font-size: 12px;
   color: var(--content-default);
   flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+}
+
+.transformLabel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, var(--bg-surface200));
+  pointer-events: none;
 }
 
 .transformInputs {
