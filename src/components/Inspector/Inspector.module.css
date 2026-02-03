@@ -1,3 +1,7 @@
+.propertiesPanel {
+  background: var(--bg-surface200) !important;
+}
+
 .empty {
   display: flex;
   align-items: center;
@@ -11,7 +15,7 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
   padding: 0;
 }
 
@@ -20,6 +24,11 @@
   padding-bottom: 6px;
   padding-left: 12px;
   padding-right: 12px;
+}
+
+.headerSection {
+  padding-top: 16px;
+  padding-bottom: 0px;
 }
 
 .sectionDivider {
@@ -132,16 +141,56 @@
 .transformGrid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   padding-left: 24px;
 }
 
-.previewImage {
+.previewerContainer {
   width: calc(100% - 72px);
+  margin-left: 72px;
+  min-height: 80px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface200);
+}
+
+.previewImage {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.textureCanvas {
+  width: 100%;
   height: auto;
   border-radius: var(--radius-sm);
   background: var(--bg-surface200);
+}
+
+/* Source input: no label, align with Mesh ID input and preview */
+.sourceInputRow {
   margin-left: 72px;
+  width: calc(100% - 72px);
+}
+
+.sourceIcon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.sourceIconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sourceIconButton:hover .sourceIcon {
+  opacity: 1;
 }
 
 .transformRow {

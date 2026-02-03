@@ -83,6 +83,9 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   const setViewportSelectedAsset = useEditorStore((s) => s.setViewportSelectedAsset)
   const addWorkspaceModel = useEditorStore((s) => s.addWorkspaceModel)
   const updateGameObject = useEditorStore((s) => s.updateGameObject)
+  const gameObjects = useEditorStore((s) => s.gameObjects)
+  const rootObjectIds = useEditorStore((s) => s.rootObjectIds)
+  const loadedMeshUrlsRef = useRef<Record<string, string>>({})
 
   useEffect(() => {
     const container = containerRef.current
@@ -467,6 +470,87 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       setHighlight(root, !!name && names.has(name))
     })
   }, [viewportSelectedAssetNames])
+
+  // Replace meshes when meshUrl is set (user-selected file)
+  useEffect(() => {
+    const group = modelsGroupRef.current
+    if (!group || rootObjectIds.length === 0) return
+
+    const workspaceId = rootObjectIds[0]
+    const workspace = gameObjects[workspaceId]
+    if (!workspace?.children) return
+
+    const MODEL_SCALE = 2
+    const fitScale = (obj: THREE.Object3D) => {
+      const box = new THREE.Box3().setFromObject(obj)
+      const size = box.getSize(new THREE.Vector3())
+      const maxDim = Math.max(size.x, size.y, size.z)
+      if (maxDim <= 0) return 1
+      return MODEL_SCALE / maxDim
+    }
+
+    const loader = new GLTFLoader()
+    const DEG2RAD = Math.PI / 180
+
+    workspace.children.forEach((objId) => {
+      const obj = gameObjects[objId]
+      if (!obj?.meshUrl) {
+        delete loadedMeshUrlsRef.current[objId]
+        return
+      }
+      if (loadedMeshUrlsRef.current[objId] === obj.meshUrl) return
+
+      const oldRoot = group.children.find(
+        (c) => (c.userData.objectId as string) === objId
+      ) as THREE.Object3D | undefined
+      if (!oldRoot) return
+
+      loadedMeshUrlsRef.current[objId] = obj.meshUrl
+
+      loader.load(
+        obj.meshUrl,
+        (gltf: { scene: THREE.Group }) => {
+          const newRoot = gltf.scene
+          const baseScale = fitScale(newRoot)
+          newRoot.userData.assetName = obj.name
+          newRoot.userData.objectId = objId
+          newRoot.userData.baseScale = baseScale
+          newRoot.traverse((node: THREE.Object3D) => {
+            if ((node as THREE.Mesh).isMesh) {
+              (node as THREE.Mesh).castShadow = true
+              ;(node as THREE.Mesh).receiveShadow = true
+            }
+          })
+
+          const { position, rotation, scale } = obj.transform
+          newRoot.position.set(position.x, position.y, position.z)
+          newRoot.rotation.set(
+            rotation.x * DEG2RAD,
+            rotation.y * DEG2RAD,
+            rotation.z * DEG2RAD
+          )
+          newRoot.scale.set(
+            baseScale * scale.x,
+            baseScale * scale.y,
+            baseScale * scale.z
+          )
+
+          group.remove(oldRoot)
+          group.add(newRoot)
+          ;(oldRoot as THREE.Object3D).traverse((node) => {
+            if ((node as THREE.Mesh).isMesh) {
+              const mesh = node as THREE.Mesh
+              mesh.geometry?.dispose()
+              if (Array.isArray(mesh.material)) mesh.material.forEach((m) => m.dispose())
+              else mesh.material?.dispose()
+            }
+          })
+        },
+        undefined,
+        () => {}
+      )
+    })
+  }, [gameObjects, rootObjectIds])
 
   return null
 }

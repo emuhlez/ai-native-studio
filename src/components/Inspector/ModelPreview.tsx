@@ -16,13 +16,18 @@ function isKnownModel(name: string): boolean {
 interface ModelPreviewProps {
   modelName: string
   className?: string
+  /** When provided, load from this URL instead of assetUrl (user-selected file) */
+  modelUrl?: string
 }
 
-export function ModelPreview({ modelName, className }: ModelPreviewProps) {
+export function ModelPreview({ modelName, className, modelUrl }: ModelPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!modelName || !isKnownModel(modelName) || !containerRef.current) return
+    if (!containerRef.current) return
+    const hasUrl = !!modelUrl
+    const hasKnownModel = !!modelName && isKnownModel(modelName)
+    if (!hasUrl && !hasKnownModel) return
 
     const width = 191
     const height = 148
@@ -56,7 +61,7 @@ export function ModelPreview({ modelName, className }: ModelPreviewProps) {
     renderer.outputColorSpace = THREE.SRGBColorSpace
 
     const loader = new GLTFLoader()
-    const url = assetUrl(`${modelName}.glb`)
+    const url = modelUrl ?? assetUrl(`${modelName}.glb`)
 
     let cancelled = false
 
@@ -103,9 +108,9 @@ export function ModelPreview({ modelName, className }: ModelPreviewProps) {
       renderer.dispose()
       container.innerHTML = ''
     }
-  }, [modelName])
+  }, [modelName, modelUrl])
 
-  if (!modelName || !isKnownModel(modelName)) {
+  if (!modelUrl && (!modelName || !isKnownModel(modelName))) {
     return (
       <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 148, color: 'var(--content-muted)', fontSize: 12 }}>
         No preview

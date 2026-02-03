@@ -394,6 +394,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const state = get()
     const obj = state.gameObjects[id]
     if (!obj) return
+
+    if (obj.meshUrl) URL.revokeObjectURL(obj.meshUrl)
     
     // Recursively collect all children to delete
     const collectChildren = (objId: string): string[] => {
@@ -403,6 +405,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     }
     
     const toDelete = collectChildren(id)
+    toDelete.forEach((deleteId) => {
+      const o = state.gameObjects[deleteId]
+      if (o?.meshUrl) URL.revokeObjectURL(o.meshUrl)
+    })
     
     set((state) => {
       const newObjects = { ...state.gameObjects }

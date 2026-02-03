@@ -1,17 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Settings, Plus } from 'lucide-react'
 
-function toMeshId(uuid: string): string {
+function toNumericId(seed: string, length: number): string {
   let hash = 0
-  for (let i = 0; i < uuid.length; i++) {
-    hash = (hash << 5) - hash + uuid.charCodeAt(i)
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i)
     hash = hash & hash
   }
-  return Math.abs(hash).toString().padStart(10, '0').slice(-10)
+  return Math.abs(hash).toString().padStart(length, '0').slice(-length)
 }
+
+function toMeshId(uuid: string): string {
+  return toNumericId(uuid, 10)
+}
+
+function toTextureId(uuid: string): string {
+  return toNumericId(`${uuid}:texture`, 9)
+}
+
+function extractFileName(path: string): string {
+  if (!path) return path
+  const normalized = path.replace(/\\/g, '/')
+  return normalized.split('/').pop() ?? path
+}
+
+function getSourceFilename(modelName: string): string {
+  const match = THREE_SPACE_ASSETS.find((f) => f.replace(/\.glb$/i, '') === modelName)
+  return match ?? ''
+}
+
+const MESH_ACCEPT = '.glb,.gltf,.obj,.fbx,.dae'
+const TEXTURE_ACCEPT = '.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp'
 import { DockablePanel } from '../shared/DockablePanel'
+import { PropertiesLabel } from '../shared/PropertiesLabel'
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import { ModelPreview } from './ModelPreview'
+import { TexturePreview } from './TexturePreview'
+import { THREE_SPACE_ASSETS } from '../Viewport/threeSpaceAssets'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import styles from './Inspector.module.css'
@@ -21,6 +46,10 @@ export function Inspector() {
   const [pivotExpanded, setPivotExpanded] = useState(true)
   const [appearanceExpanded, setAppearanceExpanded] = useState(true)
   const [componentsExpanded, setComponentsExpanded] = useState(true)
+  const [textureFilename, setTextureFilename] = useState('—')
+  const [textureObjectUrl, setTextureObjectUrl] = useState<string | null>(null)
+  const meshFileInputRef = useRef<HTMLInputElement>(null)
+  const textureFileInputRef = useRef<HTMLInputElement>(null)
 
   const {
     selectedObjectIds,
@@ -55,10 +84,23 @@ export function Inspector() {
   }
 
   const effectivePrimaryId = selectedObject?.id ?? primaryId ?? null
+  const textureId = selectedObject ? toTextureId(selectedObject.id) : toTextureId('texture')
+
+  useEffect(() => {
+    if (selectedObject?.texturePath) {
+      setTextureFilename(selectedObject.texturePath)
+    } else {
+      setTextureFilename('—')
+    }
+    setTextureObjectUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+  }, [selectedObject?.id, selectedObject?.texturePath])
 
   if (!selectedObject && !primaryAssetName) {
     return (
-      <DockablePanel widgetId="inspector" title="Properties" icon={<Settings size={16} />}>
+      <DockablePanel widgetId="inspector" title="Properties" icon={<Settings size={16} />} className={styles.propertiesPanel}>
         <div className={styles.empty}>
           <p>Select an object to inspect</p>
         </div>
@@ -68,14 +110,14 @@ export function Inspector() {
 
   if (primaryAssetName && !selectedObject) {
     return (
-      <DockablePanel widgetId="inspector" title="Properties" icon={<Settings size={16} />}>
+      <DockablePanel widgetId="inspector" title="Properties" icon={<Settings size={16} />} className={styles.propertiesPanel}>
         <div className={styles.content}>
           {hasMulti && (
             <p style={{ fontSize: 12, color: 'var(--content-muted)', margin: '8px 12px' }}>
               {selectedObjectIds.length || viewportSelectedAssetNames.length} selected. Inspecting last selected.
             </p>
           )}
-          <section className={styles.section}>
+          <section className={`${styles.section} ${styles.headerSection}`}>
             <div className={styles.header}>
               <div className={styles.checkboxWrapper} />
               <input
@@ -104,6 +146,28 @@ export function Inspector() {
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (effectivePrimaryId) updateGameObject(effectivePrimaryId, { name: e.target.value })
+  }
+
+  const handleMeshFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !effectivePrimaryId) return
+    const baseName = file.name.replace(/\.[^/.]+$/, '')
+    const meshUrl = URL.createObjectURL(file)
+    if (selectedObject?.meshUrl) URL.revokeObjectURL(selectedObject.meshUrl)
+    updateGameObject(effectivePrimaryId, { name: baseName, meshUrl, meshFilename: file.name })
+  }
+
+  const handleTextureFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !effectivePrimaryId) return
+    updateGameObject(effectivePrimaryId, { texturePath: file.name })
+    setTextureFilename(file.name)
+    setTextureObjectUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return URL.createObjectURL(file)
+    })
   }
 
   const handleTransformChange = (
@@ -148,10 +212,27 @@ export function Inspector() {
       widgetId="inspector"
       title="Properties"
       icon={<Settings size={16} />}
+      className={styles.propertiesPanel}
     >
+      <input
+        ref={meshFileInputRef}
+        type="file"
+        accept={MESH_ACCEPT}
+        style={{ display: 'none' }}
+        onChange={handleMeshFileChange}
+        aria-label="Select mesh file"
+      />
+      <input
+        ref={textureFileInputRef}
+        type="file"
+        accept={TEXTURE_ACCEPT}
+        style={{ display: 'none' }}
+        onChange={handleTextureFileChange}
+        aria-label="Select texture file"
+      />
       <div className={styles.content}>
         {/* Header section */}
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.headerSection}`}>
             {hasMulti && (
               <p style={{ fontSize: 12, color: 'var(--content-muted)', margin: '8px 12px' }}>
                 {selectedObjectIds.length} selected. Inspecting last selected.
@@ -259,17 +340,62 @@ export function Inspector() {
             <div className={styles.transformGrid}>
               <div className={styles.transformRow}>
                 <label className={styles.transformLabel}>Mesh ID</label>
-                <input
-                  type="text"
-                  value={toMeshId(selectedObject.id)}
-                  readOnly
-                  className={styles.nameInput}
-                  style={{ flex: 1 }}
+                <PropertiesLabel value={toMeshId(selectedObject.id)} />
+              </div>
+              <div className={styles.previewerContainer}>
+                <ModelPreview
+                  modelName={selectedObject.name}
+                  modelUrl={selectedObject.meshUrl}
+                  className={styles.previewImage}
                 />
               </div>
-              <ModelPreview modelName={selectedObject.name} className={styles.previewImage} />
+              <div className={`${styles.transformRow} ${styles.sourceInputRow}`}>
+                <PropertiesLabel value={selectedObject.meshFilename ?? (getSourceFilename(selectedObject.name) || '—')} />
+                <button
+                  type="button"
+                  className={styles.sourceIconButton}
+                  onClick={() => meshFileInputRef.current?.click()}
+                  title="Select mesh file"
+                  aria-label="Select mesh file"
+                >
+                  <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
+                </button>
+              </div>
             </div>
           )}
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.transformGrid}>
+            <div className={styles.transformRow}>
+              <label className={styles.transformLabel}>Texture ID</label>
+              <PropertiesLabel value={textureId} />
+            </div>
+            <div className={styles.previewerContainer}>
+              <TexturePreview
+                modelName={selectedObject.name}
+                className={styles.textureCanvas}
+                textureUrl={textureObjectUrl ?? undefined}
+                onTextureInfo={(info) => {
+                  if (!selectedObject?.texturePath) {
+                    setTextureFilename(info?.name ? extractFileName(info.name) : '—')
+                  }
+                }}
+              />
+            </div>
+            <div className={`${styles.transformRow} ${styles.sourceInputRow}`}>
+              <PropertiesLabel value={textureFilename} />
+              <button
+                type="button"
+                className={styles.sourceIconButton}
+                onClick={() => textureFileInputRef.current?.click()}
+                title="Select texture file"
+                aria-label="Select texture file"
+              >
+                <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* Components section */}

@@ -32,6 +32,12 @@ export interface GameObject {
   children: string[]
   parentId: string | null
   components: Component[]
+  /** Override texture source filename (e.g. from file picker) */
+  texturePath?: string
+  /** Object URL for user-selected mesh file (replaces asset from /3d-space) */
+  meshUrl?: string
+  /** Filename of user-selected mesh (e.g. "MyModel.glb") for display */
+  meshFilename?: string
 }
 
 export interface Component {
