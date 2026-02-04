@@ -99,6 +99,7 @@ export interface Asset {
   thumbnail?: string
   children?: Asset[]
   assetId?: string
+  dateModified?: string
 }
 
 export interface ConsoleMessage {

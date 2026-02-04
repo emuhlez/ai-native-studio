@@ -378,12 +378,15 @@ export function Assets() {
                         Type
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
+                      <th className={styles.contentTableTh}>
+                        Date Modified
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {assetsForGrid.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className={styles.contentTableEmpty}>
+                        <td colSpan={4} className={styles.contentTableEmpty}>
                           No assets
                         </td>
                       </tr>
@@ -413,6 +416,7 @@ export function Assets() {
                             </td>
                             <td className={styles.contentTableTd}>{isFolder ? '—' : asset.assetId}</td>
                             <td className={styles.contentTableTd}>{getTypeLabel(asset)}</td>
+                            <td className={styles.contentTableTd}>{asset.dateModified || '—'}</td>
                           </tr>
                         )
                       })
