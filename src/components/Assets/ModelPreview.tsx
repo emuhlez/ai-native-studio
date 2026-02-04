@@ -17,9 +17,35 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
   const modelRef = useRef<THREE.Group | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
 
+  // Intersection Observer to detect when element is visible
   useEffect(() => {
     if (!containerRef.current) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true)
+          }
+        })
+      },
+      {
+        rootMargin: '50px', // Start loading slightly before visible
+        threshold: 0.1,
+      }
+    )
+
+    observer.observe(containerRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!containerRef.current || !isVisible) return
 
     const container = containerRef.current
     const width = container.clientWidth
@@ -81,17 +107,15 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
 
         scene.add(model)
 
-        // Render once initially
-        if (rendererRef.current && cameraRef.current) {
-          rendererRef.current.render(scene, cameraRef.current)
-        }
-        
-        setIsLoading(false)
+        // Wait a frame to ensure model is fully added to scene before rendering
+        requestAnimationFrame(() => {
+          if (rendererRef.current && cameraRef.current && sceneRef.current) {
+            rendererRef.current.render(sceneRef.current, cameraRef.current)
+          }
+          setIsLoading(false)
+        })
       },
-      (progress) => {
-        // Loading progress callback
-        console.log('Loading:', modelPath, (progress.loaded / progress.total) * 100 + '%')
-      },
+      undefined,
       (error) => {
         console.error('Error loading model:', error, modelPath)
         setLoadError(true)
@@ -109,7 +133,7 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
         rendererRef.current.dispose()
       }
     }
-  }, [modelPath])
+  }, [modelPath, isVisible])
 
   // Handle animation on/off
   useEffect(() => {
@@ -142,17 +166,18 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
 
   return (
     <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
-      {isLoading && (
+      {isLoading && !loadError && (
         <div style={{
           position: 'absolute',
           inset: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'rgba(255, 255, 255, 0.5)',
-          fontSize: '10px',
+          color: 'rgba(255, 255, 255, 0.3)',
+          fontSize: '9px',
+          pointerEvents: 'none',
         }}>
-          Loading...
+          •••
         </div>
       )}
       {loadError && (
@@ -162,10 +187,10 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'rgba(255, 100, 100, 0.8)',
-          fontSize: '10px',
+          color: 'rgba(255, 100, 100, 0.6)',
+          fontSize: '9px',
         }}>
-          Load Error
+          ✕
         </div>
       )}
     </div>
