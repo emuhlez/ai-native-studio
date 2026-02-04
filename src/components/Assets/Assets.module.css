@@ -321,7 +321,6 @@
   border-radius: 8px;
   overflow: hidden;
   background: var(--bg-surface100);
-  border: 1px solid rgba(208, 217, 251, 0.12);
   isolation: isolate;
   transform: translateZ(0);
 }
