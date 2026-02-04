@@ -14,7 +14,6 @@ import {
 
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import searchIconImg from '../../../images/search.png'
-import gridIcon from '../../../icons/grid.svg'
 import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
@@ -263,7 +262,7 @@ export function Assets() {
               <IconButton
                 icon={
                   assetViewMode === 'grid' ? (
-                    <img src={gridIcon} alt="Grid view" width={16} height={16} />
+                    <img src="/icons/grid.svg" alt="Grid view" width={16} height={16} />
                   ) : (
                     <img src="/icons/list-view.svg" alt="List view" width={16} height={16} />
                   )
