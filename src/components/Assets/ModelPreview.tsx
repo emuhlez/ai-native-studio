@@ -22,7 +22,6 @@ export function ModelPreview({ modelPath, className }: ModelPreviewProps) {
 
     // Scene
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x1a1a1f)
     sceneRef.current = scene
 
     // Camera
@@ -31,8 +30,9 @@ export function ModelPreview({ modelPath, className }: ModelPreviewProps) {
     camera.lookAt(0, 0, 0)
     cameraRef.current = camera
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    // Renderer with transparent background
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    renderer.setClearColor(0x000000, 0) // Transparent
     renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     container.appendChild(renderer.domElement)
