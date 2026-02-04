@@ -382,6 +382,10 @@
   border-radius: 0.5px;
 }
 
+.contentTableTh:last-child .contentTableThDivider {
+  display: none;
+}
+
 .contentTableThDropdown {
   display: inline-flex;
   align-items: center;
