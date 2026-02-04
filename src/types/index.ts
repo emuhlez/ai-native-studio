@@ -98,6 +98,7 @@ export interface Asset {
   path: string
   thumbnail?: string
   children?: Asset[]
+  assetId?: string
 }
 
 export interface ConsoleMessage {

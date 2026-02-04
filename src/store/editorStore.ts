@@ -56,6 +56,11 @@ const createDefaultPivot = () => ({
   rotation: { x: 0, y: 0, z: 0 },
 })
 
+const generateAssetId = () => {
+  // Generate a 9-digit asset ID
+  return Math.floor(100000000 + Math.random() * 900000000).toString()
+}
+
 const getDefaultName = (type: GameObjectType) => {
   const names: Record<GameObjectType, string> = {
     empty: 'Empty Object',
@@ -171,33 +176,33 @@ const initialAssets: Asset[] = [
     type: 'folder',
     path: '/Models',
     children: [
-      { id: uuid(), name: 'Bench A', type: 'model', path: '/3d-space/Bench A.glb', thumbnail: '/thumbnails/Bench-A.png' },
-      { id: uuid(), name: 'Bench B', type: 'model', path: '/3d-space/Bench B.glb', thumbnail: '/thumbnails/Bench-B.png' },
-      { id: uuid(), name: 'Boots', type: 'model', path: '/3d-space/Boots.glb', thumbnail: '/thumbnails/Boots.png' },
-      { id: uuid(), name: 'Cobblestones', type: 'model', path: '/3d-space/Cobblestones.glb', thumbnail: '/thumbnails/Cobblestones.png' },
-      { id: uuid(), name: 'Doormat', type: 'model', path: '/3d-space/Doormat.glb', thumbnail: '/thumbnails/Doormat.png' },
-      { id: uuid(), name: 'Fence Corner', type: 'model', path: '/3d-space/Fence Corner.glb', thumbnail: '/thumbnails/Fence-Corner.png' },
-      { id: uuid(), name: 'Fence Open Long', type: 'model', path: '/3d-space/Fence Open Long.glb', thumbnail: '/thumbnails/Fence-Open-Long.png' },
-      { id: uuid(), name: 'Fence Open Wide Long', type: 'model', path: '/3d-space/Fence Open Wide Long.glb', thumbnail: '/thumbnails/Fence-Open-Wide-Long.png' },
-      { id: uuid(), name: 'Fence Open', type: 'model', path: '/3d-space/Fence Open.glb', thumbnail: '/thumbnails/Fence-Open.png' },
-      { id: uuid(), name: 'Fence Post', type: 'model', path: '/3d-space/Fence Post.glb', thumbnail: '/thumbnails/Fence-Post.png' },
-      { id: uuid(), name: 'Fence Rails Long', type: 'model', path: '/3d-space/Fence Rails Long.glb', thumbnail: '/thumbnails/Fence-Rails-Long.png' },
-      { id: uuid(), name: 'Fence Rails', type: 'model', path: '/3d-space/Fence Rails.glb', thumbnail: '/thumbnails/Fence-Rails.png' },
-      { id: uuid(), name: 'Fence Straight Long', type: 'model', path: '/3d-space/Fence Straight Long.glb', thumbnail: '/thumbnails/Fence-Straight-Long.png' },
-      { id: uuid(), name: 'Fence Straight', type: 'model', path: '/3d-space/Fence Straight.glb', thumbnail: '/thumbnails/Fence-Straight.png' },
-      { id: uuid(), name: 'Fence Wide Long', type: 'model', path: '/3d-space/Fence Wide Long.glb', thumbnail: '/thumbnails/Fence-Wide-Long.png' },
-      { id: uuid(), name: 'Floor Base', type: 'model', path: '/3d-space/Floor Base.glb', thumbnail: '/thumbnails/Floor-Base.png' },
-      { id: uuid(), name: 'Foliage A', type: 'model', path: '/3d-space/Foliage A.glb', thumbnail: '/thumbnails/Foliage-A.png' },
-      { id: uuid(), name: 'Foliage B', type: 'model', path: '/3d-space/Foliage B.glb', thumbnail: '/thumbnails/Foliage-B.png' },
-      { id: uuid(), name: 'Gate Double Left', type: 'model', path: '/3d-space/Gate Double Left.glb', thumbnail: '/thumbnails/Gate-Double-Left.png' },
-      { id: uuid(), name: 'Gate Double Right', type: 'model', path: '/3d-space/Gate Double Right.glb', thumbnail: '/thumbnails/Gate-Double-Right.png' },
-      { id: uuid(), name: 'Gate Single', type: 'model', path: '/3d-space/Gate Single.glb', thumbnail: '/thumbnails/Gate-Single.png' },
-      { id: uuid(), name: 'House', type: 'model', path: '/3d-space/House.glb', thumbnail: '/thumbnails/House.png' },
-      { id: uuid(), name: 'Letter', type: 'model', path: '/3d-space/Letter.glb', thumbnail: '/thumbnails/Letter.png' },
-      { id: uuid(), name: 'Mailbox', type: 'model', path: '/3d-space/Mailbox.glb', thumbnail: '/thumbnails/Mailbox.png' },
-      { id: uuid(), name: 'Package', type: 'model', path: '/3d-space/Package.glb', thumbnail: '/thumbnails/Package.png' },
-      { id: uuid(), name: 'Tree Large', type: 'model', path: '/3d-space/Tree Large.glb', thumbnail: '/thumbnails/Tree-Large.png' },
-      { id: uuid(), name: 'Tree', type: 'model', path: '/3d-space/Tree.glb', thumbnail: '/thumbnails/Tree.png' },
+      { id: uuid(), name: 'Bench A', type: 'model', path: '/3d-space/Bench A.glb', thumbnail: '/thumbnails/Bench-A.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Bench B', type: 'model', path: '/3d-space/Bench B.glb', thumbnail: '/thumbnails/Bench-B.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Boots', type: 'model', path: '/3d-space/Boots.glb', thumbnail: '/thumbnails/Boots.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Cobblestones', type: 'model', path: '/3d-space/Cobblestones.glb', thumbnail: '/thumbnails/Cobblestones.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Doormat', type: 'model', path: '/3d-space/Doormat.glb', thumbnail: '/thumbnails/Doormat.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Corner', type: 'model', path: '/3d-space/Fence Corner.glb', thumbnail: '/thumbnails/Fence-Corner.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Open Long', type: 'model', path: '/3d-space/Fence Open Long.glb', thumbnail: '/thumbnails/Fence-Open-Long.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Open Wide Long', type: 'model', path: '/3d-space/Fence Open Wide Long.glb', thumbnail: '/thumbnails/Fence-Open-Wide-Long.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Open', type: 'model', path: '/3d-space/Fence Open.glb', thumbnail: '/thumbnails/Fence-Open.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Post', type: 'model', path: '/3d-space/Fence Post.glb', thumbnail: '/thumbnails/Fence-Post.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Rails Long', type: 'model', path: '/3d-space/Fence Rails Long.glb', thumbnail: '/thumbnails/Fence-Rails-Long.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Rails', type: 'model', path: '/3d-space/Fence Rails.glb', thumbnail: '/thumbnails/Fence-Rails.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Straight Long', type: 'model', path: '/3d-space/Fence Straight Long.glb', thumbnail: '/thumbnails/Fence-Straight-Long.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Straight', type: 'model', path: '/3d-space/Fence Straight.glb', thumbnail: '/thumbnails/Fence-Straight.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Fence Wide Long', type: 'model', path: '/3d-space/Fence Wide Long.glb', thumbnail: '/thumbnails/Fence-Wide-Long.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Floor Base', type: 'model', path: '/3d-space/Floor Base.glb', thumbnail: '/thumbnails/Floor-Base.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Foliage A', type: 'model', path: '/3d-space/Foliage A.glb', thumbnail: '/thumbnails/Foliage-A.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Foliage B', type: 'model', path: '/3d-space/Foliage B.glb', thumbnail: '/thumbnails/Foliage-B.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Gate Double Left', type: 'model', path: '/3d-space/Gate Double Left.glb', thumbnail: '/thumbnails/Gate-Double-Left.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Gate Double Right', type: 'model', path: '/3d-space/Gate Double Right.glb', thumbnail: '/thumbnails/Gate-Double-Right.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Gate Single', type: 'model', path: '/3d-space/Gate Single.glb', thumbnail: '/thumbnails/Gate-Single.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'House', type: 'model', path: '/3d-space/House.glb', thumbnail: '/thumbnails/House.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Letter', type: 'model', path: '/3d-space/Letter.glb', thumbnail: '/thumbnails/Letter.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Mailbox', type: 'model', path: '/3d-space/Mailbox.glb', thumbnail: '/thumbnails/Mailbox.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Package', type: 'model', path: '/3d-space/Package.glb', thumbnail: '/thumbnails/Package.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Tree Large', type: 'model', path: '/3d-space/Tree Large.glb', thumbnail: '/thumbnails/Tree-Large.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'Tree', type: 'model', path: '/3d-space/Tree.glb', thumbnail: '/thumbnails/Tree.png', assetId: generateAssetId() },
     ],
   },
   {
@@ -206,9 +211,9 @@ const initialAssets: Asset[] = [
     type: 'folder',
     path: '/Sprites',
     children: [
-      { id: uuid(), name: 'player_idle.png', type: 'texture', path: '/Sprites/player_idle.png' },
-      { id: uuid(), name: 'player_run.png', type: 'texture', path: '/Sprites/player_run.png' },
-      { id: uuid(), name: 'enemy.png', type: 'texture', path: '/Sprites/enemy.png' },
+      { id: uuid(), name: 'player_idle.png', type: 'texture', path: '/Sprites/player_idle.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'player_run.png', type: 'texture', path: '/Sprites/player_run.png', assetId: generateAssetId() },
+      { id: uuid(), name: 'enemy.png', type: 'texture', path: '/Sprites/enemy.png', assetId: generateAssetId() },
     ],
   },
   {
@@ -217,8 +222,8 @@ const initialAssets: Asset[] = [
     type: 'folder',
     path: '/Audio',
     children: [
-      { id: uuid(), name: 'jump.wav', type: 'audio', path: '/Audio/jump.wav' },
-      { id: uuid(), name: 'background.mp3', type: 'audio', path: '/Audio/background.mp3' },
+      { id: uuid(), name: 'jump.wav', type: 'audio', path: '/Audio/jump.wav', assetId: generateAssetId() },
+      { id: uuid(), name: 'background.mp3', type: 'audio', path: '/Audio/background.mp3', assetId: generateAssetId() },
     ],
   },
   {
@@ -227,8 +232,8 @@ const initialAssets: Asset[] = [
     type: 'folder',
     path: '/Scripts',
     children: [
-      { id: uuid(), name: 'PlayerController.ts', type: 'script', path: '/Scripts/PlayerController.ts' },
-      { id: uuid(), name: 'EnemyAI.ts', type: 'script', path: '/Scripts/EnemyAI.ts' },
+      { id: uuid(), name: 'PlayerController.ts', type: 'script', path: '/Scripts/PlayerController.ts', assetId: generateAssetId() },
+      { id: uuid(), name: 'EnemyAI.ts', type: 'script', path: '/Scripts/EnemyAI.ts', assetId: generateAssetId() },
     ],
   },
   {
@@ -237,7 +242,7 @@ const initialAssets: Asset[] = [
     type: 'folder',
     path: '/Materials',
     children: [
-      { id: uuid(), name: 'Ground.mat', type: 'material', path: '/Materials/Ground.mat' },
+      { id: uuid(), name: 'Ground.mat', type: 'material', path: '/Materials/Ground.mat', assetId: generateAssetId() },
     ],
   },
   {
@@ -246,8 +251,8 @@ const initialAssets: Asset[] = [
     type: 'folder',
     path: '/Prefabs',
     children: [
-      { id: uuid(), name: 'Enemy.prefab', type: 'prefab', path: '/Prefabs/Enemy.prefab' },
-      { id: uuid(), name: 'Coin.prefab', type: 'prefab', path: '/Prefabs/Coin.prefab' },
+      { id: uuid(), name: 'Enemy.prefab', type: 'prefab', path: '/Prefabs/Enemy.prefab', assetId: generateAssetId() },
+      { id: uuid(), name: 'Coin.prefab', type: 'prefab', path: '/Prefabs/Coin.prefab', assetId: generateAssetId() },
     ],
   },
   {
@@ -256,8 +261,8 @@ const initialAssets: Asset[] = [
     type: 'folder',
     path: '/Scenes',
     children: [
-      { id: uuid(), name: 'MainMenu.scene', type: 'scene', path: '/Scenes/MainMenu.scene' },
-      { id: uuid(), name: 'Level1.scene', type: 'scene', path: '/Scenes/Level1.scene' },
+      { id: uuid(), name: 'MainMenu.scene', type: 'scene', path: '/Scenes/MainMenu.scene', assetId: generateAssetId() },
+      { id: uuid(), name: 'Level1.scene', type: 'scene', path: '/Scenes/Level1.scene', assetId: generateAssetId() },
     ],
   },
 ]
@@ -615,6 +620,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           name: file.name,
           type,
           path,
+          assetId: generateAssetId(),
         }
         folder.children = [...(folder.children ?? []), child]
       }

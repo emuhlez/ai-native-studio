@@ -310,6 +310,10 @@ export function Assets() {
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
                       <th className={styles.contentTableTh}>
+                        ID
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
+                      <th className={styles.contentTableTh}>
                         Creator
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
@@ -327,7 +331,7 @@ export function Assets() {
                   <tbody>
                     {displayAssets.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className={styles.contentTableEmpty}>
+                        <td colSpan={6} className={styles.contentTableEmpty}>
                           No assets
                         </td>
                       </tr>
@@ -342,6 +346,7 @@ export function Assets() {
                               <span className={styles.contentTableAssetIcon}>{icon}</span>
                               <span>{displayName}</span>
                             </td>
+                            <td className={styles.contentTableTd}>{isFolder ? '' : asset.assetId}</td>
                             <td className={styles.contentTableTd}>—</td>
                             <td className={styles.contentTableTd}>—</td>
                             <td className={styles.contentTableTd}>—</td>
@@ -366,6 +371,10 @@ export function Assets() {
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
                       <th className={styles.contentTableTh}>
+                        ID
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
+                      <th className={styles.contentTableTh}>
                         Type
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
@@ -374,7 +383,7 @@ export function Assets() {
                   <tbody>
                     {assetsForGrid.length === 0 ? (
                       <tr>
-                        <td colSpan={2} className={styles.contentTableEmpty}>
+                        <td colSpan={3} className={styles.contentTableEmpty}>
                           No assets
                         </td>
                       </tr>
@@ -382,6 +391,7 @@ export function Assets() {
                       assetsForGrid.map((asset) => {
                         const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
                         const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
+                        const isFolder = asset.type === 'folder'
                         return (
                           <tr
                             key={asset.id}
@@ -401,6 +411,7 @@ export function Assets() {
                               <span className={styles.contentTableAssetIcon}>{icon}</span>
                               <span>{displayName}</span>
                             </td>
+                            <td className={styles.contentTableTd}>{isFolder ? '' : asset.assetId}</td>
                             <td className={styles.contentTableTd}>{getTypeLabel(asset)}</td>
                           </tr>
                         )
