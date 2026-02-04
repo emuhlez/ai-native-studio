@@ -34,7 +34,7 @@ const assetIcons: Record<Asset['type'], React.ReactNode> = {
 
 const SPECIAL_NAV_ITEMS = [
   { id: 'recent', label: 'Import Queue', icon: <img src="/icons/recently-imported.svg" alt="Import Queue" width={16} height={16} /> },
-  { id: 'import-queue', label: 'Experience Name', icon: <img src="/icons/experience-folder.svg" alt="Experience Name" width={16} height={16} /> },
+  { id: 'import-queue', label: 'Crossy Farm', icon: <img src="/icons/experience-folder.svg" alt="Crossy Farm" width={16} height={16} /> },
 ] as const
 
 const INVENTORIES_NAV_ID = 'inventories'
@@ -87,12 +87,14 @@ export function Assets() {
           ? [topLevelFolders.find((f) => f.id === selectedNavId)!]
           : assets
 
-  /** Table (Import Queue columns) only for special nav items; otherwise show asset tiles */
-  const isImportQueueView = selectedNavId !== null && SPECIAL_NAV_ITEMS.some((s) => s.id === selectedNavId)
+  /** Table (Import Queue columns) only for Import Queue; Crossy Farm and others show asset tiles */
+  const isImportQueueView = selectedNavId === 'recent'
   const assetsForGrid: Asset[] =
-    displayAssets.length === 1 && displayAssets[0].type === 'folder'
-      ? displayAssets[0].children ?? []
-      : displayAssets
+    selectedNavId === 'import-queue'
+      ? assets
+      : displayAssets.length === 1 && displayAssets[0].type === 'folder'
+        ? displayAssets[0].children ?? []
+        : displayAssets
 
   const getTypeLabel = (a: Asset): string =>
     a.type === 'folder' ? 'Folder' : a.type.charAt(0).toUpperCase() + a.type.slice(1)
