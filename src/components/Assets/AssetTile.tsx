@@ -22,6 +22,7 @@ export interface AssetTileProps {
 export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick }: AssetTileProps) {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [modelLoading, setModelLoading] = useState(false)
   const showTexture = previewImageUrl.length > 0 && !imageError
   const hasModel = modelPath && modelPath.length > 0
 
@@ -36,9 +37,14 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onSelect()}
     >
-      <div className={styles.assetTilePreview}>
+      <div className={`${styles.assetTilePreview} ${modelLoading ? styles.loading : ''}`}>
         {hasModel ? (
-          <ModelPreview modelPath={modelPath} className={styles.assetTilePreviewTexture} animate={isHovered} />
+          <ModelPreview 
+            modelPath={modelPath} 
+            className={styles.assetTilePreviewTexture} 
+            animate={isHovered}
+            onLoadingChange={setModelLoading}
+          />
         ) : showTexture ? (
           <img
             src={previewImageUrl}

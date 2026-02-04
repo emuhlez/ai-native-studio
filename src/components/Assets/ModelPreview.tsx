@@ -6,9 +6,10 @@ interface ModelPreviewProps {
   modelPath: string
   className?: string
   animate?: boolean
+  onLoadingChange?: (isLoading: boolean) => void
 }
 
-export function ModelPreview({ modelPath, className, animate = false }: ModelPreviewProps) {
+export function ModelPreview({ modelPath, className, animate = false, onLoadingChange }: ModelPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
@@ -18,6 +19,11 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  
+  // Notify parent of loading state changes
+  useEffect(() => {
+    onLoadingChange?.(isLoading)
+  }, [isLoading, onLoadingChange])
 
   // Intersection Observer to detect when element is visible
   useEffect(() => {
@@ -166,20 +172,6 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
 
   return (
     <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
-      {isLoading && !loadError && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'rgba(255, 255, 255, 0.3)',
-          fontSize: '9px',
-          pointerEvents: 'none',
-        }}>
-          •••
-        </div>
-      )}
       {loadError && (
         <div style={{
           position: 'absolute',
