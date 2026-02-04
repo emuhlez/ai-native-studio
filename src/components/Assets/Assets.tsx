@@ -13,6 +13,7 @@ import {
 
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import searchIconImg from '../../../images/search.png'
+import gridIcon from '../../../icons/grid.svg'
 import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
@@ -55,6 +56,7 @@ export function Assets() {
   const [crossyFarmExpanded, setCrossyFarmExpanded] = useState(true)
   const [inventoriesExpanded, setInventoriesExpanded] = useState(true)
   const [sideNavWidth, setSideNavWidth] = useState(SIDE_NAV_DEFAULT)
+  const [assetViewMode, setAssetViewMode] = useState<'grid' | 'list'>('grid')
   const resizeStartRef = useRef({ x: 0, w: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -257,7 +259,18 @@ export function Assets() {
             <div className={styles.contentRowActions}>
               <IconButton icon={<img src="/icons/refresh.svg" alt="Import Asset" width={16} height={16} />} size="xs" tooltip="Import Asset" />
               <IconButton icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />} size="xs" tooltip="Filter" />
-              <IconButton icon={<img src="/icons/list-view.svg" alt="List view" width={16} height={16} />} size="xs" tooltip="List view" />
+              <IconButton
+                icon={
+                  assetViewMode === 'grid' ? (
+                    <img src={gridIcon} alt="Grid view" width={16} height={16} />
+                  ) : (
+                    <img src="/icons/list-view.svg" alt="List view" width={16} height={16} />
+                  )
+                }
+                size="xs"
+                tooltip={assetViewMode === 'grid' ? 'Grid view' : 'List view'}
+                onClick={() => setAssetViewMode((m) => (m === 'grid' ? 'list' : 'grid'))}
+              />
               <div className={styles.contentRowSeparator} aria-hidden />
               <input
                 ref={fileInputRef}
@@ -324,6 +337,53 @@ export function Assets() {
                   </tbody>
                 </table>
               </div>
+            ) : assetViewMode === 'list' ? (
+              <div className={styles.contentTableWrap}>
+                <table className={styles.contentTable}>
+                  <thead>
+                    <tr>
+                      <th className={styles.contentTableTh}>Asset</th>
+                      <th className={styles.contentTableTh}>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assetsForGrid.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} className={styles.contentTableEmpty}>
+                          No assets
+                        </td>
+                      </tr>
+                    ) : (
+                      assetsForGrid.map((asset) => {
+                        const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
+                        const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
+                        return (
+                          <tr
+                            key={asset.id}
+                            className={`${styles.contentTableRow} ${selectedAssetId === asset.id ? styles.contentTableRowSelected : ''}`}
+                            onClick={() => selectAsset(asset.id)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                selectAsset(asset.id)
+                              }
+                            }}
+                            aria-pressed={selectedAssetId === asset.id}
+                          >
+                            <td className={styles.contentTableTd}>
+                              <span className={styles.contentTableAssetIcon}>{icon}</span>
+                              <span>{displayName}</span>
+                            </td>
+                            <td className={styles.contentTableTd}>{getTypeLabel(asset)}</td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className={styles.gridView}>
                 {assetsForGrid.length === 0 ? (
@@ -333,7 +393,7 @@ export function Assets() {
                     const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
                     const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
                     const previewImageUrl =
-                      asset.type === 'texture' || asset.type === 'material'
+                      asset.type === 'texture' || asset.type === 'material' || asset.type === 'model'
                         ? (asset.thumbnail ?? asset.path)
                         : ''
                     return (
