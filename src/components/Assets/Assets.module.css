@@ -317,7 +317,6 @@
 }
 
 .contentTableWrap {
-  border-radius: 8px;
   overflow: hidden;
   background: var(--bg-surface100);
   isolation: isolate;
@@ -342,23 +341,6 @@
   border-bottom: 1px solid rgba(208, 217, 251, 0.12);
 }
 
-/* Round top corners of table */
-.contentTable thead tr:first-child th:first-child {
-  border-top-left-radius: 8px;
-}
-
-.contentTable thead tr:first-child th:last-child {
-  border-top-right-radius: 8px;
-}
-
-/* Round bottom corners of table (last row: "No assets" or last data row) */
-.contentTable tbody tr:last-child td:first-child {
-  border-bottom-left-radius: 8px;
-}
-
-.contentTable tbody tr:last-child td:last-child {
-  border-bottom-right-radius: 8px;
-}
 
 .contentTableTh {
   text-align: left;
