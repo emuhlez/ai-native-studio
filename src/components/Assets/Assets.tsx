@@ -400,6 +400,7 @@ export function Assets() {
                             key={asset.id}
                             className={`${styles.contentTableRow} ${selectedAssetId === asset.id ? styles.contentTableRowSelected : ''}`}
                             onClick={() => selectAsset(asset.id)}
+                            onDoubleClick={isFolder ? () => setSelectedNavId(asset.id) : undefined}
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => {
@@ -437,6 +438,7 @@ export function Assets() {
                         ? (asset.thumbnail ?? asset.path)
                         : ''
                     const modelPath = asset.type === 'model' ? asset.path : undefined
+                    const handleDoubleClick = asset.type === 'folder' ? () => setSelectedNavId(asset.id) : undefined
                     return (
                       <AssetTile
                         key={asset.id}
@@ -448,6 +450,7 @@ export function Assets() {
                         modelPath={modelPath}
                         isSelected={selectedAssetId === asset.id}
                         onSelect={() => selectAsset(asset.id)}
+                        onDoubleClick={handleDoubleClick}
                       />
                     )
                   })

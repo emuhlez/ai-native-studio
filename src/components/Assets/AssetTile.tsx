@@ -16,9 +16,10 @@ export interface AssetTileProps {
   modelPath?: string
   isSelected: boolean
   onSelect: () => void
+  onDoubleClick?: () => void
 }
 
-export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect }: AssetTileProps) {
+export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick }: AssetTileProps) {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const showTexture = previewImageUrl.length > 0 && !imageError
@@ -29,6 +30,7 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
     <div
       className={`${styles.assetTile} ${isSelected ? styles.selected : ''}`}
       onClick={onSelect}
+      onDoubleClick={onDoubleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="button"
