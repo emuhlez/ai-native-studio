@@ -433,9 +433,10 @@ export function Assets() {
                     const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
                     const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
                     const previewImageUrl =
-                      asset.type === 'texture' || asset.type === 'material' || asset.type === 'model'
+                      asset.type === 'texture' || asset.type === 'material'
                         ? (asset.thumbnail ?? asset.path)
                         : ''
+                    const modelPath = asset.type === 'model' ? asset.path : undefined
                     return (
                       <AssetTile
                         key={asset.id}
@@ -444,6 +445,7 @@ export function Assets() {
                         typeLabel={getTypeLabel(asset)}
                         icon={icon}
                         previewImageUrl={previewImageUrl}
+                        modelPath={modelPath}
                         isSelected={selectedAssetId === asset.id}
                         onSelect={() => selectAsset(asset.id)}
                       />

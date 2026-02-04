@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import styles from './Assets.module.css'
+import { ModelPreview } from './ModelPreview'
 
 export interface AssetTileProps {
   id: string
@@ -11,13 +12,16 @@ export interface AssetTileProps {
   icon: ReactNode
   /** Image URL for texture assets – required for textures; shown in preview. Empty string for non-textures. */
   previewImageUrl: string
+  /** Path to 3D model file for live preview */
+  modelPath?: string
   isSelected: boolean
   onSelect: () => void
 }
 
-export function AssetTile({ name, typeLabel, icon, previewImageUrl, isSelected, onSelect }: AssetTileProps) {
+export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect }: AssetTileProps) {
   const [imageError, setImageError] = useState(false)
   const showTexture = previewImageUrl.length > 0 && !imageError
+  const showModel = modelPath && modelPath.length > 0
 
   return (
     <div
@@ -28,7 +32,9 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, isSelected, 
       onKeyDown={(e) => e.key === 'Enter' && onSelect()}
     >
       <div className={styles.assetTilePreview}>
-        {showTexture ? (
+        {showModel ? (
+          <ModelPreview modelPath={modelPath} className={styles.assetTilePreviewTexture} />
+        ) : showTexture ? (
           <img
             src={previewImageUrl}
             alt=""
