@@ -189,6 +189,7 @@ const initialAssets: Asset[] = [
     name: 'Models',
     type: 'folder',
     path: '/Models',
+    dateModified: generateDateModified(),
     children: [
       { id: uuid(), name: 'Bench A', type: 'model', path: '/3d-space/Bench A.glb', thumbnail: '/thumbnails/Bench-A.png', assetId: generateAssetId(), dateModified: generateDateModified() },
       { id: uuid(), name: 'Bench B', type: 'model', path: '/3d-space/Bench B.glb', thumbnail: '/thumbnails/Bench-B.png', assetId: generateAssetId(), dateModified: generateDateModified() },
@@ -224,6 +225,7 @@ const initialAssets: Asset[] = [
     name: 'Sprites',
     type: 'folder',
     path: '/Sprites',
+    dateModified: generateDateModified(),
     children: [
       { id: uuid(), name: 'player_idle.png', type: 'texture', path: '/Sprites/player_idle.png', assetId: generateAssetId(), dateModified: generateDateModified() },
       { id: uuid(), name: 'player_run.png', type: 'texture', path: '/Sprites/player_run.png', assetId: generateAssetId(), dateModified: generateDateModified() },
@@ -235,6 +237,7 @@ const initialAssets: Asset[] = [
     name: 'Audio',
     type: 'folder',
     path: '/Audio',
+    dateModified: generateDateModified(),
     children: [
       { id: uuid(), name: 'jump.wav', type: 'audio', path: '/Audio/jump.wav', assetId: generateAssetId(), dateModified: generateDateModified() },
       { id: uuid(), name: 'background.mp3', type: 'audio', path: '/Audio/background.mp3', assetId: generateAssetId(), dateModified: generateDateModified() },
@@ -245,6 +248,7 @@ const initialAssets: Asset[] = [
     name: 'Scripts',
     type: 'folder',
     path: '/Scripts',
+    dateModified: generateDateModified(),
     children: [
       { id: uuid(), name: 'PlayerController.ts', type: 'script', path: '/Scripts/PlayerController.ts', assetId: generateAssetId(), dateModified: generateDateModified() },
       { id: uuid(), name: 'EnemyAI.ts', type: 'script', path: '/Scripts/EnemyAI.ts', assetId: generateAssetId(), dateModified: generateDateModified() },
@@ -255,6 +259,7 @@ const initialAssets: Asset[] = [
     name: 'Materials',
     type: 'folder',
     path: '/Materials',
+    dateModified: generateDateModified(),
     children: [
       { id: uuid(), name: 'Ground.mat', type: 'material', path: '/Materials/Ground.mat', assetId: generateAssetId(), dateModified: generateDateModified() },
     ],
@@ -264,6 +269,7 @@ const initialAssets: Asset[] = [
     name: 'Prefabs',
     type: 'folder',
     path: '/Prefabs',
+    dateModified: generateDateModified(),
     children: [
       { id: uuid(), name: 'Enemy.prefab', type: 'prefab', path: '/Prefabs/Enemy.prefab', assetId: generateAssetId(), dateModified: generateDateModified() },
       { id: uuid(), name: 'Coin.prefab', type: 'prefab', path: '/Prefabs/Coin.prefab', assetId: generateAssetId(), dateModified: generateDateModified() },
@@ -274,6 +280,7 @@ const initialAssets: Asset[] = [
     name: 'Scenes',
     type: 'folder',
     path: '/Scenes',
+    dateModified: generateDateModified(),
     children: [
       { id: uuid(), name: 'MainMenu.scene', type: 'scene', path: '/Scenes/MainMenu.scene', assetId: generateAssetId(), dateModified: generateDateModified() },
       { id: uuid(), name: 'Level1.scene', type: 'scene', path: '/Scenes/Level1.scene', assetId: generateAssetId(), dateModified: generateDateModified() },
