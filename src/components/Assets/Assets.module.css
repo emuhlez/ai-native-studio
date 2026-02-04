@@ -317,7 +317,7 @@
 }
 
 .contentTableWrap {
-  padding: 8px;
+  padding: 4px;
   border-radius: 8px;
   overflow: hidden;
   background: var(--bg-surface100);
