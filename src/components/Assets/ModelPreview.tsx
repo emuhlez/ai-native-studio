@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
@@ -15,6 +15,8 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const animationIdRef = useRef<number | null>(null)
   const modelRef = useRef<THREE.Group | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -55,6 +57,9 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
 
     // Load model
     const loader = new GLTFLoader()
+    setIsLoading(true)
+    setLoadError(false)
+    
     loader.load(
       modelPath,
       (gltf) => {
@@ -80,10 +85,17 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
         if (rendererRef.current && cameraRef.current) {
           rendererRef.current.render(scene, cameraRef.current)
         }
+        
+        setIsLoading(false)
       },
-      undefined,
+      (progress) => {
+        // Loading progress callback
+        console.log('Loading:', modelPath, (progress.loaded / progress.total) * 100 + '%')
+      },
       (error) => {
-        console.error('Error loading model:', error)
+        console.error('Error loading model:', error, modelPath)
+        setLoadError(true)
+        setIsLoading(false)
       }
     )
 
@@ -128,5 +140,34 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
     }
   }, [animate])
 
-  return <div ref={containerRef} className={className} style={{ width: '100%', height: '100%' }} />
+  return (
+    <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {isLoading && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'rgba(255, 255, 255, 0.5)',
+          fontSize: '10px',
+        }}>
+          Loading...
+        </div>
+      )}
+      {loadError && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'rgba(255, 100, 100, 0.8)',
+          fontSize: '10px',
+        }}>
+          Load Error
+        </div>
+      )}
+    </div>
+  )
 }
