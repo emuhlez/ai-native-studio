@@ -346,7 +346,7 @@ export function Assets() {
                               <span className={styles.contentTableAssetIcon}>{icon}</span>
                               <span>{displayName}</span>
                             </td>
-                            <td className={styles.contentTableTd}>{isFolder ? '' : asset.assetId}</td>
+                            <td className={styles.contentTableTd}>{isFolder ? '—' : asset.assetId}</td>
                             <td className={styles.contentTableTd}>—</td>
                             <td className={styles.contentTableTd}>—</td>
                             <td className={styles.contentTableTd}>—</td>
@@ -411,7 +411,7 @@ export function Assets() {
                               <span className={styles.contentTableAssetIcon}>{icon}</span>
                               <span>{displayName}</span>
                             </td>
-                            <td className={styles.contentTableTd}>{isFolder ? '' : asset.assetId}</td>
+                            <td className={styles.contentTableTd}>{isFolder ? '—' : asset.assetId}</td>
                             <td className={styles.contentTableTd}>{getTypeLabel(asset)}</td>
                           </tr>
                         )
