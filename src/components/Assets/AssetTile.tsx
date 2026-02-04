@@ -20,13 +20,17 @@ export interface AssetTileProps {
 
 export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect }: AssetTileProps) {
   const [imageError, setImageError] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   const showTexture = previewImageUrl.length > 0 && !imageError
-  const showModel = modelPath && modelPath.length > 0
+  const hasModel = modelPath && modelPath.length > 0
+  const showModel = hasModel && isHovered
 
   return (
     <div
       className={`${styles.assetTile} ${isSelected ? styles.selected : ''}`}
       onClick={onSelect}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onSelect()}

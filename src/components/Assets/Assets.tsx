@@ -433,7 +433,7 @@ export function Assets() {
                     const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
                     const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
                     const previewImageUrl =
-                      asset.type === 'texture' || asset.type === 'material'
+                      asset.type === 'texture' || asset.type === 'material' || asset.type === 'model'
                         ? (asset.thumbnail ?? asset.path)
                         : ''
                     const modelPath = asset.type === 'model' ? asset.path : undefined
