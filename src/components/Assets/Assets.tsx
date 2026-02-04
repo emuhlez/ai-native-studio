@@ -9,6 +9,7 @@ import {
   Film,
   Video,
   X,
+  ChevronDown,
 } from 'lucide-react'
 
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
@@ -301,10 +302,25 @@ export function Assets() {
                 <table className={styles.contentTable}>
                   <thead>
                     <tr>
-                      <th className={styles.contentTableTh}>Asset</th>
-                      <th className={styles.contentTableTh}>Creator</th>
-                      <th className={styles.contentTableTh}>Import Preset</th>
-                      <th className={styles.contentTableTh}>File Path</th>
+                      <th className={styles.contentTableTh}>
+                        <span className={styles.contentTableThDropdown}>
+                          Name
+                          <ChevronDown size={12} className={styles.contentTableThDropdownIcon} />
+                        </span>
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
+                      <th className={styles.contentTableTh}>
+                        Creator
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
+                      <th className={styles.contentTableTh}>
+                        Import Preset
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
+                      <th className={styles.contentTableTh}>
+                        File Path
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
                       <th className={styles.contentTableTh}>Status</th>
                     </tr>
                   </thead>
@@ -342,8 +358,17 @@ export function Assets() {
                 <table className={styles.contentTable}>
                   <thead>
                     <tr>
-                      <th className={styles.contentTableTh}>Asset</th>
-                      <th className={styles.contentTableTh}>Type</th>
+                      <th className={styles.contentTableTh}>
+                        <span className={styles.contentTableThDropdown}>
+                          Name
+                          <ChevronDown size={12} className={styles.contentTableThDropdownIcon} />
+                        </span>
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
+                      <th className={styles.contentTableTh}>
+                        Type
+                        <span className={styles.contentTableThDivider} aria-hidden />
+                      </th>
                     </tr>
                   </thead>
                   <tbody>

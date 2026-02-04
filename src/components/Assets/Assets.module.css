@@ -340,6 +340,10 @@
   background: var(--bg-surface100);
 }
 
+.contentTable thead tr {
+  border-bottom: none;
+}
+
 /* Round top corners of table */
 .contentTable thead tr:first-child th:first-child {
   border-top-left-radius: 8px;
@@ -360,11 +364,44 @@
 
 .contentTableTh {
   text-align: left;
-  padding: 10px 12px;
-  font-weight: 600;
-  color: var(--content-emphasis);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 4px 12px;
+  font-weight: 400;
+  font-size: 12px;
+  color: #BCBEC8;
+  border-bottom: none;
   white-space: nowrap;
+  height: 24px;
+  vertical-align: middle;
+  position: relative;
+  background: transparent;
+}
+
+.contentTableTh:first-child {
+  color: #F7F7F8;
+  font-weight: 400;
+}
+
+.contentTableThDivider {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: rgba(240, 240, 240, 0.1);
+  border-radius: 0.5px;
+}
+
+.contentTableThDropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contentTableThDropdownIcon {
+  width: 12px;
+  height: 12px;
+  color: #A1A2A5;
 }
 
 .contentTableRow {
@@ -373,6 +410,10 @@
 
 .contentTableRow:hover {
   background: var(--content-hover);
+}
+
+.contentTableRowSelected {
+  background: var(--content-active, rgba(230, 126, 34, 0.12));
 }
 
 .contentTableTd {
