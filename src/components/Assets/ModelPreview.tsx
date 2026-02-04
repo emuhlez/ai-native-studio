@@ -5,13 +5,16 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 interface ModelPreviewProps {
   modelPath: string
   className?: string
+  animate?: boolean
 }
 
-export function ModelPreview({ modelPath, className }: ModelPreviewProps) {
+export function ModelPreview({ modelPath, className, animate = false }: ModelPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const animationIdRef = useRef<number | null>(null)
+  const modelRef = useRef<THREE.Group | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -52,6 +55,7 @@ export function ModelPreview({ modelPath, className }: ModelPreviewProps) {
       modelPath,
       (gltf) => {
         const model = gltf.scene
+        modelRef.current = model
 
         // Center and scale model
         const box = new THREE.Box3().setFromObject(model)
@@ -64,14 +68,10 @@ export function ModelPreview({ modelPath, className }: ModelPreviewProps) {
 
         scene.add(model)
 
-        // Simple rotation animation
-        const animate = () => {
-          if (!sceneRef.current || !rendererRef.current || !cameraRef.current) return
-          requestAnimationFrame(animate)
-          model.rotation.y += 0.005
-          rendererRef.current.render(sceneRef.current, cameraRef.current)
+        // Render once initially
+        if (rendererRef.current && cameraRef.current) {
+          rendererRef.current.render(scene, cameraRef.current)
         }
-        animate()
       },
       undefined,
       (error) => {
@@ -81,12 +81,44 @@ export function ModelPreview({ modelPath, className }: ModelPreviewProps) {
 
     // Cleanup
     return () => {
+      if (animationIdRef.current !== null) {
+        cancelAnimationFrame(animationIdRef.current)
+      }
       if (rendererRef.current) {
         container.removeChild(rendererRef.current.domElement)
         rendererRef.current.dispose()
       }
     }
   }, [modelPath])
+
+  // Handle animation on/off
+  useEffect(() => {
+    if (!animate || !modelRef.current || !sceneRef.current || !rendererRef.current || !cameraRef.current) {
+      // Stop animation if it's running
+      if (animationIdRef.current !== null) {
+        cancelAnimationFrame(animationIdRef.current)
+        animationIdRef.current = null
+      }
+      return
+    }
+
+    // Start animation loop
+    const animateLoop = () => {
+      if (!modelRef.current || !sceneRef.current || !rendererRef.current || !cameraRef.current) return
+      
+      modelRef.current.rotation.y += 0.005
+      rendererRef.current.render(sceneRef.current, cameraRef.current)
+      animationIdRef.current = requestAnimationFrame(animateLoop)
+    }
+    animateLoop()
+
+    return () => {
+      if (animationIdRef.current !== null) {
+        cancelAnimationFrame(animationIdRef.current)
+        animationIdRef.current = null
+      }
+    }
+  }, [animate])
 
   return <div ref={containerRef} className={className} style={{ width: '100%', height: '100%' }} />
 }

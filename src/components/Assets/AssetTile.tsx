@@ -24,7 +24,6 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
   const [isHovered, setIsHovered] = useState(false)
   const showTexture = previewImageUrl.length > 0 && !imageError
   const hasModel = modelPath && modelPath.length > 0
-  const showModel = hasModel && isHovered
 
   return (
     <div
@@ -38,8 +37,8 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
       onKeyDown={(e) => e.key === 'Enter' && onSelect()}
     >
       <div className={styles.assetTilePreview}>
-        {showModel ? (
-          <ModelPreview modelPath={modelPath} className={styles.assetTilePreviewTexture} />
+        {hasModel ? (
+          <ModelPreview modelPath={modelPath} className={styles.assetTilePreviewTexture} animate={isHovered} />
         ) : showTexture ? (
           <img
             src={previewImageUrl}
