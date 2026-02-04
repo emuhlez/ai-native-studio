@@ -28,8 +28,8 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
     sceneRef.current = scene
 
     // Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-    camera.position.set(2, 2, 4)
+    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 1000)
+    camera.position.set(3, 2.5, 5)
     camera.lookAt(0, 0, 0)
     cameraRef.current = camera
 
@@ -41,13 +41,17 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+    // Lights - better lighting for model visibility
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
     scene.add(ambientLight)
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-    directionalLight.position.set(5, 5, 5)
-    scene.add(directionalLight)
+    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.6)
+    directionalLight1.position.set(5, 5, 5)
+    scene.add(directionalLight1)
+
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3)
+    directionalLight2.position.set(-3, -3, -3)
+    scene.add(directionalLight2)
 
     // Load model
     const loader = new GLTFLoader()
@@ -57,14 +61,18 @@ export function ModelPreview({ modelPath, className, animate = false }: ModelPre
         const model = gltf.scene
         modelRef.current = model
 
-        // Center and scale model
+        // Center and scale model to fit view
         const box = new THREE.Box3().setFromObject(model)
         const center = box.getCenter(new THREE.Vector3())
         const size = box.getSize(new THREE.Vector3())
         const maxDim = Math.max(size.x, size.y, size.z)
-        const scale = 2 / maxDim
+        const scale = 1.5 / maxDim // Slightly smaller scale for better framing
         model.scale.multiplyScalar(scale)
-        model.position.sub(center.multiplyScalar(scale))
+        
+        // Recalculate box after scaling
+        box.setFromObject(model)
+        const scaledCenter = box.getCenter(new THREE.Vector3())
+        model.position.sub(scaledCenter)
 
         scene.add(model)
 
