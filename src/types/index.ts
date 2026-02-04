@@ -40,6 +40,48 @@ export interface GameObject {
   meshFilename?: string
   /** Render fidelity: Automatic | Low | Medium | High */
   renderFidelity?: 'Automatic' | 'Low' | 'Medium' | 'High'
+  /** Render both sides of mesh faces */
+  doubleSided?: boolean
+  /** Tint color (hex, e.g. #ffffff) */
+  color?: string
+  /** Material name (e.g. Plastic) */
+  material?: string
+  /** Reflectance 0–1 */
+  reflectance?: number
+  /** Transparency 0–1 */
+  transparency?: number
+  /** Cast shadow */
+  castShadow?: boolean
+  /** Physics: anchored */
+  anchored?: boolean
+  /** Physics: can collide */
+  canCollide?: boolean
+  /** Physics: can touch */
+  canTouch?: boolean
+  /** Physics: collision group */
+  collisionGroup?: string
+  /** Physics: fluid forces */
+  fluidForces?: boolean
+  /** Physics: massless */
+  massless?: boolean
+  /** Import: source path */
+  importPath?: string
+  /** Import only as model */
+  importOnlyAsModel?: boolean
+  /** Upload to Roblox */
+  uploadToRoblox?: boolean
+  /** Import as package */
+  importAsPackage?: boolean
+  /** Rig type */
+  rigType?: string
+  /** World forward axis */
+  worldForward?: string
+  /** World up axis */
+  worldUp?: string
+  /** Scale unit */
+  scaleUnit?: string
+  /** Merge meshes */
+  mergeMeshes?: boolean
 }
 
 export interface Component {

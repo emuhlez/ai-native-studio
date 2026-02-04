@@ -55,23 +55,15 @@
   height: 16px;
   appearance: none;
   -webkit-appearance: none;
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  border-radius: 2px;
+  background: url('/icons/checkbox-off.svg') center / contain no-repeat;
+  border: none;
+  border-radius: 0;
   cursor: pointer;
   position: relative;
 }
 
-.checkbox:checked::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 2px;
-  width: 4px;
-  height: 8px;
-  border: solid black;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+.checkbox:checked {
+  background: url('/icons/checkbox-on.svg') center / contain no-repeat;
 }
 
 .nameInput {
@@ -172,6 +164,16 @@
   width: calc(100% - 72px);
 }
 
+.renderFidelityRow {
+  position: relative;
+}
+
+.compactDropdownWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
 .sourceIcon {
   flex-shrink: 0;
   opacity: 0.8;
@@ -193,40 +195,32 @@
   opacity: 1;
 }
 
-.fidelityDropdownWrap {
-  flex: 1;
-  position: relative;
-}
-
-.fidelityDropdownButton {
+/* Compact dropdown, full width of content area */
+.compactDropdownButton {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
+  gap: 4px;
   height: 24px;
-  padding: 0 12px;
-  background: rgba(208, 217, 251, 0.04);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  width: 100%;
+  min-width: 0;
+  padding: 0 6px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--content-emphasis);
+  color: var(--content-default);
+  background: var(--content-hover);
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
-  transition: border-color var(--transition-fast);
-  outline: none;
+  transition: all var(--transition-fast);
+  outline: none !important;
 }
 
-.fidelityDropdownButton:hover {
-  border-color: var(--border-subtle);
+.compactDropdownButton:hover {
+  background: var(--content-hover);
+  color: var(--content-emphasis);
 }
 
-.fidelityDropdownButton:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-}
-
-
-.fidelityDropdownButton span {
+.compactDropdownButton span {
   flex: 1;
   min-width: 0;
   text-align: left;
@@ -235,11 +229,135 @@
   text-overflow: ellipsis;
 }
 
-.fidelityDropdownButton svg {
+.compactDropdownButton svg {
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  color: var(--content-muted);
+  width: 12px;
+  height: 12px;
+}
+
+.colorInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.colorInput {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface200);
+  cursor: pointer;
+}
+
+.colorInput::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.colorInput::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.colorHexInput {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 12px;
+  background: rgba(208, 217, 251, 0.04);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--content-emphasis);
+}
+
+.colorHexInput:focus {
+  outline: none;
+}
+
+.sliderRow {
+  align-items: center;
+}
+
+.sliderWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sliderTrack {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(208, 217, 251, 0.2);
+  border-radius: 3px;
+}
+
+.sliderTrack::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--content-default);
+  cursor: pointer;
+}
+
+.sliderNumber {
+  width: 48px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--content-emphasis);
+  background: rgba(208, 217, 251, 0.04);
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: right;
+}
+
+.sliderNumber::-webkit-inner-spin-button,
+.sliderNumber::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pathInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pathInput {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 12px;
+  background: rgba(208, 217, 251, 0.04);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--content-emphasis);
+}
+
+.pathInput:focus {
+  outline: none;
+}
+
+.pathBrowseDots {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--content-default);
 }
 
 .transformRow {

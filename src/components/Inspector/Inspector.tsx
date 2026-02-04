@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Settings, Plus } from 'lucide-react'
+import { Settings } from 'lucide-react'
 
 function toNumericId(seed: string, length: number): string {
   let hash = 0
@@ -38,22 +38,35 @@ import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import { ModelPreview } from './ModelPreview'
 import { TexturePreview } from './TexturePreview'
 import { THREE_SPACE_ASSETS } from '../Viewport/threeSpaceAssets'
-import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
-import type { GameObject } from '../../types'
 import styles from './Inspector.module.css'
 
 export function Inspector() {
   const [transformExpanded, setTransformExpanded] = useState(true)
   const [pivotExpanded, setPivotExpanded] = useState(true)
   const [appearanceExpanded, setAppearanceExpanded] = useState(true)
-  const [componentsExpanded, setComponentsExpanded] = useState(true)
   const [textureFilename, setTextureFilename] = useState('—')
   const [textureObjectUrl, setTextureObjectUrl] = useState<string | null>(null)
-  const [fidelityDropdownOpen, setFidelityDropdownOpen] = useState(false)
+  const [compactDropdownOpen, setCompactDropdownOpen] = useState(false)
+  const [compactDropdownValue, setCompactDropdownValue] = useState('Precise')
+  const [colorHexInput, setColorHexInput] = useState('')
+  const [materialExpanded, setMaterialExpanded] = useState(true)
+  const [physicsExpanded, setPhysicsExpanded] = useState(true)
+  const [importSettingsExpanded, setImportSettingsExpanded] = useState(true)
+  const [physicsCollisionOpen, setPhysicsCollisionOpen] = useState(false)
+  const [importRigTypeOpen, setImportRigTypeOpen] = useState(false)
+  const [importWorldForwardOpen, setImportWorldForwardOpen] = useState(false)
+  const [importWorldUpOpen, setImportWorldUpOpen] = useState(false)
+  const [importScaleUnitOpen, setImportScaleUnitOpen] = useState(false)
   const meshFileInputRef = useRef<HTMLInputElement>(null)
   const textureFileInputRef = useRef<HTMLInputElement>(null)
-  const fidelityDropdownRef = useRef<HTMLDivElement>(null)
+  const importPathInputRef = useRef<HTMLInputElement>(null)
+  const compactDropdownRef = useRef<HTMLDivElement>(null)
+  const physicsCollisionRef = useRef<HTMLDivElement>(null)
+  const importRigTypeRef = useRef<HTMLDivElement>(null)
+  const importWorldForwardRef = useRef<HTMLDivElement>(null)
+  const importWorldUpRef = useRef<HTMLDivElement>(null)
+  const importScaleUnitRef = useRef<HTMLDivElement>(null)
 
   const {
     selectedObjectIds,
@@ -103,16 +116,25 @@ export function Inspector() {
   }, [selectedObject?.id, selectedObject?.texturePath])
 
   useEffect(() => {
+    setColorHexInput((selectedObject?.color ?? '#ffffff').toUpperCase())
+  }, [selectedObject?.id, selectedObject?.color])
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (fidelityDropdownRef.current && !fidelityDropdownRef.current.contains(event.target as Node)) {
-        setFidelityDropdownOpen(false)
-      }
+      const target = event.target as Node
+      if (compactDropdownRef.current && !compactDropdownRef.current.contains(target)) setCompactDropdownOpen(false)
+      if (physicsCollisionRef.current && !physicsCollisionRef.current.contains(target)) setPhysicsCollisionOpen(false)
+      if (importRigTypeRef.current && !importRigTypeRef.current.contains(target)) setImportRigTypeOpen(false)
+      if (importWorldForwardRef.current && !importWorldForwardRef.current.contains(target)) setImportWorldForwardOpen(false)
+      if (importWorldUpRef.current && !importWorldUpRef.current.contains(target)) setImportWorldUpOpen(false)
+      if (importScaleUnitRef.current && !importScaleUnitRef.current.contains(target)) setImportScaleUnitOpen(false)
     }
-    if (fidelityDropdownOpen) {
+    const open = compactDropdownOpen || physicsCollisionOpen || importRigTypeOpen || importWorldForwardOpen || importWorldUpOpen || importScaleUnitOpen
+    if (open) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [fidelityDropdownOpen])
+  }, [compactDropdownOpen, physicsCollisionOpen, importRigTypeOpen, importWorldForwardOpen, importWorldUpOpen, importScaleUnitOpen])
 
   if (!selectedObject && !primaryAssetName) {
     return (
@@ -174,11 +196,6 @@ export function Inspector() {
     updateGameObject(effectivePrimaryId, { name: baseName, meshUrl, meshFilename: file.name })
   }
 
-  const handleFidelitySelect = (value: GameObject['renderFidelity']) => {
-    if (effectivePrimaryId) updateGameObject(effectivePrimaryId, { renderFidelity: value })
-    setFidelityDropdownOpen(false)
-  }
-
   const handleTextureFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -190,6 +207,20 @@ export function Inspector() {
       return URL.createObjectURL(file)
     })
   }
+
+  const handleImportPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !effectivePrimaryId) return
+    const fileWithPath = file as File & { path?: string }
+    const path =
+      fileWithPath.path ??
+      (file.webkitRelativePath ? file.webkitRelativePath.replace(/\/[^/]+$/, '') : null) ??
+      file.name
+    updateGameObject(effectivePrimaryId, { importPath: path })
+  }
+
+  const openImportPathPicker = () => importPathInputRef.current?.click()
 
   const handleTransformChange = (
     component: 'position' | 'rotation' | 'scale',
@@ -250,6 +281,13 @@ export function Inspector() {
         style={{ display: 'none' }}
         onChange={handleTextureFileChange}
         aria-label="Select texture file"
+      />
+      <input
+        ref={importPathInputRef}
+        type="file"
+        style={{ display: 'none' }}
+        onChange={handleImportPathChange}
+        aria-label="Select import path"
       />
       <div className={styles.content}>
         {/* Header section */}
@@ -410,28 +448,73 @@ export function Inspector() {
                   <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
                 </button>
               </div>
-              <div className={styles.transformRow}>
+              <div className={`${styles.transformRow} ${styles.renderFidelityRow}`} ref={compactDropdownRef}>
                 <label className={styles.transformLabel}>Render Fidelity</label>
-                <div className={styles.fidelityDropdownWrap} ref={fidelityDropdownRef}>
+                <div className={styles.compactDropdownWrap}>
                   <button
                     type="button"
-                    className={styles.fidelityDropdownButton}
-                    onClick={() => setFidelityDropdownOpen((v) => !v)}
-                    aria-label="Render fidelity"
-                    aria-expanded={fidelityDropdownOpen}
+                    className={styles.compactDropdownButton}
+                    onClick={() => setCompactDropdownOpen((v) => !v)}
+                    aria-expanded={compactDropdownOpen}
+                    aria-haspopup="listbox"
                   >
-                    <span>{selectedObject.renderFidelity ?? 'Automatic'}</span>
+                    <span>{compactDropdownValue}</span>
                     <ExpandDownIcon />
                   </button>
                   <MenuDropdown
-                    items={[
-                      { label: 'Automatic', onClick: () => handleFidelitySelect('Automatic') },
-                      { label: 'Low', onClick: () => handleFidelitySelect('Low') },
-                      { label: 'Medium', onClick: () => handleFidelitySelect('Medium') },
-                      { label: 'High', onClick: () => handleFidelitySelect('High') },
-                    ]}
-                    isOpen={fidelityDropdownOpen}
-                    onClose={() => setFidelityDropdownOpen(false)}
+                  items={[
+                    { label: 'Precise', onClick: () => { setCompactDropdownValue('Precise'); setCompactDropdownOpen(false) } },
+                    { label: 'Test Here', onClick: () => { setCompactDropdownValue('Test Here'); setCompactDropdownOpen(false) } },
+                    { label: 'Run', onClick: () => { setCompactDropdownValue('Run'); setCompactDropdownOpen(false) } },
+                  ]}
+                  isOpen={compactDropdownOpen}
+                  onClose={() => setCompactDropdownOpen(false)}
+                />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Double Sided</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.doubleSided ?? false}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { doubleSided: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Color</label>
+                <div className={styles.colorInputWrap}>
+                  <input
+                    type="color"
+                    value={selectedObject.color ?? '#ffffff'}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { color: e.target.value })
+                    }
+                    className={styles.colorInput}
+                    aria-label="Color"
+                  />
+                  <input
+                    type="text"
+                    value={colorHexInput}
+                    onChange={(e) => setColorHexInput(e.target.value)}
+                    onBlur={() => {
+                      const raw = colorHexInput.trim()
+                      const hex = raw.startsWith('#') ? raw : `#${raw}`
+                      if (/^#[0-9A-Fa-f]{6}$/.test(hex) && effectivePrimaryId) {
+                        updateGameObject(effectivePrimaryId, { color: hex })
+                        setColorHexInput(hex.toUpperCase())
+                      } else {
+                        setColorHexInput((selectedObject?.color ?? '#ffffff').toUpperCase())
+                      }
+                    }}
+                    className={styles.colorHexInput}
+                    aria-label="Color hex"
                   />
                 </div>
               </div>
@@ -439,43 +522,432 @@ export function Inspector() {
           )}
         </section>
 
-        {/* Components section */}
+        {/* Material section */}
         <section className={styles.section}>
           <div
             className={styles.sectionHeader}
             role="button"
             tabIndex={0}
-            onClick={() => setComponentsExpanded((v) => !v)}
-            onKeyDown={(e) => e.key === 'Enter' && setComponentsExpanded((v) => !v)}
+            onClick={() => setMaterialExpanded((v) => !v)}
+            onKeyDown={(e) => e.key === 'Enter' && setMaterialExpanded((v) => !v)}
           >
-            {componentsExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
-            <span>Components</span>
-            <IconButton
-              icon={<Plus size={12} />}
-              size="sm"
-              tooltip="Add Component"
-              className={styles.addBtn}
-              onClick={(e) => e.stopPropagation()}
-            />
+            {materialExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
+            <span>Material</span>
           </div>
-          
-          {componentsExpanded && (selectedObject.components.length === 0 ? (
-            <div className={styles.emptyComponents}>
-              <p>No components attached</p>
-              <button className={styles.addComponentBtn}>
-                <Plus size={14} />
-                Add Component
-              </button>
-            </div>
-          ) : (
-            <div className={styles.componentsList}>
-              {selectedObject.components.map((component) => (
-                <div key={component.id} className={styles.component}>
-                  <span>{component.type}</span>
+          {materialExpanded && (
+            <div className={styles.transformGrid}>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Material</label>
+                <div className={styles.colorInputWrap}>
+                  <input
+                    type="color"
+                    value={selectedObject.color ?? '#e5e5e5'}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { color: e.target.value })
+                    }
+                    className={styles.colorInput}
+                    aria-label="Material color"
+                  />
+                  <input
+                    type="text"
+                    value={selectedObject.material ?? 'Plastic'}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { material: e.target.value })
+                    }
+                    className={styles.colorHexInput}
+                  />
                 </div>
-              ))}
+              </div>
+              <div className={`${styles.transformRow} ${styles.sliderRow}`}>
+                <label className={styles.transformLabel}>Reflectance</label>
+                <div className={styles.sliderWrap}>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={selectedObject.reflectance ?? 0.56}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, {
+                        reflectance: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className={styles.sliderTrack}
+                    aria-label="Reflectance"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={selectedObject.reflectance ?? 0.56}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, {
+                        reflectance: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className={styles.sliderNumber}
+                  />
+                </div>
+              </div>
+              <div className={`${styles.transformRow} ${styles.sliderRow}`}>
+                <label className={styles.transformLabel}>Transparency</label>
+                <div className={styles.sliderWrap}>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={selectedObject.transparency ?? 0.12}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, {
+                        transparency: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className={styles.sliderTrack}
+                    aria-label="Transparency"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={selectedObject.transparency ?? 0.12}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, {
+                        transparency: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className={styles.sliderNumber}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Cast Shadow</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.castShadow ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { castShadow: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
             </div>
-          ))}
+          )}
+        </section>
+
+        {/* Physics section */}
+        <section className={styles.section}>
+          <div
+            className={styles.sectionHeader}
+            role="button"
+            tabIndex={0}
+            onClick={() => setPhysicsExpanded((v) => !v)}
+            onKeyDown={(e) => e.key === 'Enter' && setPhysicsExpanded((v) => !v)}
+          >
+            {physicsExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
+            <span>Physics</span>
+          </div>
+          {physicsExpanded && (
+            <div className={styles.transformGrid}>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Anchored</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.anchored ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { anchored: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Can Collide</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.canCollide ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { canCollide: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Can Touch</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.canTouch ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { canTouch: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={`${styles.transformRow} ${styles.renderFidelityRow}`} ref={physicsCollisionRef}>
+                <label className={styles.transformLabel}>Collision Group</label>
+                <div className={styles.compactDropdownWrap}>
+                  <button
+                    type="button"
+                    className={styles.compactDropdownButton}
+                    onClick={() => setPhysicsCollisionOpen((v) => !v)}
+                    aria-expanded={physicsCollisionOpen}
+                    aria-haspopup="listbox"
+                  >
+                    <span>{selectedObject.collisionGroup ?? 'None'}</span>
+                    <ExpandDownIcon />
+                  </button>
+                  <MenuDropdown
+                    items={[
+                      { label: 'None', onClick: () => { updateGameObject(effectivePrimaryId!, { collisionGroup: 'None' }); setPhysicsCollisionOpen(false) } },
+                      { label: 'Default', onClick: () => { updateGameObject(effectivePrimaryId!, { collisionGroup: 'Default' }); setPhysicsCollisionOpen(false) } },
+                    ]}
+                    isOpen={physicsCollisionOpen}
+                    onClose={() => setPhysicsCollisionOpen(false)}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Fluid Forces</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.fluidForces ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { fluidForces: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Massless</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.massless ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { massless: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Import Settings section */}
+        <section className={styles.section}>
+          <div
+            className={styles.sectionHeader}
+            role="button"
+            tabIndex={0}
+            onClick={() => setImportSettingsExpanded((v) => !v)}
+            onKeyDown={(e) => e.key === 'Enter' && setImportSettingsExpanded((v) => !v)}
+          >
+            {importSettingsExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
+            <span>Import Settings</span>
+          </div>
+          {importSettingsExpanded && (
+            <div className={styles.transformGrid}>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Path</label>
+                <div className={styles.pathInputWrap}>
+                  <input
+                    type="text"
+                    value={selectedObject.importPath ?? '/Users/.../Blender_Projects/'}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { importPath: e.target.value })
+                    }
+                    onClick={openImportPathPicker}
+                    readOnly
+                    className={styles.pathInput}
+                    placeholder="Path"
+                  />
+                  <button
+                    type="button"
+                    className={styles.sourceIconButton}
+                    onClick={openImportPathPicker}
+                    title="Browse"
+                    aria-label="Browse"
+                  >
+                    <span className={styles.pathBrowseDots}>…</span>
+                  </button>
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Import only as a Model</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.importOnlyAsModel ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { importOnlyAsModel: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Upload to Roblox</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.uploadToRoblox ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { uploadToRoblox: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Import as Package</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.importAsPackage ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { importAsPackage: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+              <div className={`${styles.transformRow} ${styles.renderFidelityRow}`} ref={importRigTypeRef}>
+                <label className={styles.transformLabel}>Rig Type</label>
+                <div className={styles.compactDropdownWrap}>
+                  <button
+                    type="button"
+                    className={styles.compactDropdownButton}
+                    onClick={() => setImportRigTypeOpen((v) => !v)}
+                    aria-expanded={importRigTypeOpen}
+                    aria-haspopup="listbox"
+                  >
+                    <span>{selectedObject.rigType ?? 'No Rig'}</span>
+                    <ExpandDownIcon />
+                  </button>
+                  <MenuDropdown
+                    items={[
+                      { label: 'No Rig', onClick: () => { updateGameObject(effectivePrimaryId!, { rigType: 'No Rig' }); setImportRigTypeOpen(false) } },
+                      { label: 'R6', onClick: () => { updateGameObject(effectivePrimaryId!, { rigType: 'R6' }); setImportRigTypeOpen(false) } },
+                      { label: 'R15', onClick: () => { updateGameObject(effectivePrimaryId!, { rigType: 'R15' }); setImportRigTypeOpen(false) } },
+                    ]}
+                    isOpen={importRigTypeOpen}
+                    onClose={() => setImportRigTypeOpen(false)}
+                  />
+                </div>
+              </div>
+              <div className={`${styles.transformRow} ${styles.renderFidelityRow}`} ref={importWorldForwardRef}>
+                <label className={styles.transformLabel}>World Forward</label>
+                <div className={styles.compactDropdownWrap}>
+                  <button
+                    type="button"
+                    className={styles.compactDropdownButton}
+                    onClick={() => setImportWorldForwardOpen((v) => !v)}
+                    aria-expanded={importWorldForwardOpen}
+                    aria-haspopup="listbox"
+                  >
+                    <span>{selectedObject.worldForward ?? 'Front'}</span>
+                    <ExpandDownIcon />
+                  </button>
+                  <MenuDropdown
+                    items={[
+                      { label: 'Front', onClick: () => { updateGameObject(effectivePrimaryId!, { worldForward: 'Front' }); setImportWorldForwardOpen(false) } },
+                      { label: 'Back', onClick: () => { updateGameObject(effectivePrimaryId!, { worldForward: 'Back' }); setImportWorldForwardOpen(false) } },
+                    ]}
+                    isOpen={importWorldForwardOpen}
+                    onClose={() => setImportWorldForwardOpen(false)}
+                  />
+                </div>
+              </div>
+              <div className={`${styles.transformRow} ${styles.renderFidelityRow}`} ref={importWorldUpRef}>
+                <label className={styles.transformLabel}>World Up</label>
+                <div className={styles.compactDropdownWrap}>
+                  <button
+                    type="button"
+                    className={styles.compactDropdownButton}
+                    onClick={() => setImportWorldUpOpen((v) => !v)}
+                    aria-expanded={importWorldUpOpen}
+                    aria-haspopup="listbox"
+                  >
+                    <span>{selectedObject.worldUp ?? 'Top'}</span>
+                    <ExpandDownIcon />
+                  </button>
+                  <MenuDropdown
+                    items={[
+                      { label: 'Top', onClick: () => { updateGameObject(effectivePrimaryId!, { worldUp: 'Top' }); setImportWorldUpOpen(false) } },
+                      { label: 'Bottom', onClick: () => { updateGameObject(effectivePrimaryId!, { worldUp: 'Bottom' }); setImportWorldUpOpen(false) } },
+                    ]}
+                    isOpen={importWorldUpOpen}
+                    onClose={() => setImportWorldUpOpen(false)}
+                  />
+                </div>
+              </div>
+              <div className={`${styles.transformRow} ${styles.renderFidelityRow}`} ref={importScaleUnitRef}>
+                <label className={styles.transformLabel}>Scale Unit</label>
+                <div className={styles.compactDropdownWrap}>
+                  <button
+                    type="button"
+                    className={styles.compactDropdownButton}
+                    onClick={() => setImportScaleUnitOpen((v) => !v)}
+                    aria-expanded={importScaleUnitOpen}
+                    aria-haspopup="listbox"
+                  >
+                    <span>{selectedObject.scaleUnit ?? 'Stud'}</span>
+                    <ExpandDownIcon />
+                  </button>
+                  <MenuDropdown
+                    items={[
+                      { label: 'Stud', onClick: () => { updateGameObject(effectivePrimaryId!, { scaleUnit: 'Stud' }); setImportScaleUnitOpen(false) } },
+                      { label: 'Meter', onClick: () => { updateGameObject(effectivePrimaryId!, { scaleUnit: 'Meter' }); setImportScaleUnitOpen(false) } },
+                    ]}
+                    isOpen={importScaleUnitOpen}
+                    onClose={() => setImportScaleUnitOpen(false)}
+                  />
+                </div>
+              </div>
+              <div className={styles.transformRow}>
+                <label className={styles.transformLabel}>Merge Meshes</label>
+                <div className={styles.checkboxWrapper}>
+                  <input
+                    type="checkbox"
+                    checked={selectedObject.mergeMeshes ?? true}
+                    onChange={(e) =>
+                      effectivePrimaryId &&
+                      updateGameObject(effectivePrimaryId, { mergeMeshes: e.target.checked })
+                    }
+                    className={styles.checkbox}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </DockablePanel>

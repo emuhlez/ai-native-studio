@@ -17,7 +17,6 @@ import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
-import { AssetTile } from './AssetTile'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -304,25 +303,45 @@ export function Assets() {
             </div>
           </div>
           <div className={styles.contentScroll}>
-            <div className={styles.gridView}>
-              {displayAssets.map((asset) => {
-                const isSelected = selectedAssetId === asset.id
-                const isFolder = asset.type === 'folder'
-                const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={40} height={40} /> : assetIcons[asset.type]
-                const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
-                const typeLabel = asset.type.charAt(0).toUpperCase() + asset.type.slice(1)
-                return (
-                  <AssetTile
-                    key={asset.id}
-                    id={asset.id}
-                    name={displayName}
-                    typeLabel={typeLabel}
-                    icon={icon}
-                    isSelected={isSelected}
-                    onSelect={() => selectAsset(isSelected ? null : asset.id)}
-                  />
-                )
-              })}
+            <div className={styles.contentTableWrap}>
+              <table className={styles.contentTable}>
+              <thead>
+                <tr>
+                  <th className={styles.contentTableTh}>Asset</th>
+                  <th className={styles.contentTableTh}>Creator</th>
+                  <th className={styles.contentTableTh}>Import Preset</th>
+                  <th className={styles.contentTableTh}>File Path</th>
+                  <th className={styles.contentTableTh}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayAssets.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className={styles.contentTableEmpty}>
+                      No assets
+                    </td>
+                  </tr>
+                ) : (
+                  displayAssets.map((asset) => {
+                    const isFolder = asset.type === 'folder'
+                    const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
+                    const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
+                    return (
+                      <tr key={asset.id} className={styles.contentTableRow}>
+                        <td className={styles.contentTableTd}>
+                          <span className={styles.contentTableAssetIcon}>{icon}</span>
+                          <span>{displayName}</span>
+                        </td>
+                        <td className={styles.contentTableTd}>—</td>
+                        <td className={styles.contentTableTd}>—</td>
+                        <td className={styles.contentTableTd}>—</td>
+                        <td className={styles.contentTableTd}>—</td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+              </table>
             </div>
           </div>
         </div>
