@@ -100,7 +100,6 @@ export function ModelPreview({ modelPath, className, animate = false, onLoadingC
 
         // Center and scale model to fit view
         const box = new THREE.Box3().setFromObject(model)
-        const center = box.getCenter(new THREE.Vector3())
         const size = box.getSize(new THREE.Vector3())
         const maxDim = Math.max(size.x, size.y, size.z)
         const scale = 1.5 / maxDim // Slightly smaller scale for better framing
