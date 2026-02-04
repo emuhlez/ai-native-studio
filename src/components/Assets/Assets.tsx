@@ -17,6 +17,7 @@ import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
+import { AssetTile } from './AssetTile'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -56,8 +57,7 @@ const SIDE_NAV_DEFAULT = 220
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
 
 export function Assets() {
-  const { assets, importAssets } = useEditorStore()
-  const [_viewMode, _setViewMode] = useState<'list' | 'grid'>('list')
+  const { assets, selectedAssetId, selectAsset, importAssets } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)
@@ -86,6 +86,16 @@ export function Assets() {
         : topLevelFolders.find((f) => f.id === selectedNavId)
           ? [topLevelFolders.find((f) => f.id === selectedNavId)!]
           : assets
+
+  /** Table (Import Queue columns) only for special nav items; otherwise show asset tiles */
+  const isImportQueueView = selectedNavId !== null && SPECIAL_NAV_ITEMS.some((s) => s.id === selectedNavId)
+  const assetsForGrid: Asset[] =
+    displayAssets.length === 1 && displayAssets[0].type === 'folder'
+      ? displayAssets[0].children ?? []
+      : displayAssets
+
+  const getTypeLabel = (a: Asset): string =>
+    a.type === 'folder' ? 'Folder' : a.type.charAt(0).toUpperCase() + a.type.slice(1)
 
   const onResizePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
@@ -303,46 +313,70 @@ export function Assets() {
             </div>
           </div>
           <div className={styles.contentScroll}>
-            <div className={styles.contentTableWrap}>
-              <table className={styles.contentTable}>
-              <thead>
-                <tr>
-                  <th className={styles.contentTableTh}>Asset</th>
-                  <th className={styles.contentTableTh}>Creator</th>
-                  <th className={styles.contentTableTh}>Import Preset</th>
-                  <th className={styles.contentTableTh}>File Path</th>
-                  <th className={styles.contentTableTh}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayAssets.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className={styles.contentTableEmpty}>
-                      No assets
-                    </td>
-                  </tr>
+            {isImportQueueView ? (
+              <div className={styles.contentTableWrap}>
+                <table className={styles.contentTable}>
+                  <thead>
+                    <tr>
+                      <th className={styles.contentTableTh}>Asset</th>
+                      <th className={styles.contentTableTh}>Creator</th>
+                      <th className={styles.contentTableTh}>Import Preset</th>
+                      <th className={styles.contentTableTh}>File Path</th>
+                      <th className={styles.contentTableTh}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayAssets.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className={styles.contentTableEmpty}>
+                          No assets
+                        </td>
+                      </tr>
+                    ) : (
+                      displayAssets.map((asset) => {
+                        const isFolder = asset.type === 'folder'
+                        const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
+                        const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
+                        return (
+                          <tr key={asset.id} className={styles.contentTableRow}>
+                            <td className={styles.contentTableTd}>
+                              <span className={styles.contentTableAssetIcon}>{icon}</span>
+                              <span>{displayName}</span>
+                            </td>
+                            <td className={styles.contentTableTd}>—</td>
+                            <td className={styles.contentTableTd}>—</td>
+                            <td className={styles.contentTableTd}>—</td>
+                            <td className={styles.contentTableTd}>—</td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className={styles.gridView}>
+                {assetsForGrid.length === 0 ? (
+                  <div className={styles.contentTableEmpty}>No assets</div>
                 ) : (
-                  displayAssets.map((asset) => {
-                    const isFolder = asset.type === 'folder'
-                    const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
+                  assetsForGrid.map((asset) => {
+                    const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
                     const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
                     return (
-                      <tr key={asset.id} className={styles.contentTableRow}>
-                        <td className={styles.contentTableTd}>
-                          <span className={styles.contentTableAssetIcon}>{icon}</span>
-                          <span>{displayName}</span>
-                        </td>
-                        <td className={styles.contentTableTd}>—</td>
-                        <td className={styles.contentTableTd}>—</td>
-                        <td className={styles.contentTableTd}>—</td>
-                        <td className={styles.contentTableTd}>—</td>
-                      </tr>
+                      <AssetTile
+                        key={asset.id}
+                        id={asset.id}
+                        name={displayName}
+                        typeLabel={getTypeLabel(asset)}
+                        icon={icon}
+                        isSelected={selectedAssetId === asset.id}
+                        onSelect={() => selectAsset(asset.id)}
+                      />
                     )
                   })
                 )}
-              </tbody>
-              </table>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
