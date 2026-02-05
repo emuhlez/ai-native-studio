@@ -195,6 +195,7 @@ export function Assets() {
       label: 'Create Folder',
       onClick: () => {
         const folderId = createFolder('New Folder')
+        setLastOpenedFolderId(folderId)
         handleRenameAsset(folderId)
       },
     },
