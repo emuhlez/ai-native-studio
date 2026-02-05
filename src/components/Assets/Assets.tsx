@@ -51,7 +51,7 @@ const SIDE_NAV_DEFAULT = 220
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
 
 export function Assets() {
-  const { assets, selectedAssetIds, selectAsset, importAssets, renameAsset } = useEditorStore()
+  const { assets, selectedAssetIds, selectAsset, importAssets, renameAsset, createFolder } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)
@@ -194,8 +194,8 @@ export function Assets() {
     {
       label: 'Create Folder',
       onClick: () => {
-        // TODO: Implement create folder functionality
-        console.log('Create folder')
+        const folderId = createFolder('New Folder')
+        handleRenameAsset(folderId)
       },
     },
     { divider: true },

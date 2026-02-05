@@ -44,6 +44,7 @@ interface EditorStore extends EditorState {
   // Actions - Assets
   importAssets: (files: File[]) => void
   renameAsset: (id: string, newName: string) => void
+  createFolder: (name?: string) => string
 }
 
 const createDefaultTransform = () => ({
@@ -709,6 +710,25 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     })
     
     get().log(`Renamed asset to "${newName}"`, 'info')
+  },
+
+  createFolder: (name = 'New Folder') => {
+    const id = uuid()
+    const newFolder: Asset = {
+      id,
+      name,
+      type: 'folder',
+      path: `/${name}`,
+      children: [],
+      dateModified: generateDateModified(),
+    }
+    
+    set((state) => ({
+      assets: [...state.assets, newFolder],
+    }))
+    
+    get().log(`Created folder "${name}"`, 'info')
+    return id
   },
 }))
 
