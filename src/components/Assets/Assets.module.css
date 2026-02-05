@@ -313,7 +313,7 @@
   overflow: auto;
   border-radius: 0px;
   background: var(--bg-surface100);
-  padding: 4px;
+  padding: 0;
 }
 
 .contentTableWrap {
@@ -344,8 +344,8 @@
 .contentTable thead tr::after {
   content: '';
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: 0;
+  right: 0;
   bottom: 0;
   height: 1px;
   background: rgba(208, 217, 251, 0.12);
@@ -399,7 +399,17 @@
 }
 
 .contentTableRow {
-  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+}
+
+.contentTableRow::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: rgba(208, 217, 251, 0.12);
 }
 
 .contentTableRow:hover {
@@ -562,6 +572,86 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* List view styles - AssetTile within table cell */
+.assetTileList {
+  width: auto;
+  height: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: none;
+}
+
+.assetTileList:hover {
+  background: transparent;
+  padding: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+
+.assetTileList:active {
+  background: transparent;
+  padding: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+
+.assetTileList.selected {
+  background: transparent;
+  padding: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+
+.assetTileList.selected:hover {
+  background: transparent;
+}
+
+.assetTilePreviewList {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  min-width: 28px;
+  border-radius: 4px;
+}
+
+.assetTilePreviewList svg,
+.assetTilePreviewList img:not(.assetTilePreviewTexture) {
+  width: 16px;
+  height: 16px;
+}
+
+.assetTileList .assetTileInfo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.assetTileList .assetTileLabel {
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  color: var(--content-emphasis);
+}
+
+.assetTileList .assetTileSublabel {
+  display: none;
 }
 
 

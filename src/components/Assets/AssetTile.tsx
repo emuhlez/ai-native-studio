@@ -17,18 +17,21 @@ export interface AssetTileProps {
   isSelected: boolean
   onSelect: () => void
   onDoubleClick?: () => void
+  /** View mode - 'grid' or 'list' */
+  viewMode?: 'grid' | 'list'
 }
 
-export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick }: AssetTileProps) {
+export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, viewMode = 'grid' }: AssetTileProps) {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [modelLoading, setModelLoading] = useState(false)
   const showTexture = previewImageUrl.length > 0 && !imageError
   const hasModel = modelPath && modelPath.length > 0
+  const isListMode = viewMode === 'list'
 
   return (
     <div
-      className={`${styles.assetTile} ${isSelected ? styles.selected : ''}`}
+      className={`${styles.assetTile} ${isSelected ? styles.selected : ''} ${isListMode ? styles.assetTileList : ''}`}
       onClick={onSelect}
       onDoubleClick={onDoubleClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -37,12 +40,12 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onSelect()}
     >
-      <div className={`${styles.assetTilePreview} ${modelLoading ? styles.loading : ''}`}>
+      <div className={`${styles.assetTilePreview} ${modelLoading ? styles.loading : ''} ${isListMode ? styles.assetTilePreviewList : ''}`}>
         {hasModel ? (
           <ModelPreview 
             modelPath={modelPath} 
             className={styles.assetTilePreviewTexture} 
-            animate={isHovered}
+            animate={isListMode ? false : isHovered}
             onLoadingChange={setModelLoading}
           />
         ) : showTexture ? (
@@ -56,10 +59,12 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
           icon
         )}
       </div>
-      <span className={styles.assetTileLabel} title={name}>
-        {name}
-      </span>
-      <span className={styles.assetTileSublabel}>{typeLabel}</span>
+      <div className={styles.assetTileInfo}>
+        <span className={styles.assetTileLabel} title={name}>
+          {name}
+        </span>
+        {!isListMode && <span className={styles.assetTileSublabel}>{typeLabel}</span>}
+      </div>
     </div>
   )
 }
