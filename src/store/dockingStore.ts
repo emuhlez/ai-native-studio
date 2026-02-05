@@ -4,7 +4,7 @@ import type { DockZone, DockedWidget } from '../types'
 export const DEFAULT_LEFT_WIDTH = 280
 export const DEFAULT_RIGHT_WIDTH = 320
 export const DEFAULT_CENTER_BOTTOM_HEIGHT = 470
-export const DEFAULT_RIGHT_BOTTOM_HEIGHT = 350
+export const DEFAULT_RIGHT_BOTTOM_HEIGHT = 470
 
 export type PanelSizeKey = 'leftWidth' | 'rightWidth' | 'centerBottomHeight' | 'rightBottomHeight'
 
