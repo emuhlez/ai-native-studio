@@ -51,7 +51,7 @@ const SIDE_NAV_DEFAULT = 220
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
 
 export function Assets() {
-  const { assets, selectedAssetIds, selectAsset, importAssets } = useEditorStore()
+  const { assets, selectedAssetIds, selectAsset, importAssets, renameAsset } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)
@@ -64,6 +64,7 @@ export function Assets() {
   const contextMenu = useContextMenu()
   const [contextMenuAssetId, setContextMenuAssetId] = useState<string | null>(null)
   const [lastOpenedFolderId, setLastOpenedFolderId] = useState<string | null>(null)
+  const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -130,19 +131,50 @@ export function Assets() {
     setContextMenuAssetId(null)
   }, [contextMenu])
 
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Return/Enter key on selected asset to rename
+      if (e.key === 'Enter' && selectedAssetIds.length === 1 && !renamingAssetId) {
+        e.preventDefault()
+        handleRenameAsset(selectedAssetIds[0])
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedAssetIds, renamingAssetId, handleRenameAsset])
+
   const contextMenuAsset = contextMenuAssetId ? assets.find(a => a.id === contextMenuAssetId) : null
   const lastOpenedFolder = lastOpenedFolderId ? topLevelFolders.find(f => f.id === lastOpenedFolderId) : null
   const lastOpenedFolderDisplayName = lastOpenedFolder 
     ? (lastOpenedFolder.name === 'Sprites' ? 'Interior Props' : lastOpenedFolder.name)
     : null
 
+  const handleRenameAsset = useCallback((assetId: string) => {
+    setRenamingAssetId(assetId)
+  }, [])
+
+  const handleConfirmRename = useCallback((assetId: string, newName: string) => {
+    if (newName.trim() && newName !== assets.find(a => a.id === assetId)?.name) {
+      renameAsset(assetId, newName.trim())
+    }
+    setRenamingAssetId(null)
+  }, [assets, renameAsset])
+
+  const handleCancelRename = useCallback(() => {
+    setRenamingAssetId(null)
+  }, [])
+
   const contextMenuItems: MenuItem[] = contextMenuAsset ? [
     {
       label: 'Rename',
       onClick: () => {
-        // TODO: Implement rename functionality
-        console.log('Rename asset', contextMenuAssetId)
+        if (contextMenuAssetId) {
+          handleRenameAsset(contextMenuAssetId)
+        }
       },
+      shortcut: '↵',
     },
     {
       label: 'Move',
@@ -573,6 +605,9 @@ export function Assets() {
                                   handleAssetContextMenu(asset.id, e)
                                 }}
                                 viewMode="list"
+                                isRenaming={renamingAssetId === asset.id}
+                                onRename={(newName) => handleConfirmRename(asset.id, newName)}
+                                onCancelRename={handleCancelRename}
                               />
                             </td>
                             <td className={styles.contentTableTd}>{isFolder ? '—' : asset.assetId}</td>
@@ -613,6 +648,9 @@ export function Assets() {
                         onSelect={(e) => selectAsset(asset.id, { range: e?.shiftKey, additive: e?.metaKey || e?.ctrlKey })}
                         onDoubleClick={handleDoubleClick}
                         onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
+                        isRenaming={renamingAssetId === asset.id}
+                        onRename={(newName) => handleConfirmRename(asset.id, newName)}
+                        onCancelRename={handleCancelRename}
                       />
                     )
                   })

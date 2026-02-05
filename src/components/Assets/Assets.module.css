@@ -658,4 +658,19 @@
   display: none;
 }
 
+.assetTileRenameInput {
+  flex-shrink: 0;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--content-emphasis);
+  text-align: left;
+  background: var(--bg-surface200);
+  border: 1px solid var(--accent-primary);
+  border-radius: 4px;
+  outline: none;
+  width: 100%;
+  line-height: 1.3;
+}
+
 

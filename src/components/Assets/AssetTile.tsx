@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import styles from './Assets.module.css'
 import { ModelPreview } from './ModelPreview'
 
@@ -20,33 +20,75 @@ export interface AssetTileProps {
   onContextMenu?: (e: React.MouseEvent) => void
   /** View mode - 'grid' or 'list' */
   viewMode?: 'grid' | 'list'
+  /** Whether this asset is being renamed */
+  isRenaming?: boolean
+  /** Callback when rename is confirmed */
+  onRename?: (newName: string) => void
+  /** Callback when rename is cancelled */
+  onCancelRename?: () => void
 }
 
-export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, onContextMenu, viewMode = 'grid' }: AssetTileProps) {
+export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, onContextMenu, viewMode = 'grid', isRenaming = false, onRename, onCancelRename }: AssetTileProps) {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [modelLoading, setModelLoading] = useState(false)
+  const [renameValue, setRenameValue] = useState(name)
+  const inputRef = useRef<HTMLInputElement>(null)
+  
   const showTexture = previewImageUrl.length > 0 && !imageError
   const hasModel = modelPath && modelPath.length > 0
   const isListMode = viewMode === 'list'
 
+  // Focus input when renaming starts
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isRenaming])
+
+  // Reset rename value when name changes or renaming ends
+  useEffect(() => {
+    if (!isRenaming) {
+      setRenameValue(name)
+    }
+  }, [name, isRenaming])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      onRename?.(renameValue)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      onCancelRename?.()
+    }
+  }
+
+  const handleBlur = () => {
+    if (isRenaming) {
+      onRename?.(renameValue)
+    }
+  }
+
   return (
     <div
       className={`${styles.assetTile} ${isSelected ? styles.selected : ''} ${isListMode ? styles.assetTileList : ''}`}
-      onClick={(e) => onSelect(e)}
-      onDoubleClick={onDoubleClick}
-      onContextMenu={onContextMenu}
+      onClick={(e) => !isRenaming && onSelect(e)}
+      onDoubleClick={!isRenaming ? onDoubleClick : undefined}
+      onContextMenu={!isRenaming ? onContextMenu : undefined}
       onMouseDown={(e) => {
         // Handle control+click as context menu
-        if (e.ctrlKey && e.button === 0 && onContextMenu) {
+        if (!isRenaming && e.ctrlKey && e.button === 0 && onContextMenu) {
           onContextMenu(e)
         }
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onSelect()}
+      tabIndex={isRenaming ? -1 : 0}
+      onKeyDown={(e) => !isRenaming && e.key === 'Enter' && onSelect()}
     >
       <div className={`${styles.assetTilePreview} ${modelLoading ? styles.loading : ''} ${isListMode ? styles.assetTilePreviewList : ''}`}>
         {hasModel ? (
@@ -68,10 +110,23 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
         )}
       </div>
       <div className={styles.assetTileInfo}>
-        <span className={styles.assetTileLabel} title={name}>
-          {name}
-        </span>
-        {!isListMode && <span className={styles.assetTileSublabel}>{typeLabel}</span>}
+        {isRenaming ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            className={styles.assetTileRenameInput}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className={styles.assetTileLabel} title={name}>
+            {name}
+          </span>
+        )}
+        {!isListMode && !isRenaming && <span className={styles.assetTileSublabel}>{typeLabel}</span>}
       </div>
     </div>
   )

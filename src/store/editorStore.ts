@@ -43,6 +43,7 @@ interface EditorStore extends EditorState {
 
   // Actions - Assets
   importAssets: (files: File[]) => void
+  renameAsset: (id: string, newName: string) => void
 }
 
 const createDefaultTransform = () => ({
@@ -683,6 +684,31 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       }
       return { assets }
     })
+  },
+
+  renameAsset: (id, newName) => {
+    set((state) => {
+      const assets = state.assets.map((asset) => {
+        // Rename top-level asset
+        if (asset.id === id) {
+          return { ...asset, name: newName }
+        }
+        
+        // Rename nested asset within folder children
+        if (asset.children) {
+          const updatedChildren = asset.children.map((child) =>
+            child.id === id ? { ...child, name: newName } : child
+          )
+          return { ...asset, children: updatedChildren }
+        }
+        
+        return asset
+      })
+      
+      return { assets }
+    })
+    
+    get().log(`Renamed asset to "${newName}"`, 'info')
   },
 }))
 
