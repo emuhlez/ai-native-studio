@@ -21,6 +21,7 @@ import type { MenuItem } from '../shared/MenuDropdown'
 import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
 import { AssetTile } from './AssetTile'
+import { MoveDialog } from './MoveDialog'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -675,6 +676,23 @@ export function Assets() {
         isOpen={contextMenu.isOpen}
         position={contextMenu.position}
         onClose={closeContextMenu}
+      />
+      
+      <MoveDialog
+        isOpen={showMoveDialog}
+        assetCount={selectedAssetIds.length}
+        folders={topLevelFolders}
+        onMove={(targetFolderId) => {
+          selectedAssetIds.forEach(assetId => {
+            moveAssetToFolder(assetId, targetFolderId)
+          })
+          setShowMoveDialog(false)
+          setMoveDialogAssetId(null)
+        }}
+        onCancel={() => {
+          setShowMoveDialog(false)
+          setMoveDialogAssetId(null)
+        }}
       />
     </DockablePanel>
   )
