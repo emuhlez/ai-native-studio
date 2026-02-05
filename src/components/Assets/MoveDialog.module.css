@@ -56,7 +56,9 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 12px;
+  padding: 4px 12px;
+  min-height: 24px;
+  max-height: 24px;
   background: transparent;
   border: none;
   border-radius: 8px;
