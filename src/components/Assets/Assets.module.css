@@ -568,8 +568,8 @@
 .assetTileLabel::after {
   content: '';
   position: absolute;
-  right: 0;
-  top: 0;
+  right: 4px;
+  top: 6px;
   bottom: 0;
   width: 20px;
   background: linear-gradient(to right, transparent, var(--bg-surface100));
