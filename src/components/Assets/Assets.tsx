@@ -51,7 +51,7 @@ const SIDE_NAV_DEFAULT = 220
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
 
 export function Assets() {
-  const { assets, selectedAssetIds, selectAsset, importAssets, renameAsset, createFolder } = useEditorStore()
+  const { assets, selectedAssetIds, selectAsset, importAssets, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)
@@ -183,11 +183,12 @@ export function Assets() {
         console.log('Move asset', contextMenuAssetId)
       },
     },
-    ...(lastOpenedFolderDisplayName ? [{
+    ...(lastOpenedFolderDisplayName && lastOpenedFolderId ? [{
       label: `Move to ${lastOpenedFolderDisplayName}`,
       onClick: () => {
-        // TODO: Implement move to specific folder functionality
-        console.log(`Move to ${lastOpenedFolderDisplayName}`, contextMenuAssetId, lastOpenedFolderId)
+        if (contextMenuAssetId && lastOpenedFolderId) {
+          moveAssetToFolder(contextMenuAssetId, lastOpenedFolderId)
+        }
       },
     }] : []),
     { divider: true },

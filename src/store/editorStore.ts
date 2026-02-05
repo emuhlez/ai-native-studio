@@ -45,6 +45,7 @@ interface EditorStore extends EditorState {
   importAssets: (files: File[]) => void
   renameAsset: (id: string, newName: string) => void
   createFolder: (name?: string) => string
+  moveAssetToFolder: (assetId: string, targetFolderId: string) => void
 }
 
 const createDefaultTransform = () => ({
@@ -729,6 +730,52 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     
     get().log(`Created folder "${name}"`, 'info')
     return id
+  },
+
+  moveAssetToFolder: (assetId, targetFolderId) => {
+    set((state) => {
+      const assets = state.assets.map(asset => ({ ...asset, children: asset.children ? [...asset.children] : [] }))
+      
+      // Find the asset to move
+      let assetToMove: Asset | undefined
+      
+      // Check if it's a top-level asset
+      const topLevelIndex = assets.findIndex(a => a.id === assetId)
+      if (topLevelIndex !== -1) {
+        assetToMove = assets[topLevelIndex]
+        assets.splice(topLevelIndex, 1)
+      } else {
+        // Check if it's in a folder's children
+        for (const folder of assets) {
+          if (folder.children) {
+            const childIndex = folder.children.findIndex(c => c.id === assetId)
+            if (childIndex !== -1) {
+              assetToMove = folder.children[childIndex]
+              folder.children.splice(childIndex, 1)
+              break
+            }
+          }
+        }
+      }
+      
+      // If asset found, add it to target folder
+      if (assetToMove) {
+        const targetFolder = assets.find(a => a.id === targetFolderId)
+        if (targetFolder && targetFolder.type === 'folder') {
+          targetFolder.children = [...(targetFolder.children || []), assetToMove]
+        }
+      }
+      
+      return { assets }
+    })
+    
+    const asset = get().assets.find(a => a.id === assetId) || 
+                  get().assets.flatMap(a => a.children || []).find(c => c.id === assetId)
+    const folder = get().assets.find(a => a.id === targetFolderId)
+    
+    if (asset && folder) {
+      get().log(`Moved "${asset.name}" to "${folder.name}"`, 'info')
+    }
   },
 }))
 
