@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { v4 as uuid } from 'uuid'
 import type { GameObject, Asset, ConsoleMessage, EditorState, GameObjectType, ViewportSelectedAsset } from '../types'
 

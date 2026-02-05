@@ -67,7 +67,7 @@ export function Assets() {
   const [lastOpenedFolderId, setLastOpenedFolderId] = useState<string | null>(null)
   const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null)
   const [showMoveDialog, setShowMoveDialog] = useState(false)
-  const [moveDialogAssetId, setMoveDialogAssetId] = useState<string | null>(null)
+  const [, setMoveDialogAssetId] = useState<string | null>(null)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
