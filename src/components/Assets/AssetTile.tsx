@@ -33,11 +33,21 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
   const [isHovered, setIsHovered] = useState(false)
   const [modelLoading, setModelLoading] = useState(false)
   const [renameValue, setRenameValue] = useState(name)
+  const [isOverflowing, setIsOverflowing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const labelRef = useRef<HTMLSpanElement>(null)
   
   const showTexture = previewImageUrl.length > 0 && !imageError
   const hasModel = modelPath && modelPath.length > 0
   const isListMode = viewMode === 'list'
+
+  // Check if label text is overflowing
+  useEffect(() => {
+    if (labelRef.current && !isRenaming) {
+      const isOverflow = labelRef.current.scrollWidth > labelRef.current.clientWidth
+      setIsOverflowing(isOverflow)
+    }
+  }, [name, isRenaming])
 
   // Focus input when renaming starts
   useEffect(() => {
@@ -122,7 +132,11 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className={styles.assetTileLabel} title={name}>
+          <span 
+            ref={labelRef}
+            className={`${styles.assetTileLabel} ${isOverflowing ? styles.assetTileLabelOverflowing : ''}`} 
+            title={name}
+          >
             {name}
           </span>
         )}

@@ -572,7 +572,7 @@
   max-width: 100%;
 }
 
-.assetTileLabel::after {
+.assetTileLabelOverflowing::after {
   content: '';
   position: absolute;
   right: 0;
@@ -583,7 +583,7 @@
   pointer-events: none;
 }
 
-.assetTile:hover .assetTileLabel::after {
+.assetTile:hover .assetTileLabelOverflowing::after {
   background: linear-gradient(to right, transparent, var(--content-hover));
 }
 
