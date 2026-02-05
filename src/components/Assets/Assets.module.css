@@ -575,10 +575,10 @@
 .assetTileLabel::after {
   content: '';
   position: absolute;
-  right: 4px;
+  right: 0;
   top: 6px;
   bottom: 0;
-  width: 20px;
+  width: 40px;
   background: linear-gradient(to right, transparent, var(--bg-surface100));
   pointer-events: none;
 }
