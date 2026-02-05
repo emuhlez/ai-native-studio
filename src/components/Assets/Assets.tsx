@@ -131,6 +131,21 @@ export function Assets() {
     setContextMenuAssetId(null)
   }, [contextMenu])
 
+  const handleRenameAsset = useCallback((assetId: string) => {
+    setRenamingAssetId(assetId)
+  }, [])
+
+  const handleConfirmRename = useCallback((assetId: string, newName: string) => {
+    if (newName.trim() && newName !== assets.find(a => a.id === assetId)?.name) {
+      renameAsset(assetId, newName.trim())
+    }
+    setRenamingAssetId(null)
+  }, [assets, renameAsset])
+
+  const handleCancelRename = useCallback(() => {
+    setRenamingAssetId(null)
+  }, [])
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,21 +165,6 @@ export function Assets() {
   const lastOpenedFolderDisplayName = lastOpenedFolder 
     ? (lastOpenedFolder.name === 'Sprites' ? 'Interior Props' : lastOpenedFolder.name)
     : null
-
-  const handleRenameAsset = useCallback((assetId: string) => {
-    setRenamingAssetId(assetId)
-  }, [])
-
-  const handleConfirmRename = useCallback((assetId: string, newName: string) => {
-    if (newName.trim() && newName !== assets.find(a => a.id === assetId)?.name) {
-      renameAsset(assetId, newName.trim())
-    }
-    setRenamingAssetId(null)
-  }, [assets, renameAsset])
-
-  const handleCancelRename = useCallback(() => {
-    setRenamingAssetId(null)
-  }, [])
 
   const contextMenuItems: MenuItem[] = contextMenuAsset ? [
     {
