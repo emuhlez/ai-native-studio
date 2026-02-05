@@ -65,6 +65,8 @@ export function Assets() {
   const [contextMenuAssetId, setContextMenuAssetId] = useState<string | null>(null)
   const [lastOpenedFolderId, setLastOpenedFolderId] = useState<string | null>(null)
   const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null)
+  const [showMoveDialog, setShowMoveDialog] = useState(false)
+  const [moveDialogAssetId, setMoveDialogAssetId] = useState<string | null>(null)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -180,8 +182,10 @@ export function Assets() {
     {
       label: 'Move',
       onClick: () => {
-        // TODO: Implement move functionality
-        console.log('Move asset', contextMenuAssetId)
+        if (contextMenuAssetId) {
+          setMoveDialogAssetId(contextMenuAssetId)
+          setShowMoveDialog(true)
+        }
       },
     },
     ...(lastOpenedFolderDisplayName && lastOpenedFolderId ? [{
