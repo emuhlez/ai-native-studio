@@ -63,6 +63,7 @@ export function Assets() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const contextMenu = useContextMenu()
   const [contextMenuAssetId, setContextMenuAssetId] = useState<string | null>(null)
+  const [lastOpenedFolderId, setLastOpenedFolderId] = useState<string | null>(null)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -130,6 +131,11 @@ export function Assets() {
   }, [contextMenu])
 
   const contextMenuAsset = contextMenuAssetId ? assets.find(a => a.id === contextMenuAssetId) : null
+  const lastOpenedFolder = lastOpenedFolderId ? topLevelFolders.find(f => f.id === lastOpenedFolderId) : null
+  const lastOpenedFolderDisplayName = lastOpenedFolder 
+    ? (lastOpenedFolder.name === 'Sprites' ? 'Interior Props' : lastOpenedFolder.name)
+    : null
+
   const contextMenuItems: MenuItem[] = contextMenuAsset ? [
     {
       label: 'Rename',
@@ -145,13 +151,13 @@ export function Assets() {
         console.log('Move asset', contextMenuAssetId)
       },
     },
-    {
-      label: 'Move to Interior Props',
+    ...(lastOpenedFolderDisplayName ? [{
+      label: `Move to ${lastOpenedFolderDisplayName}`,
       onClick: () => {
         // TODO: Implement move to specific folder functionality
-        console.log('Move to Interior Props', contextMenuAssetId)
+        console.log(`Move to ${lastOpenedFolderDisplayName}`, contextMenuAssetId, lastOpenedFolderId)
       },
-    },
+    }] : []),
     { divider: true },
     {
       label: 'Create Folder',
@@ -327,10 +333,18 @@ export function Assets() {
                               key={folder.id}
                               className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === folder.id ? styles.sideNavRowSelected : ''}`}
                               style={{ paddingLeft: '40px' }}
-                              onClick={() => setSelectedNavId(folder.id)}
+                              onClick={() => {
+                                setSelectedNavId(folder.id)
+                                setLastOpenedFolderId(folder.id)
+                              }}
                               role="button"
                               tabIndex={0}
-                              onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(folder.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  setSelectedNavId(folder.id)
+                                  setLastOpenedFolderId(folder.id)
+                                }
+                              }}
                             >
                               <span className={styles.sideNavExpand} aria-hidden={false}>
                                 <ExpandRightIcon />
