@@ -551,6 +551,13 @@
   border-radius: inherit;
 }
 
+.assetTileInfo {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
 .assetTileLabel {
   flex-shrink: 0;
   padding: 6px 4px 0;
