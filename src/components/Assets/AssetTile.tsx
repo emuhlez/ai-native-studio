@@ -15,7 +15,7 @@ export interface AssetTileProps {
   /** Path to 3D model file for live preview */
   modelPath?: string
   isSelected: boolean
-  onSelect: () => void
+  onSelect: (e?: React.MouseEvent) => void
   onDoubleClick?: () => void
   /** View mode - 'grid' or 'list' */
   viewMode?: 'grid' | 'list'
@@ -32,7 +32,7 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
   return (
     <div
       className={`${styles.assetTile} ${isSelected ? styles.selected : ''} ${isListMode ? styles.assetTileList : ''}`}
-      onClick={onSelect}
+      onClick={(e) => onSelect(e)}
       onDoubleClick={onDoubleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

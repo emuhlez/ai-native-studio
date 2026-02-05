@@ -49,7 +49,7 @@ const SIDE_NAV_DEFAULT = 220
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
 
 export function Assets() {
-  const { assets, selectedAssetId, selectAsset, importAssets } = useEditorStore()
+  const { assets, selectedAssetIds, selectAsset, importAssets } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)
@@ -399,11 +399,12 @@ export function Assets() {
                             ? (asset.thumbnail ?? asset.path)
                             : ''
                         const modelPath = asset.type === 'model' ? asset.path : undefined
+                        const isSelected = selectedAssetIds.includes(asset.id)
                         return (
                           <tr
                             key={asset.id}
-                            className={`${styles.contentTableRow} ${selectedAssetId === asset.id ? styles.contentTableRowSelected : ''}`}
-                            onClick={() => selectAsset(asset.id)}
+                            className={`${styles.contentTableRow} ${isSelected ? styles.contentTableRowSelected : ''}`}
+                            onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: e.metaKey || e.ctrlKey })}
                             onDoubleClick={isFolder ? () => setSelectedNavId(asset.id) : undefined}
                             role="button"
                             tabIndex={0}
@@ -413,7 +414,7 @@ export function Assets() {
                                 selectAsset(asset.id)
                               }
                             }}
-                            aria-pressed={selectedAssetId === asset.id}
+                            aria-pressed={isSelected}
                           >
                             <td className={styles.contentTableTd}>
                               <AssetTile
@@ -423,7 +424,7 @@ export function Assets() {
                                 icon={icon}
                                 previewImageUrl={previewImageUrl}
                                 modelPath={modelPath}
-                                isSelected={selectedAssetId === asset.id}
+                                isSelected={isSelected}
                                 onSelect={() => {}}
                                 viewMode="list"
                               />
@@ -452,6 +453,7 @@ export function Assets() {
                         : ''
                     const modelPath = asset.type === 'model' ? asset.path : undefined
                     const handleDoubleClick = asset.type === 'folder' ? () => setSelectedNavId(asset.id) : undefined
+                    const isSelected = selectedAssetIds.includes(asset.id)
                     return (
                       <AssetTile
                         key={asset.id}
@@ -461,8 +463,8 @@ export function Assets() {
                         icon={icon}
                         previewImageUrl={previewImageUrl}
                         modelPath={modelPath}
-                        isSelected={selectedAssetId === asset.id}
-                        onSelect={() => selectAsset(asset.id)}
+                        isSelected={isSelected}
+                        onSelect={(e) => selectAsset(asset.id, { range: e?.shiftKey, additive: e?.metaKey || e?.ctrlKey })}
                         onDoubleClick={handleDoubleClick}
                       />
                     )

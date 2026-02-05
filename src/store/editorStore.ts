@@ -15,7 +15,7 @@ interface EditorStore extends EditorState {
   
   // Actions - Selection
   selectObject: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
-  selectAsset: (id: string | null) => void
+  selectAsset: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
   setViewportSelectedAsset: (asset: ViewportSelectedAsset | null, options?: { additive?: boolean }) => void
   
   // Actions - Scene
@@ -282,7 +282,7 @@ const initialAssets: Asset[] = [
 export const useEditorStore = create<EditorStore>((set, get) => ({
   // Initial state
   selectedObjectIds: [],
-  selectedAssetId: null,
+  selectedAssetIds: [],
   viewportSelectedAssetNames: [],
   isPlaying: false,
   isPaused: false,
@@ -351,7 +351,51 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     set({ selectedObjectIds: [id], viewportSelectedAssetNames: idsToNames([id]) })
   },
-  selectAsset: (id) => set({ selectedAssetId: id }),
+  selectAsset: (id, options) => {
+    if (id == null) {
+      set({ selectedAssetIds: [] })
+      return
+    }
+    const state = get()
+    
+    const getFlatAssetOrder = (): string[] => {
+      const order: string[] = []
+      const walk = (assets: Asset[]) => {
+        assets.forEach((asset) => {
+          order.push(asset.id)
+          if (asset.children?.length) walk(asset.children)
+        })
+      }
+      walk(state.assets)
+      return order
+    }
+
+    if (options?.range && state.selectedAssetIds.length > 0) {
+      const flat = getFlatAssetOrder()
+      const lastId = state.selectedAssetIds[state.selectedAssetIds.length - 1]
+      const lastIdx = flat.indexOf(lastId)
+      const clickIdx = flat.indexOf(id)
+      if (lastIdx === -1 || clickIdx === -1) {
+        set({ selectedAssetIds: [id] })
+        return
+      }
+      const [lo, hi] = lastIdx < clickIdx ? [lastIdx, clickIdx] : [clickIdx, lastIdx]
+      const rangeIds = flat.slice(lo, hi + 1)
+      set({ selectedAssetIds: rangeIds })
+      return
+    }
+
+    if (options?.additive) {
+      const has = state.selectedAssetIds.includes(id)
+      const newIds = has
+        ? state.selectedAssetIds.filter((x) => x !== id)
+        : [...state.selectedAssetIds, id]
+      set({ selectedAssetIds: newIds })
+      return
+    }
+
+    set({ selectedAssetIds: [id] })
+  },
   setViewportSelectedAsset: (asset, options) => {
     if (!asset) {
       set({ viewportSelectedAssetNames: [], selectedObjectIds: [] })

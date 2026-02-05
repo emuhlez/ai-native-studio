@@ -417,7 +417,11 @@
 }
 
 .contentTableRowSelected {
-  background: var(--content-active, rgba(230, 126, 34, 0.12));
+  background: rgba(60, 100, 250, 0.16);
+}
+
+.contentTableRowSelected:hover {
+  background: rgba(60, 100, 250, 0.16);
 }
 
 .contentTableTd {

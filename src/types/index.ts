@@ -116,7 +116,7 @@ export interface ViewportSelectedAsset {
 
 export interface EditorState {
   selectedObjectIds: string[]
-  selectedAssetId: string | null
+  selectedAssetIds: string[]
   viewportSelectedAssetNames: string[]
   isPlaying: boolean
   isPaused: boolean
