@@ -142,7 +142,6 @@
 }
 
 .centerBottom {
-  height: 220px;
   display: flex;
   flex-direction: row;
   gap: 0;
