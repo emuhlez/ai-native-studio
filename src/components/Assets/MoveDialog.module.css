@@ -15,7 +15,7 @@
   background: var(--bg-surface200);
   border: 1px solid var(--border-default);
   border-radius: 12px;
-  width: 320px;
+  width: 400px;
   max-width: 90vw;
   max-height: 80vh;
   display: flex;
