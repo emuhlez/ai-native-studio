@@ -24,19 +24,19 @@
 }
 
 .title {
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--content-emphasis);
   margin: 0;
-  padding: 24px 24px 8px;
+  padding: 16px 24px 8px;
 }
 
 .subtitle {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--content-muted);
   margin: 0;
-  padding: 0 24px 16px;
+  padding: 0 24px 8px;
 }
 
 .folderList {
@@ -44,8 +44,8 @@
   overflow-y: auto;
   min-height: 200px;
   max-height: 400px;
-  padding: 8px 16px;
-  margin: 0 24px;
+  padding: 8px;
+  margin: 8px 24px;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
@@ -104,16 +104,22 @@
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px 24px;
+  gap: 8px;
+  padding: 8px 24px 16px;
+  font-size: 12px;
 }
 
 .cancelButton {
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  width: 54px;
+  height: 24px;
+  background: rgba(208, 217, 251, 0.12);
+  border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--content-emphasis);
   cursor: pointer;
@@ -125,11 +131,16 @@
 }
 
 .moveButton {
-  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  width: 47px;
+  height: 24px;
   background: var(--accent-primary);
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: white;
   cursor: pointer;
