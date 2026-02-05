@@ -559,11 +559,21 @@
   color: var(--content-emphasis);
   text-align: left;
   overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   line-height: 1.3;
+  position: relative;
+  max-width: 100%;
+}
+
+.assetTileLabel::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to right, transparent, var(--bg-surface100));
+  pointer-events: none;
 }
 
 .assetTileSublabel {
