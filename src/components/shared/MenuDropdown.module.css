@@ -38,6 +38,11 @@
   color: var(--content-emphasis);
 }
 
+.dropdownItem:active {
+  background: var(--accent-primary);
+  color: var(--content-emphasis);
+}
+
 .shortcutGroup {
   display: flex;
   align-items: center;
