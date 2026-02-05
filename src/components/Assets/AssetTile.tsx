@@ -17,11 +17,12 @@ export interface AssetTileProps {
   isSelected: boolean
   onSelect: (e?: React.MouseEvent) => void
   onDoubleClick?: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
   /** View mode - 'grid' or 'list' */
   viewMode?: 'grid' | 'list'
 }
 
-export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, viewMode = 'grid' }: AssetTileProps) {
+export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, onContextMenu, viewMode = 'grid' }: AssetTileProps) {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [modelLoading, setModelLoading] = useState(false)
@@ -34,6 +35,13 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
       className={`${styles.assetTile} ${isSelected ? styles.selected : ''} ${isListMode ? styles.assetTileList : ''}`}
       onClick={(e) => onSelect(e)}
       onDoubleClick={onDoubleClick}
+      onContextMenu={onContextMenu}
+      onMouseDown={(e) => {
+        // Handle control+click as context menu
+        if (e.ctrlKey && e.button === 0 && onContextMenu) {
+          onContextMenu(e)
+        }
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="button"

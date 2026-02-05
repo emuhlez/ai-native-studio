@@ -16,6 +16,8 @@ import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import searchIconImg from '../../../images/search.png'
 import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
+import { ContextMenu, useContextMenu } from '../shared/ContextMenu'
+import type { MenuItem } from '../shared/MenuDropdown'
 import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
 import { AssetTile } from './AssetTile'
@@ -59,6 +61,8 @@ export function Assets() {
   const [assetViewMode, setAssetViewMode] = useState<'grid' | 'list'>('grid')
   const resizeStartRef = useRef({ x: 0, w: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const contextMenu = useContextMenu()
+  const [contextMenuAssetId, setContextMenuAssetId] = useState<string | null>(null)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -106,6 +110,78 @@ export function Assets() {
     if (e.button !== 0) return
     ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
   }, [])
+
+  const handleAssetContextMenu = useCallback((assetId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Select the asset if not already selected
+    if (!selectedAssetIds.includes(assetId)) {
+      selectAsset(assetId, { additive: false, range: false })
+    }
+    
+    setContextMenuAssetId(assetId)
+    contextMenu.openContextMenu(e)
+  }, [selectedAssetIds, selectAsset, contextMenu])
+
+  const closeContextMenu = useCallback(() => {
+    contextMenu.closeContextMenu()
+    setContextMenuAssetId(null)
+  }, [contextMenu])
+
+  const contextMenuAsset = contextMenuAssetId ? assets.find(a => a.id === contextMenuAssetId) : null
+  const contextMenuItems: MenuItem[] = contextMenuAsset ? [
+    {
+      label: 'Rename',
+      onClick: () => {
+        // TODO: Implement rename functionality
+        console.log('Rename asset', contextMenuAssetId)
+      },
+      shortcut: 'F2'
+    },
+    {
+      label: 'Duplicate',
+      onClick: () => {
+        // TODO: Implement duplicate asset functionality
+        console.log('Duplicate asset', contextMenuAssetId)
+      },
+      shortcut: '⌘D'
+    },
+    { divider: true },
+    {
+      label: 'Copy',
+      onClick: () => {
+        // TODO: Implement copy functionality
+        console.log('Copy asset', contextMenuAssetId)
+      },
+      shortcut: '⌘C'
+    },
+    {
+      label: 'Paste',
+      onClick: () => {
+        // TODO: Implement paste functionality
+        console.log('Paste asset')
+      },
+      shortcut: '⌘V'
+    },
+    { divider: true },
+    {
+      label: 'Export',
+      onClick: () => {
+        // TODO: Implement export functionality
+        console.log('Export asset', contextMenuAssetId)
+      },
+    },
+    { divider: true },
+    {
+      label: 'Delete',
+      onClick: () => {
+        // TODO: Implement delete asset functionality
+        console.log('Delete asset', contextMenuAssetId)
+      },
+      shortcut: 'Del'
+    },
+  ] : []
 
   return (
     <DockablePanel
@@ -406,6 +482,13 @@ export function Assets() {
                             className={`${styles.contentTableRow} ${isSelected ? styles.contentTableRowSelected : ''}`}
                             onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: e.metaKey || e.ctrlKey })}
                             onDoubleClick={isFolder ? () => setSelectedNavId(asset.id) : undefined}
+                            onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
+                            onMouseDown={(e) => {
+                              // Handle control+click as context menu
+                              if (e.ctrlKey && e.button === 0) {
+                                handleAssetContextMenu(asset.id, e)
+                              }
+                            }}
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => {
@@ -426,6 +509,10 @@ export function Assets() {
                                 modelPath={modelPath}
                                 isSelected={isSelected}
                                 onSelect={() => {}}
+                                onContextMenu={(e) => {
+                                  e.stopPropagation()
+                                  handleAssetContextMenu(asset.id, e)
+                                }}
                                 viewMode="list"
                               />
                             </td>
@@ -466,6 +553,7 @@ export function Assets() {
                         isSelected={isSelected}
                         onSelect={(e) => selectAsset(asset.id, { range: e?.shiftKey, additive: e?.metaKey || e?.ctrlKey })}
                         onDoubleClick={handleDoubleClick}
+                        onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
                       />
                     )
                   })
@@ -475,6 +563,13 @@ export function Assets() {
           </div>
         </div>
       </div>
+      
+      <ContextMenu
+        items={contextMenuItems}
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        onClose={closeContextMenu}
+      />
     </DockablePanel>
   )
 }
