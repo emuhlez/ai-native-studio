@@ -137,49 +137,94 @@ export function Assets() {
         // TODO: Implement rename functionality
         console.log('Rename asset', contextMenuAssetId)
       },
-      shortcut: 'F2'
     },
     {
-      label: 'Duplicate',
+      label: 'Move',
       onClick: () => {
-        // TODO: Implement duplicate asset functionality
-        console.log('Duplicate asset', contextMenuAssetId)
+        // TODO: Implement move functionality
+        console.log('Move asset', contextMenuAssetId)
       },
-      shortcut: '⌘D'
-    },
-    { divider: true },
-    {
-      label: 'Copy',
-      onClick: () => {
-        // TODO: Implement copy functionality
-        console.log('Copy asset', contextMenuAssetId)
-      },
-      shortcut: '⌘C'
     },
     {
-      label: 'Paste',
+      label: 'Move to Interior Props',
       onClick: () => {
-        // TODO: Implement paste functionality
-        console.log('Paste asset')
-      },
-      shortcut: '⌘V'
-    },
-    { divider: true },
-    {
-      label: 'Export',
-      onClick: () => {
-        // TODO: Implement export functionality
-        console.log('Export asset', contextMenuAssetId)
+        // TODO: Implement move to specific folder functionality
+        console.log('Move to Interior Props', contextMenuAssetId)
       },
     },
     { divider: true },
     {
-      label: 'Delete',
+      label: 'Create Folder',
       onClick: () => {
-        // TODO: Implement delete asset functionality
-        console.log('Delete asset', contextMenuAssetId)
+        // TODO: Implement create folder functionality
+        console.log('Create folder')
       },
-      shortcut: 'Del'
+    },
+    { divider: true },
+    {
+      label: 'Insert Asset',
+      submenu: [
+        {
+          label: 'Insert',
+          onClick: () => {
+            console.log('Insert asset', contextMenuAssetId)
+          },
+        },
+        {
+          label: 'Insert with Location',
+          onClick: () => {
+            console.log('Insert with location', contextMenuAssetId)
+          },
+        },
+      ],
+    },
+    {
+      label: 'Edit Asset',
+      onClick: () => {
+        // TODO: Implement edit asset functionality
+        console.log('Edit asset', contextMenuAssetId)
+      },
+    },
+    {
+      label: 'Share Asset',
+      onClick: () => {
+        // TODO: Implement share asset functionality
+        console.log('Share asset', contextMenuAssetId)
+      },
+    },
+    { divider: true },
+    {
+      label: 'Replace selected in workspace',
+      onClick: () => {
+        // TODO: Implement replace selected functionality
+        console.log('Replace selected in workspace', contextMenuAssetId)
+      },
+    },
+    {
+      label: 'See references',
+      onClick: () => {
+        // TODO: Implement see references functionality
+        console.log('See references', contextMenuAssetId)
+      },
+    },
+    { divider: true },
+    {
+      label: 'Copy Asset ID',
+      onClick: () => {
+        // TODO: Implement copy asset ID functionality
+        if (contextMenuAsset?.assetId) {
+          navigator.clipboard.writeText(contextMenuAsset.assetId)
+          console.log('Copied asset ID:', contextMenuAsset.assetId)
+        }
+      },
+    },
+    { divider: true },
+    {
+      label: 'View in Browser',
+      onClick: () => {
+        // TODO: Implement view in browser functionality
+        console.log('View in browser', contextMenuAssetId)
+      },
     },
   ] : []
 
