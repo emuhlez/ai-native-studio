@@ -34,12 +34,12 @@
 }
 
 .dropdownItem:hover {
-  background: var(--accent-primary);
+  background: rgba(208, 217, 251, 0.12);
   color: var(--content-emphasis);
 }
 
 .dropdownItem:active {
-  background: var(--accent-primary);
+  background: rgba(208, 217, 251, 0.12);
   color: var(--content-emphasis);
 }
 
