@@ -44,8 +44,8 @@
   overflow-y: auto;
   min-height: 200px;
   max-height: 400px;
-  padding: 0 16px;
-  margin: 0 8px;
+  padding: 8px 16px;
+  margin: 4px 4px;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
@@ -90,7 +90,7 @@
 
 .folderName {
   flex: 1;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--content-emphasis);
 }
