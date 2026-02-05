@@ -51,6 +51,41 @@ export interface ContextMenuProps {
 
 export function ContextMenu({ items, isOpen, position, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
+  const [adjustedPosition, setAdjustedPosition] = useState(position)
+
+  // Adjust position to keep menu within viewport bounds
+  useEffect(() => {
+    if (!isOpen || !menuRef.current) return
+
+    const menu = menuRef.current
+    const rect = menu.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    let { x, y } = position
+
+    // Check right edge
+    if (x + rect.width > viewportWidth) {
+      x = viewportWidth - rect.width - 10 // 10px padding from edge
+    }
+
+    // Check left edge
+    if (x < 0) {
+      x = 10
+    }
+
+    // Check bottom edge
+    if (y + rect.height > viewportHeight) {
+      y = viewportHeight - rect.height - 10 // 10px padding from edge
+    }
+
+    // Check top edge
+    if (y < 0) {
+      y = 10
+    }
+
+    setAdjustedPosition({ x, y })
+  }, [isOpen, position])
 
   useEffect(() => {
     if (!isOpen) return
@@ -86,8 +121,8 @@ export function ContextMenu({ items, isOpen, position, onClose }: ContextMenuPro
       ref={menuRef}
       className={styles.contextMenu}
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
+        left: `${adjustedPosition.x}px`,
+        top: `${adjustedPosition.y}px`,
       }}
     >
       <MenuDropdown items={items} isOpen={isOpen} onClose={onClose} />

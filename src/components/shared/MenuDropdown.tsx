@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ExpandRightIcon } from './ExpandIcons'
 import styles from './MenuDropdown.module.css'
 
@@ -14,6 +14,57 @@ export interface MenuItem {
   divider?: boolean
   shortcut?: string
   submenu?: MenuItem[]
+}
+
+function SubmenuItem({ item, onClose, isHovered }: { item: MenuItem; onClose: () => void; isHovered: boolean }) {
+  const submenuRef = useRef<HTMLDivElement>(null)
+  const [shouldFlipLeft, setShouldFlipLeft] = useState(false)
+
+  useEffect(() => {
+    if (!isHovered || !submenuRef.current) return
+
+    const submenu = submenuRef.current
+    const rect = submenu.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+
+    // Check if submenu overflows right edge
+    if (rect.right > viewportWidth) {
+      setShouldFlipLeft(true)
+    } else {
+      setShouldFlipLeft(false)
+    }
+  }, [isHovered])
+
+  if (!isHovered) return null
+
+  return (
+    <div 
+      ref={submenuRef}
+      className={styles.submenu}
+      style={shouldFlipLeft ? { left: 'auto', right: 'calc(100% - 4px)' } : undefined}
+    >
+      {item.submenu!.map((subItem, subIndex) => {
+        if (subItem.divider) {
+          return <div key={`subdiv-${subIndex}`} className={styles.dropdownDivider} />
+        }
+        return (
+          <button
+            key={subItem.label || `subitem-${subIndex}`}
+            className={styles.dropdownItem}
+            onClick={() => {
+              subItem.onClick?.()
+              onClose()
+            }}
+          >
+            <span>{subItem.label}</span>
+            {subItem.shortcut && (
+              <span className={styles.shortcut}>{subItem.shortcut}</span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 export function MenuDropdown({ items, isOpen, onClose }: MenuDropdownProps) {
@@ -56,29 +107,8 @@ export function MenuDropdown({ items, isOpen, onClose }: MenuDropdownProps) {
               </span>
             </button>
             
-            {hasSubmenu && isHovered && (
-              <div className={styles.submenu}>
-                {item.submenu!.map((subItem, subIndex) => {
-                  if (subItem.divider) {
-                    return <div key={`subdiv-${subIndex}`} className={styles.dropdownDivider} />
-                  }
-                  return (
-                    <button
-                      key={subItem.label || `subitem-${subIndex}`}
-                      className={styles.dropdownItem}
-                      onClick={() => {
-                        subItem.onClick?.()
-                        onClose()
-                      }}
-                    >
-                      <span>{subItem.label}</span>
-                      {subItem.shortcut && (
-                        <span className={styles.shortcut}>{subItem.shortcut}</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+            {hasSubmenu && (
+              <SubmenuItem item={item} onClose={onClose} isHovered={isHovered} />
             )}
           </div>
         )
