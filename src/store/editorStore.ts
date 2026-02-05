@@ -46,6 +46,7 @@ interface EditorStore extends EditorState {
   renameAsset: (id: string, newName: string) => void
   createFolder: (name?: string) => string
   moveAssetToFolder: (assetId: string, targetFolderId: string) => void
+  saveGameObjectAsAsset: (gameObjectId: string, name?: string) => string
 }
 
 const createDefaultTransform = () => ({
@@ -776,6 +777,53 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     if (asset && folder) {
       get().log(`Moved "${asset.name}" to "${folder.name}"`, 'info')
     }
+  },
+
+  saveGameObjectAsAsset: (gameObjectId, name) => {
+    const state = get()
+    const gameObject = state.gameObjects[gameObjectId]
+    
+    if (!gameObject) return ''
+    
+    const assetName = name || gameObject.name
+    const assetId = uuid()
+    
+    // Create a prefab asset from the game object
+    const newAsset: Asset = {
+      id: assetId,
+      name: assetName,
+      type: 'prefab',
+      path: `/Prefabs/${assetName}.prefab`,
+      assetId: generateAssetId(),
+      dateModified: generateDateModified(),
+    }
+    
+    // Find or create Prefabs folder
+    set((state) => {
+      const assets = [...state.assets]
+      let prefabsFolder = assets.find(a => a.type === 'folder' && a.name === 'Prefabs')
+      
+      if (!prefabsFolder) {
+        // Create Prefabs folder if it doesn't exist
+        prefabsFolder = {
+          id: uuid(),
+          name: 'Prefabs',
+          type: 'folder',
+          path: '/Prefabs',
+          children: [newAsset],
+          dateModified: generateDateModified(),
+        }
+        assets.push(prefabsFolder)
+      } else {
+        // Add to existing Prefabs folder
+        prefabsFolder.children = [...(prefabsFolder.children || []), newAsset]
+      }
+      
+      return { assets }
+    })
+    
+    get().log(`Saved "${assetName}" as prefab`, 'info')
+    return assetId
   },
 }))
 
