@@ -80,12 +80,13 @@ export function Assets() {
 
   /** Table (Import Queue columns) only for Import Queue; Crossy Farm and others show asset tiles */
   const isImportQueueView = selectedNavId === 'recent'
-  const assetsForGrid: Asset[] =
+  const assetsForGrid: Asset[] = (
     selectedNavId === 'import-queue'
       ? assets
       : displayAssets.length === 1 && displayAssets[0].type === 'folder'
         ? displayAssets[0].children ?? []
         : displayAssets
+  ).sort((a, b) => a.name.localeCompare(b.name))
 
   const getTypeLabel = (a: Asset): string =>
     a.type === 'folder' ? 'Folder' : a.type.charAt(0).toUpperCase() + a.type.slice(1)
