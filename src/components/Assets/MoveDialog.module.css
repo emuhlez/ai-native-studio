@@ -15,7 +15,7 @@
   background: var(--bg-surface200);
   border: 1px solid var(--border-default);
   border-radius: 12px;
-  width: 600px;
+  width: 320px;
   max-width: 90vw;
   max-height: 80vh;
   display: flex;
@@ -93,6 +93,7 @@
   font-size: 12px;
   font-weight: 400;
   color: var(--content-emphasis);
+  line-height: 140%;
 }
 
 .folderChevron {
