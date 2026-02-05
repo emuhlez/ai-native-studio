@@ -196,7 +196,9 @@ export function Assets() {
       onClick: () => {
         const folderId = createFolder('New Folder')
         setLastOpenedFolderId(folderId)
-        handleRenameAsset(folderId)
+        selectAsset(folderId)
+        // Delay rename to ensure folder is selected first
+        setTimeout(() => handleRenameAsset(folderId), 0)
       },
     },
     { divider: true },
