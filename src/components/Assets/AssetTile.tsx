@@ -108,10 +108,17 @@ const AssetTileComponent = ({ name, typeLabel, icon, previewImageUrl, modelPath,
       onMouseLeave={() => setIsHovered(false)}
       onDragStart={(e) => {
         if (!isRenaming && onDragStart) {
+          e.stopPropagation()
           onDragStart()
           // Set drag data
           e.dataTransfer.effectAllowed = 'move'
           e.dataTransfer.setData('text/plain', name)
+          // Optional: Create custom drag image
+          if (e.dataTransfer.setDragImage && e.currentTarget) {
+            e.dataTransfer.setDragImage(e.currentTarget as HTMLElement, 50, 50)
+          }
+        } else if (isRenaming) {
+          e.preventDefault()
         }
       }}
       onDragOver={(e) => {
