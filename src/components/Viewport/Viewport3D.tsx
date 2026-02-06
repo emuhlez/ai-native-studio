@@ -187,6 +187,9 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     scene.add(modelsGroup)
     modelsGroupRef.current = modelsGroup
 
+    // Declare needsRender early so model loading can access it
+    let needsRender = true
+
     function placeModel(index: number): { x: number; z: number } {
       const col = index % GRID_COLS
       const row = Math.floor(index / GRID_COLS)
@@ -359,7 +362,6 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
 
-    let needsRender = true // Track if we need to render
     let lastTransformVersion = 0 // Track transform version for lightweight change detection
     let isAnimating = false // Track if actively animating
     
