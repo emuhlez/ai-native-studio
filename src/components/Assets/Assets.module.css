@@ -214,6 +214,13 @@
   height: 16px;
 }
 
+.sideNavIcon img,
+.sideNavIcon svg {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  shape-rendering: crispEdges;
+}
+
 .sideNavName {
   flex: 1;
   font-size: 14px;
@@ -277,6 +284,13 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.contentRowActions img,
+.contentRowActions svg {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  shape-rendering: crispEdges;
 }
 
 .contentRowSeparator {

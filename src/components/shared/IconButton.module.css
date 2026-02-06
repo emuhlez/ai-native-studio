@@ -7,6 +7,13 @@
   transition: all var(--transition-fast);
 }
 
+.button img,
+.button svg {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  shape-rendering: crispEdges;
+}
+
 .button:hover:not(:disabled) {
   color: var(--content-emphasis);
   background: var(--content-hover);

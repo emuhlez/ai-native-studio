@@ -100,6 +100,8 @@
   height: 28px;
   display: block;
   border-radius: 4px;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .section {
@@ -359,6 +361,8 @@
 .testStopButton img {
   width: 28px;
   height: 28px;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .searchWrapper {
@@ -401,6 +405,8 @@
   display: block;
   opacity: 0.4;
   flex-shrink: 0;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .searchInput {
@@ -524,6 +530,8 @@
   width: 24px;
   height: 24px;
   padding: 4px;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 /* Override avatar specific styles */
