@@ -428,6 +428,12 @@
   background: rgba(60, 100, 250, 0.16);
 }
 
+.contentTableRow.dragOver {
+  background: rgba(46, 204, 113, 0.15);
+  outline: 2px solid rgba(46, 204, 113, 0.5);
+  outline-offset: -2px;
+}
+
 .contentTableTd {
   padding: 8px 12px;
   color: var(--content-emphasis);
@@ -506,6 +512,16 @@
 
 .assetTile.selected:hover {
   background: rgba(60, 100, 250, 0.08);
+}
+
+/* Drag over folder state */
+.assetTile.dragOver {
+  background: rgba(46, 204, 113, 0.15);
+  border: 2px solid rgba(46, 204, 113, 0.5);
+  padding: 2px;
+  width: 113px;
+  height: 161px;
+  margin: -4px;
 }
 
 @keyframes shimmer {

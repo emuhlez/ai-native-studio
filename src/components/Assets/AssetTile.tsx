@@ -26,9 +26,18 @@ export interface AssetTileProps {
   onRename?: (newName: string) => void
   /** Callback when rename is cancelled */
   onCancelRename?: () => void
+  /** Whether this asset is a folder (droppable) */
+  isFolder?: boolean
+  /** Whether a drag is currently over this folder */
+  isDragOver?: boolean
+  /** Drag handlers */
+  onDragStart?: () => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDragLeave?: () => void
+  onDrop?: (e: React.DragEvent) => void
 }
 
-const AssetTileComponent = ({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, onContextMenu, viewMode = 'grid', isRenaming = false, onRename, onCancelRename }: AssetTileProps) => {
+const AssetTileComponent = ({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, onContextMenu, viewMode = 'grid', isRenaming = false, onRename, onCancelRename, isFolder = false, isDragOver = false, onDragStart, onDragOver, onDragLeave, onDrop }: AssetTileProps) => {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [modelLoading, setModelLoading] = useState(false)
@@ -84,7 +93,8 @@ const AssetTileComponent = ({ name, typeLabel, icon, previewImageUrl, modelPath,
 
   return (
     <div
-      className={`${styles.assetTile} ${isSelected ? styles.selected : ''} ${isListMode ? styles.assetTileList : ''}`}
+      className={`${styles.assetTile} ${isSelected ? styles.selected : ''} ${isListMode ? styles.assetTileList : ''} ${isDragOver ? styles.dragOver : ''}`}
+      draggable={!isRenaming}
       onClick={(e) => !isRenaming && onSelect(e)}
       onDoubleClick={!isRenaming ? onDoubleClick : undefined}
       onContextMenu={!isRenaming ? onContextMenu : undefined}
@@ -96,6 +106,29 @@ const AssetTileComponent = ({ name, typeLabel, icon, previewImageUrl, modelPath,
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onDragStart={(e) => {
+        if (!isRenaming && onDragStart) {
+          onDragStart()
+          // Set drag data
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', name)
+        }
+      }}
+      onDragOver={(e) => {
+        if (isFolder && onDragOver) {
+          onDragOver(e)
+        }
+      }}
+      onDragLeave={() => {
+        if (isFolder && onDragLeave) {
+          onDragLeave()
+        }
+      }}
+      onDrop={(e) => {
+        if (isFolder && onDrop) {
+          onDrop(e)
+        }
+      }}
       role="button"
       tabIndex={isRenaming ? -1 : 0}
       onKeyDown={(e) => !isRenaming && e.key === 'Enter' && onSelect()}
@@ -156,6 +189,7 @@ export const AssetTile = memo(AssetTileComponent, (prevProps, nextProps) => {
     prevProps.isRenaming === nextProps.isRenaming &&
     prevProps.viewMode === nextProps.viewMode &&
     prevProps.modelPath === nextProps.modelPath &&
-    prevProps.previewImageUrl === nextProps.previewImageUrl
+    prevProps.previewImageUrl === nextProps.previewImageUrl &&
+    prevProps.isDragOver === nextProps.isDragOver
   )
 })

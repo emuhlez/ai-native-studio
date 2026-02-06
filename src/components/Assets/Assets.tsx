@@ -68,6 +68,7 @@ export function Assets() {
   const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null)
   const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [, setMoveDialogAssetId] = useState<string | null>(null)
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -149,6 +150,50 @@ export function Assets() {
   const handleCancelRename = useCallback(() => {
     setRenamingAssetId(null)
   }, [])
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((assetId: string) => {
+    // If dragging an unselected asset, select only that asset
+    if (!selectedAssetIds.includes(assetId)) {
+      selectAsset(assetId, { additive: false, range: false })
+    }
+  }, [selectedAssetIds, selectAsset])
+
+  const handleDragOver = useCallback((e: React.DragEvent, targetAssetId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const targetAsset = assets.find(a => a.id === targetAssetId) || 
+                        assets.flatMap(a => a.children || []).find(c => c.id === targetAssetId)
+    
+    // Only allow dropping on folders
+    if (targetAsset?.type === 'folder') {
+      setDragOverFolderId(targetAssetId)
+    }
+  }, [assets])
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverFolderId(null)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, targetAssetId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverFolderId(null)
+
+    const targetAsset = assets.find(a => a.id === targetAssetId) || 
+                        assets.flatMap(a => a.children || []).find(c => c.id === targetAssetId)
+    
+    // Only allow dropping on folders
+    if (targetAsset?.type === 'folder') {
+      // Move all selected assets to the target folder
+      selectedAssetIds.forEach(assetId => {
+        // Don't move an asset into itself
+        if (assetId !== targetAssetId) {
+          moveAssetToFolder(assetId, targetAssetId)
+        }
+      })
+    }
+  }, [assets, selectedAssetIds, moveAssetToFolder])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -577,10 +622,12 @@ export function Assets() {
                             : ''
                         const modelPath = asset.type === 'model' ? asset.path : undefined
                         const isSelected = selectedAssetIds.includes(asset.id)
+                        const isDragOver = dragOverFolderId === asset.id
                         return (
                           <tr
                             key={asset.id}
-                            className={`${styles.contentTableRow} ${isSelected ? styles.contentTableRowSelected : ''}`}
+                            className={`${styles.contentTableRow} ${isSelected ? styles.contentTableRowSelected : ''} ${isDragOver ? styles.dragOver : ''}`}
+                            draggable={renamingAssetId !== asset.id}
                             onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: e.metaKey || e.ctrlKey })}
                             onDoubleClick={isFolder ? () => setSelectedNavId(asset.id) : undefined}
                             onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
@@ -588,6 +635,28 @@ export function Assets() {
                               // Handle control+click as context menu
                               if (e.ctrlKey && e.button === 0) {
                                 handleAssetContextMenu(asset.id, e)
+                              }
+                            }}
+                            onDragStart={(e) => {
+                              if (renamingAssetId !== asset.id) {
+                                handleDragStart(asset.id)
+                                e.dataTransfer.effectAllowed = 'move'
+                                e.dataTransfer.setData('text/plain', displayName)
+                              }
+                            }}
+                            onDragOver={(e) => {
+                              if (isFolder) {
+                                handleDragOver(e, asset.id)
+                              }
+                            }}
+                            onDragLeave={() => {
+                              if (isFolder) {
+                                handleDragLeave()
+                              }
+                            }}
+                            onDrop={(e) => {
+                              if (isFolder) {
+                                handleDrop(e, asset.id)
                               }
                             }}
                             role="button"
@@ -618,6 +687,8 @@ export function Assets() {
                                 isRenaming={renamingAssetId === asset.id}
                                 onRename={(newName) => handleConfirmRename(asset.id, newName)}
                                 onCancelRename={handleCancelRename}
+                                isFolder={isFolder}
+                                isDragOver={isDragOver}
                               />
                             </td>
                             <td className={styles.contentTableTd}>{isFolder ? '—' : asset.assetId}</td>
@@ -646,6 +717,8 @@ export function Assets() {
                     const modelPath = asset.type === 'model' ? asset.path : undefined
                     const handleDoubleClick = asset.type === 'folder' ? () => setSelectedNavId(asset.id) : undefined
                     const isSelected = selectedAssetIds.includes(asset.id)
+                    const isFolder = asset.type === 'folder'
+                    const isDragOver = dragOverFolderId === asset.id
                     return (
                       <AssetTile
                         key={asset.id}
@@ -662,6 +735,12 @@ export function Assets() {
                         isRenaming={renamingAssetId === asset.id}
                         onRename={(newName) => handleConfirmRename(asset.id, newName)}
                         onCancelRename={handleCancelRename}
+                        isFolder={isFolder}
+                        isDragOver={isDragOver}
+                        onDragStart={() => handleDragStart(asset.id)}
+                        onDragOver={(e) => handleDragOver(e, asset.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, asset.id)}
                       />
                     )
                   })
