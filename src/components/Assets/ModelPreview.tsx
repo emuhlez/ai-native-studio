@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
@@ -95,9 +95,9 @@ class SharedRendererPool {
     }
 
     return {
-      renderer: this.renderer,
-      scene: this.scene,
-      camera: this.camera,
+      renderer: this.renderer!,
+      scene: this.scene!,
+      camera: this.camera!,
     }
   }
 
