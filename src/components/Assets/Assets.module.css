@@ -530,6 +530,9 @@
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
+  /* Optimize rendering */
+  contain: strict;
+  content-visibility: auto;
 }
 
 .assetTilePreview.loading::after {

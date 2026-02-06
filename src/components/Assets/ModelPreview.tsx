@@ -9,6 +9,41 @@ interface ModelPreviewProps {
   onLoadingChange?: (isLoading: boolean) => void
 }
 
+// Queue system to limit concurrent model loads
+class ModelLoadQueue {
+  private static instance: ModelLoadQueue | null = null
+  private queue: Array<() => void> = []
+  private activeLoads = 0
+  private maxConcurrent = 2 // Only load 2 models at a time for Safari/Arc
+
+  static getInstance(): ModelLoadQueue {
+    if (!ModelLoadQueue.instance) {
+      ModelLoadQueue.instance = new ModelLoadQueue()
+    }
+    return ModelLoadQueue.instance
+  }
+
+  enqueue(loadFn: () => void) {
+    this.queue.push(loadFn)
+    this.processQueue()
+  }
+
+  private processQueue() {
+    while (this.activeLoads < this.maxConcurrent && this.queue.length > 0) {
+      const loadFn = this.queue.shift()
+      if (loadFn) {
+        this.activeLoads++
+        loadFn()
+      }
+    }
+  }
+
+  notifyComplete() {
+    this.activeLoads--
+    this.processQueue()
+  }
+}
+
 // Shared resources to minimize WebGL context usage
 class SharedRendererPool {
   private static instance: SharedRendererPool | null = null
@@ -31,17 +66,18 @@ class SharedRendererPool {
     if (!this.renderer) {
       // Create offscreen canvas for rendering
       this.canvas = document.createElement('canvas')
-      this.canvas.width = 256
-      this.canvas.height = 256
+      this.canvas.width = 128 // Reduced from 256 for better performance
+      this.canvas.height = 128
       
       const renderer = new THREE.WebGLRenderer({ 
         canvas: this.canvas,
         antialias: false, // Disable for performance
         alpha: true,
-        preserveDrawingBuffer: true // Needed for toDataURL
+        preserveDrawingBuffer: true, // Needed for toDataURL
+        powerPreference: 'low-power', // Use low-power for thumbnails
       })
       renderer.setClearColor(0x000000, 0)
-      renderer.setSize(256, 256, false)
+      renderer.setSize(128, 128, false)
       renderer.setPixelRatio(1) // Fixed pixel ratio for consistency
       this.renderer = renderer
 
@@ -53,15 +89,9 @@ class SharedRendererPool {
       camera.lookAt(0, 0, 0)
       this.camera = camera
 
-      // Add lights
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
+      // Simplified lighting for thumbnails
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.2)
       scene.add(ambientLight)
-      const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.6)
-      directionalLight1.position.set(5, 5, 5)
-      scene.add(directionalLight1)
-      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3)
-      directionalLight2.position.set(-3, -3, -3)
-      scene.add(directionalLight2)
     }
 
     return {
@@ -134,53 +164,88 @@ export function ModelPreview({ modelPath, className, animate = false, onLoadingC
     if (!isVisible) return
 
     const pool = SharedRendererPool.getInstance()
+    const queue = ModelLoadQueue.getInstance()
     const { renderer, scene, camera } = pool.acquire()
     
-    const loader = new GLTFLoader()
-    setIsLoading(true)
-    setLoadError(false)
+    let cancelled = false
     
-    loader.load(
-      modelPath,
-      (gltf) => {
-        const model = gltf.scene
-        modelRef.current = model
-
-        // Center and scale model
-        const box = new THREE.Box3().setFromObject(model)
-        const size = box.getSize(new THREE.Vector3())
-        const maxDim = Math.max(size.x, size.y, size.z)
-        const scale = 1.5 / maxDim
-        model.scale.multiplyScalar(scale)
-        
-        box.setFromObject(model)
-        const scaledCenter = box.getCenter(new THREE.Vector3())
-        model.position.sub(scaledCenter)
-
-        scene.add(model)
-
-        // Render to generate thumbnail
-        try {
-          renderer.render(scene, camera)
-          const dataUrl = renderer.domElement.toDataURL('image/png')
-          setThumbnail(dataUrl)
-        } catch (err) {
-          console.error('Error generating thumbnail:', err)
-          setLoadError(true)
-        }
-
-        scene.remove(model)
-        setIsLoading(false)
-      },
-      undefined,
-      (error) => {
-        console.error('Error loading model:', error, modelPath)
-        setLoadError(true)
-        setIsLoading(false)
+    // Queue the model load to prevent overload
+    queue.enqueue(() => {
+      if (cancelled) {
+        queue.notifyComplete()
+        return
       }
-    )
+      
+      const loader = new GLTFLoader()
+      setIsLoading(true)
+      setLoadError(false)
+      
+      loader.load(
+        modelPath,
+        (gltf) => {
+          if (cancelled) {
+            queue.notifyComplete()
+            return
+          }
+          
+          const model = gltf.scene
+          modelRef.current = model
+
+          // Center and scale model (cached Box3 for reuse)
+          const box = new THREE.Box3().setFromObject(model)
+          const size = box.getSize(new THREE.Vector3())
+          const maxDim = Math.max(size.x, size.y, size.z)
+          const scale = maxDim > 0 ? 1.5 / maxDim : 1
+          model.scale.setScalar(scale)
+          
+          box.setFromObject(model)
+          const scaledCenter = box.getCenter(new THREE.Vector3())
+          model.position.sub(scaledCenter)
+
+          scene.add(model)
+
+          // Render to generate thumbnail
+          try {
+            renderer.render(scene, camera)
+            const dataUrl = renderer.domElement.toDataURL('image/png', 0.8) // 0.8 quality for smaller size
+            setThumbnail(dataUrl)
+          } catch (err) {
+            console.error('Error generating thumbnail:', err)
+            setLoadError(true)
+          }
+
+          scene.remove(model)
+          
+          // Dispose of model geometry/materials to free memory
+          model.traverse((node) => {
+            if ((node as THREE.Mesh).isMesh) {
+              const mesh = node as THREE.Mesh
+              mesh.geometry?.dispose()
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach(m => m.dispose())
+              } else {
+                mesh.material?.dispose()
+              }
+            }
+          })
+          
+          setIsLoading(false)
+          queue.notifyComplete()
+        },
+        undefined,
+        (error) => {
+          if (!cancelled) {
+            console.error('Error loading model:', error, modelPath)
+            setLoadError(true)
+            setIsLoading(false)
+          }
+          queue.notifyComplete()
+        }
+      )
+    })
 
     return () => {
+      cancelled = true
       if (modelRef.current) {
         scene.remove(modelRef.current)
         modelRef.current = null

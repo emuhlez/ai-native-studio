@@ -203,40 +203,55 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       return MODEL_SCALE / maxDim
     }
 
-    THREE_SPACE_ASSETS.forEach((filename, index) => {
-      const url = assetUrl(filename)
-      loader.load(
-        url,
-        (gltf: { scene: THREE.Group }) => {
-          const root = gltf.scene
-          const displayName = getAssetDisplayName(filename)
-          const objId = addWorkspaceModel(displayName)
-          root.userData.assetName = displayName
-          root.userData.objectId = objId
-          root.traverse((node: THREE.Object3D) => {
-            if ((node as THREE.Mesh).isMesh) {
-              (node as THREE.Mesh).castShadow = true
-              ;(node as THREE.Mesh).receiveShadow = true
-            }
-          })
-          const baseScale = fitScale(root)
-          root.userData.baseScale = baseScale
-          const { x, z } = placeModel(index)
-          updateGameObject(objId, {
-            transform: {
-              position: { x, y: 0, z },
-              rotation: { x: 0, y: 0, z: 0 },
-              scale: { x: 1, y: 1, z: 1 },
-            },
-          })
-          root.position.set(x, 0, z)
-          root.scale.setScalar(baseScale)
-          modelsGroup.add(root)
-        },
-        undefined,
-        () => {}
-      )
-    })
+    // Load models in batches to prevent Safari/Arc overload
+    const loadModelBatch = (startIndex: number, batchSize: number) => {
+      const endIndex = Math.min(startIndex + batchSize, THREE_SPACE_ASSETS.length)
+      
+      for (let i = startIndex; i < endIndex; i++) {
+        const filename = THREE_SPACE_ASSETS[i]
+        const url = assetUrl(filename)
+        loader.load(
+          url,
+          (gltf: { scene: THREE.Group }) => {
+            const root = gltf.scene
+            const displayName = getAssetDisplayName(filename)
+            const objId = addWorkspaceModel(displayName)
+            root.userData.assetName = displayName
+            root.userData.objectId = objId
+            root.traverse((node: THREE.Object3D) => {
+              if ((node as THREE.Mesh).isMesh) {
+                (node as THREE.Mesh).castShadow = true
+                ;(node as THREE.Mesh).receiveShadow = true
+              }
+            })
+            const baseScale = fitScale(root)
+            root.userData.baseScale = baseScale
+            const { x, z } = placeModel(i)
+            updateGameObject(objId, {
+              transform: {
+                position: { x, y: 0, z },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+            })
+            root.position.set(x, 0, z)
+            root.scale.setScalar(baseScale)
+            modelsGroup.add(root)
+            needsRender = true
+          },
+          undefined,
+          () => {}
+        )
+      }
+      
+      // Load next batch after a delay
+      if (endIndex < THREE_SPACE_ASSETS.length) {
+        setTimeout(() => loadModelBatch(endIndex, batchSize), 100)
+      }
+    }
+    
+    // Start loading in batches of 3 models at a time
+    loadModelBatch(0, 3)
 
     const raycaster = raycasterRef.current
     const mouse = mouseRef.current
@@ -345,10 +360,78 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     window.addEventListener('keyup', onKeyUp)
 
     let needsRender = true // Track if we need to render
-    let lastSyncedState: string | null = null // Track last synced state
+    let lastTransformVersion = 0 // Track transform version for lightweight change detection
+    let isAnimating = false // Track if actively animating
+    
+    // Create a version counter in store to track changes
+    const getTransformVersion = () => {
+      const state = useEditorStore.getState()
+      const { gameObjects, rootObjectIds } = state
+      if (rootObjectIds.length === 0) return 0
+      const workspace = gameObjects[rootObjectIds[0]]
+      if (!workspace?.children) return 0
+      // Simple sum-based version - much faster than JSON.stringify
+      return workspace.children.reduce((sum, id) => {
+        const obj = gameObjects[id]
+        if (!obj?.transform) return sum
+        const t = obj.transform
+        return sum + t.position.x + t.position.y + t.position.z + 
+               t.rotation.x + t.rotation.y + t.rotation.z +
+               t.scale.x + t.scale.y + t.scale.z
+      }, 0)
+    }
 
-    const requestRender = () => {
-      needsRender = true
+    const syncObjects = () => {
+      const group = modelsGroupRef.current
+      if (!group) return false
+      
+      const state = useEditorStore.getState()
+      const { gameObjects, rootObjectIds } = state
+      if (rootObjectIds.length === 0) return false
+      
+      const workspace = gameObjects[rootObjectIds[0]]
+      if (!workspace?.children) return false
+      
+      const DEG2RAD = Math.PI / 180
+      let changed = false
+
+      workspace.children.forEach((objId) => {
+        const obj = gameObjects[objId]
+        if (!obj?.transform) return
+        
+        const root = group.children.find(
+          (c) => (c.userData.objectId as string) === objId
+        ) as THREE.Object3D | undefined
+        if (!root) return
+        
+        root.userData.assetName = obj.name
+        const { position, rotation, scale } = obj.transform
+        
+        // Only update if values changed
+        if (root.position.x !== position.x || root.position.y !== position.y || root.position.z !== position.z) {
+          root.position.set(position.x, position.y, position.z)
+          changed = true
+        }
+        
+        const newRotX = rotation.x * DEG2RAD
+        const newRotY = rotation.y * DEG2RAD
+        const newRotZ = rotation.z * DEG2RAD
+        if (root.rotation.x !== newRotX || root.rotation.y !== newRotY || root.rotation.z !== newRotZ) {
+          root.rotation.set(newRotX, newRotY, newRotZ)
+          changed = true
+        }
+        
+        const baseScale = (root.userData.baseScale as number) ?? 1
+        const newScaleX = baseScale * scale.x
+        const newScaleY = baseScale * scale.y
+        const newScaleZ = baseScale * scale.z
+        if (root.scale.x !== newScaleX || root.scale.y !== newScaleY || root.scale.z !== newScaleZ) {
+          root.scale.set(newScaleX, newScaleY, newScaleZ)
+          changed = true
+        }
+      })
+      
+      return changed
     }
 
     const animate = () => {
@@ -367,6 +450,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         phi = INITIAL_PHI
         updateCameraFromOrbit()
         cameraChanged = true
+        isAnimating = false
       }
 
       if (keysPressed.size > 0 && cameraRef.current) {
@@ -386,76 +470,31 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         if (keysPressed.has('q')) target.y -= speed
         updateCameraFromOrbit()
         cameraChanged = true
+        isAnimating = true
+      } else if (isAnimating && keysPressed.size === 0) {
+        isAnimating = false
       }
 
-      // Only sync and render when state changes or camera moves
-      const group = modelsGroupRef.current
-      if (group) {
-        const state = useEditorStore.getState()
-        const { gameObjects, rootObjectIds } = state
-        
-        // Create a lightweight state hash to detect changes
-        const stateHash = JSON.stringify(
-          rootObjectIds.length > 0 && gameObjects[rootObjectIds[0]]?.children
-            ? gameObjects[rootObjectIds[0]].children.map(id => {
-                const obj = gameObjects[id]
-                return obj ? `${id}:${obj.name}:${JSON.stringify(obj.transform)}` : ''
-              })
-            : []
-        )
-        
-        const stateChanged = stateHash !== lastSyncedState
-        
-        if (stateChanged) {
-          lastSyncedState = stateHash
-          const DEG2RAD = Math.PI / 180
-
-          const syncObject = (objId: string) => {
-            const obj = gameObjects[objId]
-            if (!obj?.transform) return
-            const root = group.children.find(
-              (c) => (c.userData.objectId as string) === objId
-            ) as THREE.Object3D | undefined
-            if (!root) return
-            root.userData.assetName = obj.name
-            const { position, rotation, scale } = obj.transform
-            root.position.set(position.x, position.y, position.z)
-            root.rotation.set(
-              rotation.x * DEG2RAD,
-              rotation.y * DEG2RAD,
-              rotation.z * DEG2RAD
-            )
-            const baseScale = (root.userData.baseScale as number) ?? 1
-            root.scale.set(
-              baseScale * scale.x,
-              baseScale * scale.y,
-              baseScale * scale.z
-            )
+      // Check for transform updates only when idle (no camera movement)
+      if (!isAnimating && !cameraChanged) {
+        const currentVersion = getTransformVersion()
+        if (currentVersion !== lastTransformVersion) {
+          lastTransformVersion = currentVersion
+          const changed = syncObjects()
+          if (changed) {
+            needsRender = true
           }
-
-          const walkAndSync = (ids: string[]) => {
-            ids.forEach((id) => {
-              syncObject(id)
-              const obj = gameObjects[id]
-              if (obj?.children?.length) walkAndSync(obj.children)
-            })
-          }
-
-          if (rootObjectIds.length > 0) {
-            const workspaceId = rootObjectIds[0]
-            const workspace = gameObjects[workspaceId]
-            if (workspace?.children) {
-              walkAndSync(workspace.children)
-            }
-          }
-          needsRender = true
         }
       }
 
       // Only render when needed
-      if ((needsRender || cameraChanged) && rendererRef.current && sceneRef.current && cameraRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current)
-        needsRender = false
+      if (needsRender || cameraChanged || isAnimating) {
+        if (rendererRef.current && sceneRef.current && cameraRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current)
+        }
+        if (!isAnimating) {
+          needsRender = false
+        }
       }
     }
     animate()
