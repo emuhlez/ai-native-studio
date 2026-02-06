@@ -302,6 +302,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         const orbitDy = VERTICAL_ORBIT_INVERTED ? -dy : dy
         phi = Math.max(MIN_PHI, Math.min(MAX_PHI, phi - orbitDy * ORBIT_SENSITIVITY))
         updateCameraFromOrbit()
+        needsRender = true // Force render on camera movement
         dragStartX = e.clientX
         dragStartY = e.clientY
       }
@@ -332,6 +333,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       const factor = 1 - ev.deltaY * ZOOM_SENSITIVITY
       radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius * factor))
       updateCameraFromOrbit()
+      needsRender = true // Force render on zoom
     }
 
     const wheelOpts = { passive: false }
