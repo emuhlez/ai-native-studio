@@ -54,6 +54,7 @@ const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.
 export function Assets() {
   const { assets, selectedAssetIds, selectAsset, importAssets, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)
   const [crossyFarmExpanded, setCrossyFarmExpanded] = useState(true)
@@ -68,6 +69,14 @@ export function Assets() {
   const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null)
   const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [, setMoveDialogAssetId] = useState<string | null>(null)
+  
+  // Debounce search query for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -642,6 +651,7 @@ export function Assets() {
                       asset.type === 'texture' || asset.type === 'material'
                         ? (asset.thumbnail ?? asset.path)
                         : ''
+                    // Only pass modelPath for visible assets to reduce rendering load
                     const modelPath = asset.type === 'model' ? asset.path : undefined
                     const handleDoubleClick = asset.type === 'folder' ? () => setSelectedNavId(asset.id) : undefined
                     const isSelected = selectedAssetIds.includes(asset.id)

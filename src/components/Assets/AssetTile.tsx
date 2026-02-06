@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { useState, useRef, useEffect, memo, type ReactNode } from 'react'
 import styles from './Assets.module.css'
 import { ModelPreview } from './ModelPreview'
 
@@ -28,7 +28,7 @@ export interface AssetTileProps {
   onCancelRename?: () => void
 }
 
-export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, onContextMenu, viewMode = 'grid', isRenaming = false, onRename, onCancelRename }: AssetTileProps) {
+const AssetTileComponent = ({ name, typeLabel, icon, previewImageUrl, modelPath, isSelected, onSelect, onDoubleClick, onContextMenu, viewMode = 'grid', isRenaming = false, onRename, onCancelRename }: AssetTileProps) => {
   const [imageError, setImageError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [modelLoading, setModelLoading] = useState(false)
@@ -145,3 +145,17 @@ export function AssetTile({ name, typeLabel, icon, previewImageUrl, modelPath, i
     </div>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+export const AssetTile = memo(AssetTileComponent, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.name === nextProps.name &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isRenaming === nextProps.isRenaming &&
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.modelPath === nextProps.modelPath &&
+    prevProps.previewImageUrl === nextProps.previewImageUrl
+  )
+})

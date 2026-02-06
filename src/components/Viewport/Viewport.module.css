@@ -3,6 +3,9 @@
   height: 100%;
   overflow: hidden;
   position: relative;
+  /* Enable GPU acceleration for Safari/Arc */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .canvas {
@@ -12,6 +15,8 @@
   background: 
     radial-gradient(ellipse at center, var(--bg-surface200) 0%, var(--bg-surface0) 100%);
   overflow: hidden;
+  /* Optimize rendering */
+  contain: layout style paint;
 }
 
 .canvas3D {
@@ -28,6 +33,9 @@
   margin: 0;
   border: none;
   pointer-events: none; /* let clicks pass through to the canvas inside */
+  /* GPU acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* Wrapper created by Viewport3D – locks canvas coordinate system */
@@ -42,6 +50,11 @@
   overflow: hidden;
   padding: 0;
   margin: 0;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Canvas locked to container – fills .canvas3DInner, no offsets */
@@ -53,6 +66,9 @@
   display: block !important;
   margin: 0 !important;
   padding: 0 !important;
+  /* Optimize WebGL rendering on Safari/Arc */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .origin {

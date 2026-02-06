@@ -314,6 +314,10 @@
   border-radius: 0px;
   background: var(--bg-surface100);
   padding: 0;
+  /* Enable smooth scrolling on Safari/Arc */
+  -webkit-overflow-scrolling: touch;
+  /* Optimize scroll performance */
+  will-change: scroll-position;
 }
 
 .contentTableWrap {
@@ -450,6 +454,9 @@
   flex-wrap: wrap;
   gap: 12px;
   padding: 12px;
+  /* Enable GPU acceleration for smoother scrolling on Safari/Arc */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .assetTile {
@@ -463,6 +470,11 @@
   box-sizing: border-box;
   transition: background var(--transition-fast), padding var(--transition-fast), width var(--transition-fast), height var(--transition-fast), margin var(--transition-fast);
   border-radius: 8px;
+  /* Enable GPU acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Hover: 4px padding without shrinking content – tile grows so content area stays 109×157 */

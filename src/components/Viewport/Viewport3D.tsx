@@ -115,9 +115,15 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       camera.lookAt(target)
     }
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      alpha: false,
+      powerPreference: 'high-performance', // Optimize for performance on Safari/Arc
+      stencil: false, // Disable stencil buffer for better performance
+    })
     renderer.setSize(width, height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    // Limit pixel ratio to 1.5 for better performance on Retina displays (Safari/Arc)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.15
@@ -155,8 +161,9 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.4)
     dirLight.position.set(25, 45, 25)
     dirLight.castShadow = true
-    dirLight.shadow.mapSize.width = 1024
-    dirLight.shadow.mapSize.height = 1024
+    // Reduced shadow map size for better performance on Safari/Arc
+    dirLight.shadow.mapSize.width = 512
+    dirLight.shadow.mapSize.height = 512
     dirLight.shadow.camera.near = 0.5
     dirLight.shadow.camera.far = 200
     dirLight.shadow.camera.left = -50
@@ -337,11 +344,20 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
 
+    let needsRender = true // Track if we need to render
+    let lastSyncedState: string | null = null // Track last synced state
+
+    const requestRender = () => {
+      needsRender = true
+    }
+
     const animate = () => {
       frameRef.current = requestAnimationFrame(animate)
       const now = performance.now()
       const delta = (now - lastPanTime) / 1000
       lastPanTime = now
+
+      let cameraChanged = false
 
       if (resetViewRef.current && cameraRef.current) {
         resetViewRef.current = false
@@ -350,6 +366,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         theta = INITIAL_THETA
         phi = INITIAL_PHI
         updateCameraFromOrbit()
+        cameraChanged = true
       }
 
       if (keysPressed.size > 0 && cameraRef.current) {
@@ -368,57 +385,77 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         if (keysPressed.has('e')) target.y += speed
         if (keysPressed.has('q')) target.y -= speed
         updateCameraFromOrbit()
+        cameraChanged = true
       }
 
-      // Sync game object transforms to 3D models (runs every frame)
+      // Only sync and render when state changes or camera moves
       const group = modelsGroupRef.current
       if (group) {
         const state = useEditorStore.getState()
         const { gameObjects, rootObjectIds } = state
-        const DEG2RAD = Math.PI / 180
+        
+        // Create a lightweight state hash to detect changes
+        const stateHash = JSON.stringify(
+          rootObjectIds.length > 0 && gameObjects[rootObjectIds[0]]?.children
+            ? gameObjects[rootObjectIds[0]].children.map(id => {
+                const obj = gameObjects[id]
+                return obj ? `${id}:${obj.name}:${JSON.stringify(obj.transform)}` : ''
+              })
+            : []
+        )
+        
+        const stateChanged = stateHash !== lastSyncedState
+        
+        if (stateChanged) {
+          lastSyncedState = stateHash
+          const DEG2RAD = Math.PI / 180
 
-        const syncObject = (objId: string) => {
-          const obj = gameObjects[objId]
-          if (!obj?.transform) return
-          const root = group.children.find(
-            (c) => (c.userData.objectId as string) === objId
-          ) as THREE.Object3D | undefined
-          if (!root) return
-          root.userData.assetName = obj.name
-          const { position, rotation, scale } = obj.transform
-          root.position.set(position.x, position.y, position.z)
-          root.rotation.set(
-            rotation.x * DEG2RAD,
-            rotation.y * DEG2RAD,
-            rotation.z * DEG2RAD
-          )
-          const baseScale = (root.userData.baseScale as number) ?? 1
-          root.scale.set(
-            baseScale * scale.x,
-            baseScale * scale.y,
-            baseScale * scale.z
-          )
-        }
-
-        const walkAndSync = (ids: string[]) => {
-          ids.forEach((id) => {
-            syncObject(id)
-            const obj = gameObjects[id]
-            if (obj?.children?.length) walkAndSync(obj.children)
-          })
-        }
-
-        if (rootObjectIds.length > 0) {
-          const workspaceId = rootObjectIds[0]
-          const workspace = gameObjects[workspaceId]
-          if (workspace?.children) {
-            walkAndSync(workspace.children)
+          const syncObject = (objId: string) => {
+            const obj = gameObjects[objId]
+            if (!obj?.transform) return
+            const root = group.children.find(
+              (c) => (c.userData.objectId as string) === objId
+            ) as THREE.Object3D | undefined
+            if (!root) return
+            root.userData.assetName = obj.name
+            const { position, rotation, scale } = obj.transform
+            root.position.set(position.x, position.y, position.z)
+            root.rotation.set(
+              rotation.x * DEG2RAD,
+              rotation.y * DEG2RAD,
+              rotation.z * DEG2RAD
+            )
+            const baseScale = (root.userData.baseScale as number) ?? 1
+            root.scale.set(
+              baseScale * scale.x,
+              baseScale * scale.y,
+              baseScale * scale.z
+            )
           }
+
+          const walkAndSync = (ids: string[]) => {
+            ids.forEach((id) => {
+              syncObject(id)
+              const obj = gameObjects[id]
+              if (obj?.children?.length) walkAndSync(obj.children)
+            })
+          }
+
+          if (rootObjectIds.length > 0) {
+            const workspaceId = rootObjectIds[0]
+            const workspace = gameObjects[workspaceId]
+            if (workspace?.children) {
+              walkAndSync(workspace.children)
+            }
+          }
+          needsRender = true
         }
       }
 
-      if (rendererRef.current && sceneRef.current && cameraRef.current) {
+      // Only render when needed
+      if ((needsRender || cameraChanged) && rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current)
+        needsRender = false
       }
     }
     animate()
