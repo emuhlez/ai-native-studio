@@ -74,7 +74,7 @@ export function Assets() {
         selectAsset(id, { additive: false, range: false })
       }
     },
-    onDrop: (draggedId, targetId) => {
+    onDrop: (_draggedId, targetId) => {
       // Move all selected assets to the target folder
       selectedAssetIds.forEach(assetId => {
         if (assetId !== targetId) {
@@ -83,7 +83,7 @@ export function Assets() {
       })
       log(`Moved ${selectedAssetIds.length} asset(s)`, 'info')
     },
-    canDrop: (draggedId, targetId) => {
+    canDrop: (_draggedId, targetId) => {
       // Only allow dropping on folders
       const targetAsset = assets.find(a => a.id === targetId) || 
                           assets.flatMap(a => a.children || []).find(c => c.id === targetId)

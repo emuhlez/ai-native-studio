@@ -147,7 +147,7 @@ const saveAssets = (assets: Asset[]) => {
   localStorageManager.saveLater(STORAGE_KEY, () => assets)
 }
 
-export const useAssetStore = create<AssetStore>((set, get) => ({
+export const useAssetStore = create<AssetStore>((set) => ({
   assets: loadSavedAssets(),
   
   importAssets: (files) => {
