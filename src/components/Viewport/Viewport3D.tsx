@@ -206,55 +206,72 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       return MODEL_SCALE / maxDim
     }
 
-    // Load models in batches to prevent Safari/Arc overload
-    const loadModelBatch = (startIndex: number, batchSize: number) => {
-      const endIndex = Math.min(startIndex + batchSize, THREE_SPACE_ASSETS.length)
+    // Optimized model loading with better batching
+    // Load models in batches with controlled concurrency
+    let loadedCount = 0
+    let activeLoads = 0
+    const MAX_CONCURRENT_LOADS = 4 // Increased from 3 for better parallelism
+    
+    const loadNextModel = (index: number) => {
+      if (index >= THREE_SPACE_ASSETS.length) return
       
-      for (let i = startIndex; i < endIndex; i++) {
-        const filename = THREE_SPACE_ASSETS[i]
-        const url = assetUrl(filename)
-        loader.load(
-          url,
-          (gltf: { scene: THREE.Group }) => {
-            const root = gltf.scene
-            const displayName = getAssetDisplayName(filename)
-            const objId = addWorkspaceModel(displayName)
-            root.userData.assetName = displayName
-            root.userData.objectId = objId
-            root.traverse((node: THREE.Object3D) => {
-              if ((node as THREE.Mesh).isMesh) {
-                (node as THREE.Mesh).castShadow = true
-                ;(node as THREE.Mesh).receiveShadow = true
-              }
-            })
-            const baseScale = fitScale(root)
-            root.userData.baseScale = baseScale
-            const { x, z } = placeModel(i)
-            updateGameObject(objId, {
-              transform: {
-                position: { x, y: 0, z },
-                rotation: { x: 0, y: 0, z: 0 },
-                scale: { x: 1, y: 1, z: 1 },
-              },
-            })
-            root.position.set(x, 0, z)
-            root.scale.setScalar(baseScale)
-            modelsGroup.add(root)
-            needsRender = true
-          },
-          undefined,
-          () => {}
-        )
-      }
+      activeLoads++
+      const filename = THREE_SPACE_ASSETS[index]
+      const url = assetUrl(filename)
       
-      // Load next batch after a delay
-      if (endIndex < THREE_SPACE_ASSETS.length) {
-        setTimeout(() => loadModelBatch(endIndex, batchSize), 100)
-      }
+      loader.load(
+        url,
+        (gltf: { scene: THREE.Group }) => {
+          const root = gltf.scene
+          const displayName = getAssetDisplayName(filename)
+          const objId = addWorkspaceModel(displayName)
+          root.userData.assetName = displayName
+          root.userData.objectId = objId
+          root.traverse((node: THREE.Object3D) => {
+            if ((node as THREE.Mesh).isMesh) {
+              (node as THREE.Mesh).castShadow = true
+              ;(node as THREE.Mesh).receiveShadow = true
+            }
+          })
+          const baseScale = fitScale(root)
+          root.userData.baseScale = baseScale
+          const { x, z } = placeModel(index)
+          updateGameObject(objId, {
+            transform: {
+              position: { x, y: 0, z },
+              rotation: { x: 0, y: 0, z: 0 },
+              scale: { x: 1, y: 1, z: 1 },
+            },
+          })
+          root.position.set(x, 0, z)
+          root.scale.setScalar(baseScale)
+          modelsGroup.add(root)
+          needsRender = true
+          
+          activeLoads--
+          loadedCount++
+          
+          // Load next model if available
+          if (loadedCount + activeLoads < THREE_SPACE_ASSETS.length) {
+            loadNextModel(loadedCount + activeLoads)
+          }
+        },
+        undefined,
+        () => {
+          activeLoads--
+          // On error, try loading next model
+          if (loadedCount + activeLoads < THREE_SPACE_ASSETS.length) {
+            loadNextModel(loadedCount + activeLoads)
+          }
+        }
+      )
     }
     
-    // Start loading in batches of 3 models at a time
-    loadModelBatch(0, 3)
+    // Start loading first batch concurrently
+    const initialBatchSize = Math.min(MAX_CONCURRENT_LOADS, THREE_SPACE_ASSETS.length)
+    for (let i = 0; i < initialBatchSize; i++) {
+      loadNextModel(i)
+    }
 
     const raycaster = raycasterRef.current
     const mouse = mouseRef.current
@@ -366,6 +383,8 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
 
     let lastTransformVersion = 0 // Track transform version for lightweight change detection
     let isAnimating = false // Track if actively animating
+    let framesSinceLastCheck = 0 // Throttle transform checks
+    const TRANSFORM_CHECK_INTERVAL = 10 // Check every N frames instead of every frame
     
     // Create a version counter in store to track changes
     const getTransformVersion = () => {
@@ -480,15 +499,23 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       }
 
       // Check for transform updates only when idle (no camera movement)
+      // Throttle checks to every N frames for better performance
       if (!isAnimating && !cameraChanged) {
-        const currentVersion = getTransformVersion()
-        if (currentVersion !== lastTransformVersion) {
-          lastTransformVersion = currentVersion
-          const changed = syncObjects()
-          if (changed) {
-            needsRender = true
+        framesSinceLastCheck++
+        if (framesSinceLastCheck >= TRANSFORM_CHECK_INTERVAL) {
+          framesSinceLastCheck = 0
+          const currentVersion = getTransformVersion()
+          if (currentVersion !== lastTransformVersion) {
+            lastTransformVersion = currentVersion
+            const changed = syncObjects()
+            if (changed) {
+              needsRender = true
+            }
           }
         }
+      } else {
+        // Reset counter when animating to check immediately after animation stops
+        framesSinceLastCheck = 0
       }
 
       // Only render when needed
