@@ -210,12 +210,26 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     fillLight.position.set(-20, 15, 10)
     scene.add(fillLight)
 
-    // Floor grid to simulate 3D workspace (XZ plane at y=0)
-    const gridSize = 120
-    const gridDivisions = 60
-    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x444466, 0x2a2a35)
-    gridHelper.position.y = 0
-    scene.add(gridHelper)
+    // Floor grid with custom texture (XZ plane at y=0)
+    const gridSize = 72
+    const textureLoader = new THREE.TextureLoader()
+    const gridTexture = textureLoader.load('/textures/grid-floor.png')
+    gridTexture.wrapS = THREE.RepeatWrapping
+    gridTexture.wrapT = THREE.RepeatWrapping
+    gridTexture.repeat.set(18, 18) // Repeat the pattern to fill 72x72 grid
+    gridTexture.colorSpace = THREE.SRGBColorSpace
+    
+    const floorGeometry = new THREE.PlaneGeometry(gridSize, gridSize)
+    const floorMaterial = new THREE.MeshStandardMaterial({ 
+      map: gridTexture,
+      roughness: 0.8,
+      metalness: 0.1
+    })
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial)
+    floor.rotation.x = -Math.PI / 2 // Rotate to lie flat on XZ plane
+    floor.position.y = 0
+    floor.receiveShadow = true
+    scene.add(floor)
 
     const loader = new GLTFLoader()
     const modelsGroup = new THREE.Group()
