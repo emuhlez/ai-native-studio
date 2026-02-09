@@ -103,10 +103,10 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       side: THREE.BackSide,
       depthWrite: false,
       uniforms: {
-        topColor: { value: new THREE.Color(0x0077ff) }, // Deep sky blue
-        bottomColor: { value: new THREE.Color(0x89b2eb) }, // Light horizon blue
-        offset: { value: 0.3 },
-        exponent: { value: 0.6 }
+        topColor: { value: new THREE.Color(0x1E88E5) }, // Bright sky blue
+        bottomColor: { value: new THREE.Color(0xE8F4FD) }, // Very pale blue/white horizon
+        offset: { value: 0.4 },
+        exponent: { value: 0.8 }
       },
       vertexShader: `
         varying vec3 vWorldPosition;
