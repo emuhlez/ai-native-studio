@@ -95,8 +95,43 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     const height = container.clientHeight
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x1a1a1a)
     sceneRef.current = scene
+
+    // Create skybox with blue sky gradient
+    const skyGeometry = new THREE.SphereGeometry(CAMERA_FAR * 0.9, 32, 32)
+    const skyMaterial = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        topColor: { value: new THREE.Color(0x0077ff) }, // Deep sky blue
+        bottomColor: { value: new THREE.Color(0x89b2eb) }, // Light horizon blue
+        offset: { value: 0.3 },
+        exponent: { value: 0.6 }
+      },
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        void main() {
+          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPosition.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 topColor;
+        uniform vec3 bottomColor;
+        uniform float offset;
+        uniform float exponent;
+        varying vec3 vWorldPosition;
+        void main() {
+          float h = normalize(vWorldPosition).y;
+          float t = max(pow(max(h + offset, 0.0), exponent), 0.0);
+          gl_FragColor = vec4(mix(bottomColor, topColor, t), 1.0);
+        }
+      `
+    })
+    const skyMesh = new THREE.Mesh(skyGeometry, skyMaterial)
+    skyMesh.renderOrder = -1 // Render first
+    scene.add(skyMesh)
 
     const camera = new THREE.PerspectiveCamera(CAMERA_FOV, width / height, CAMERA_NEAR, CAMERA_FAR)
     camera.position.set(40, 35, 40)
