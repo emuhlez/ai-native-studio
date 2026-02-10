@@ -54,26 +54,39 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
       const mesh = node as THREE.Mesh
       
       if (on) {
-        // Create edge outline if it doesn't exist
+        // Create thicker outline if it doesn't exist
         if (!mesh.userData.outline) {
-          const edges = new THREE.EdgesGeometry(mesh.geometry, 15) // Threshold angle for edge detection
-          const lineMaterial = new THREE.LineBasicMaterial({ 
+          // Create a slightly larger version with blue color for outline effect
+          const outlineMaterial = new THREE.MeshBasicMaterial({
             color: 0x3498db, // Blue outline
-            linewidth: 2,
-            depthTest: true
+            side: THREE.FrontSide,
+            depthTest: true,
+            depthWrite: false
           })
-          const outline = new THREE.LineSegments(edges, lineMaterial)
-          outline.renderOrder = 1 // Render on top
-          mesh.add(outline)
-          mesh.userData.outline = outline
+          const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMaterial)
+          outlineMesh.scale.setScalar(1.03) // Slightly larger for outline thickness
+          outlineMesh.renderOrder = 0
+          mesh.add(outlineMesh)
+          mesh.userData.outline = outlineMesh
+          
+          // Store original renderOrder
+          if (mesh.userData.originalRenderOrder === undefined) {
+            mesh.userData.originalRenderOrder = mesh.renderOrder
+          }
+          mesh.renderOrder = 1 // Render main mesh on top of outline
         }
         if (mesh.userData.outline) {
           mesh.userData.outline.visible = true
+          mesh.renderOrder = 1
         }
       } else {
         // Hide outline
         if (mesh.userData.outline) {
           mesh.userData.outline.visible = false
+          // Restore original render order
+          if (mesh.userData.originalRenderOrder !== undefined) {
+            mesh.renderOrder = mesh.userData.originalRenderOrder
+          }
         }
       }
     }
