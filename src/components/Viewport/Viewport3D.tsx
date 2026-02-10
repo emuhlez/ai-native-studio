@@ -52,32 +52,29 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
   root.traverse((node: THREE.Object3D) => {
     if ((node as THREE.Mesh).isMesh) {
       const mesh = node as THREE.Mesh
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       
-      if (on) {
-        // Create outline using backface rendering to avoid z-fighting
-        if (!mesh.userData.outline) {
-          const outlineMaterial = new THREE.MeshBasicMaterial({
-            color: 0x3498db, // Blue outline
-            side: THREE.BackSide,
-            depthTest: true,
-            depthWrite: true
-          })
-          const outlineMesh = new THREE.Mesh(mesh.geometry.clone(), outlineMaterial)
-          // Scale slightly larger for outline visibility
-          outlineMesh.scale.setScalar(1.04)
-          outlineMesh.position.set(0, 0, 0)
-          mesh.add(outlineMesh)
-          mesh.userData.outline = outlineMesh
+      materials.forEach((mat) => {
+        if (mat && (mat as THREE.MeshStandardMaterial).emissive !== undefined) {
+          const m = mat as THREE.MeshStandardMaterial
+          if (on) {
+            // Store original emissive if not already stored
+            if (mesh.userData.originalEmissive === undefined) {
+              mesh.userData.originalEmissive = m.emissive.getHex()
+              mesh.userData.originalEmissiveIntensity = m.emissiveIntensity
+            }
+            // Set blue emissive glow
+            m.emissive.setHex(0x3498db)
+            m.emissiveIntensity = 0.6
+          } else {
+            // Restore original emissive
+            if (mesh.userData.originalEmissive !== undefined) {
+              m.emissive.setHex(mesh.userData.originalEmissive)
+              m.emissiveIntensity = mesh.userData.originalEmissiveIntensity
+            }
+          }
         }
-        if (mesh.userData.outline) {
-          mesh.userData.outline.visible = true
-        }
-      } else {
-        // Hide outline and clean up
-        if (mesh.userData.outline) {
-          mesh.userData.outline.visible = false
-        }
-      }
+      })
     }
   })
 }
