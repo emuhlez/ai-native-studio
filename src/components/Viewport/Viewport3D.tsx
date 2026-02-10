@@ -58,19 +58,26 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
         if (mat && (mat as THREE.MeshStandardMaterial).emissive !== undefined) {
           const m = mat as THREE.MeshStandardMaterial
           if (on) {
-            // Store original emissive if not already stored
-            if (mesh.userData.originalEmissive === undefined) {
+            // Store original emissive if not already highlighted
+            if (!mesh.userData.isHighlighted) {
               mesh.userData.originalEmissive = m.emissive.getHex()
               mesh.userData.originalEmissiveIntensity = m.emissiveIntensity
+              mesh.userData.isHighlighted = true
             }
             // Set blue emissive glow
             m.emissive.setHex(0x3498db)
             m.emissiveIntensity = 0.6
+            m.needsUpdate = true
           } else {
             // Restore original emissive
-            if (mesh.userData.originalEmissive !== undefined) {
-              m.emissive.setHex(mesh.userData.originalEmissive)
-              m.emissiveIntensity = mesh.userData.originalEmissiveIntensity
+            if (mesh.userData.isHighlighted) {
+              m.emissive.setHex(mesh.userData.originalEmissive || 0x000000)
+              m.emissiveIntensity = mesh.userData.originalEmissiveIntensity || 0
+              m.needsUpdate = true
+              // Clear stored values
+              mesh.userData.isHighlighted = false
+              delete mesh.userData.originalEmissive
+              delete mesh.userData.originalEmissiveIntensity
             }
           }
         }
@@ -89,6 +96,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const resetViewRef = useRef(false)
   const focusSelectedRef = useRef(false)
+  const needsRenderRef = useRef(false)
 
   const viewportSelectedAssetNames = useEditorStore((s) => s.viewportSelectedAssetNames)
   const setViewportSelectedAsset = useEditorStore((s) => s.setViewportSelectedAsset)
@@ -617,6 +625,12 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         framesSinceLastCheck = 0
       }
 
+      // Check if external trigger requested render
+      if (needsRenderRef.current) {
+        needsRender = true
+        needsRenderRef.current = false
+      }
+
       // Only render when needed
       if (needsRender || cameraChanged || isAnimating) {
         if (rendererRef.current && sceneRef.current && cameraRef.current) {
@@ -677,6 +691,8 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       const name = root.userData.assetName as string | undefined
       setHighlight(root, !!name && names.has(name))
     })
+    // Force a render to show the highlight changes
+    needsRenderRef.current = true
   }, [viewportSelectedAssetNames])
 
   // Replace meshes when meshUrl is set (user-selected file)
