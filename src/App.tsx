@@ -4,6 +4,7 @@ import { Viewport } from './components/Viewport/Viewport'
 import { Inspector } from './components/Inspector/Inspector'
 import { Assets } from './components/Assets/Assets'
 import { Console } from './components/Console/Console'
+import { ComponentGallery } from './components/ComponentGallery/ComponentGallery'
 import { DockLayout } from './components/shared/DockLayout'
 import { DockZoneRenderer } from './components/shared/DockZoneRenderer'
 import { DockablePanel } from './components/shared/DockablePanel'
@@ -21,6 +22,7 @@ function App() {
     assets: <Assets />,
     console: <Console />,
     explorer: <Hierarchy />,
+    componentGallery: <ComponentGallery />,
   }
 
   return (

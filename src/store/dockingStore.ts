@@ -34,6 +34,7 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
     explorer: { id: 'explorer', zone: 'right-top', order: 0 },
     assets: { id: 'assets', zone: 'center-bottom', order: 0 },
     console: { id: 'console', zone: 'right-top', order: 1 },
+    componentGallery: { id: 'componentGallery', zone: 'left', order: 0 },
   },
   panelSizes: {
     leftWidth: DEFAULT_LEFT_WIDTH,
