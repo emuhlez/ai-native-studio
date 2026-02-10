@@ -213,7 +213,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
     // Floor grid with custom texture (XZ plane at y=0)
     const gridSize = 72
     const textureLoader = new THREE.TextureLoader()
-    const gridTexture = textureLoader.load('/textures/grid-floor.png')
+    const gridTexture = textureLoader.load(`/textures/grid-floor.png?v=${Date.now()}`)
     gridTexture.wrapS = THREE.RepeatWrapping
     gridTexture.wrapT = THREE.RepeatWrapping
     gridTexture.repeat.set(18, 18) // Repeat the pattern to fill 72x72 grid
