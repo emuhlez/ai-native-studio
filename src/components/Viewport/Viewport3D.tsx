@@ -30,7 +30,7 @@ const MIN_PHI = 0.05
 const MAX_PHI = Math.PI - 0.05
 const DRAG_THRESHOLD_PX = 4
 const PAN_SPEED = 0.35
-const PAN_KEYS = new Set(['w', 'a', 's', 'd', 'q', 'e', 'r'])
+const PAN_KEYS = new Set(['w', 'a', 's', 'd', 'q', 'e', 'r', 'f'])
 const INITIAL_TARGET = new THREE.Vector3(0, 0, 0)
 const INITIAL_RADIUS = Math.sqrt(40 * 40 + 35 * 35 + 40 * 40)
 const INITIAL_THETA = Math.atan2(40, 40)
@@ -78,6 +78,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const resetViewRef = useRef(false)
+  const focusSelectedRef = useRef(false)
 
   const viewportSelectedAssetNames = useEditorStore((s) => s.viewportSelectedAssetNames)
   const setViewportSelectedAsset = useEditorStore((s) => s.setViewportSelectedAsset)
@@ -418,6 +419,8 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       if (PAN_KEYS.has(key) && document.activeElement === canvas) {
         if (key === 'r') {
           resetViewRef.current = true
+        } else if (key === 'f') {
+          focusSelectedRef.current = true
         } else {
           keysPressed.add(key)
         }
@@ -523,6 +526,43 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         updateCameraFromOrbit()
         cameraChanged = true
         isAnimating = false
+      }
+
+      if (focusSelectedRef.current && cameraRef.current && modelsGroupRef.current) {
+        focusSelectedRef.current = false
+        const group = modelsGroupRef.current
+        const selectedNames = new Set(viewportSelectedAssetNames)
+        
+        if (selectedNames.size > 0) {
+          // Find the selected object(s)
+          const selectedObjects = group.children.filter((child) => {
+            const name = child.userData.assetName as string | undefined
+            return name && selectedNames.has(name)
+          })
+          
+          if (selectedObjects.length > 0) {
+            // Calculate bounding box for all selected objects
+            const box = new THREE.Box3()
+            selectedObjects.forEach((obj) => box.expandByObject(obj))
+            
+            // Get center and size
+            const center = new THREE.Vector3()
+            box.getCenter(center)
+            const size = new THREE.Vector3()
+            box.getSize(size)
+            
+            // Move target to center of selection
+            target.copy(center)
+            
+            // Calculate appropriate distance to fit object in view
+            const maxDim = Math.max(size.x, size.y, size.z)
+            radius = Math.max(maxDim * 2, MIN_RADIUS)
+            
+            updateCameraFromOrbit()
+            cameraChanged = true
+            isAnimating = false
+          }
+        }
       }
 
       if (keysPressed.size > 0 && cameraRef.current) {
