@@ -54,18 +54,18 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
       const mesh = node as THREE.Mesh
       
       if (on) {
-        // Create outline if it doesn't exist
+        // Create edge outline if it doesn't exist
         if (!mesh.userData.outline) {
-          const outlineMaterial = new THREE.MeshBasicMaterial({
+          const edges = new THREE.EdgesGeometry(mesh.geometry, 15) // Threshold angle for edge detection
+          const lineMaterial = new THREE.LineBasicMaterial({ 
             color: 0x3498db, // Blue outline
-            side: THREE.BackSide,
-            transparent: false
+            linewidth: 2,
+            depthTest: true
           })
-          const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMaterial)
-          outlineMesh.scale.multiplyScalar(1.05) // Slightly larger
-          outlineMesh.renderOrder = -1 // Render behind
-          mesh.add(outlineMesh)
-          mesh.userData.outline = outlineMesh
+          const outline = new THREE.LineSegments(edges, lineMaterial)
+          outline.renderOrder = 1 // Render on top
+          mesh.add(outline)
+          mesh.userData.outline = outline
         }
         if (mesh.userData.outline) {
           mesh.userData.outline.visible = true
