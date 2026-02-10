@@ -14,8 +14,6 @@ const MODEL_SCALE = 2
 const CAMERA_FAR = 2000
 const CAMERA_NEAR = 0.1
 const CAMERA_FOV = 50
-const SELECTION_EMISSIVE = 0xee8833
-const SELECTION_EMISSIVE_INTENSITY = 0.4
 
 const ORBIT_SENSITIVITY = 0.004
 const ZOOM_SENSITIVITY = 0.001
@@ -54,15 +52,28 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
   root.traverse((node: THREE.Object3D) => {
     if ((node as THREE.Mesh).isMesh) {
       const mesh = node as THREE.Mesh
-      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
-      if (mat && (mat as THREE.MeshStandardMaterial).emissive != null) {
-        const m = mat as THREE.MeshStandardMaterial
-        if (on) {
-          m.emissive.setHex(SELECTION_EMISSIVE)
-          m.emissiveIntensity = SELECTION_EMISSIVE_INTENSITY
-        } else {
-          m.emissive.setHex(0x000000)
-          m.emissiveIntensity = 0
+      
+      if (on) {
+        // Create outline if it doesn't exist
+        if (!mesh.userData.outline) {
+          const outlineMaterial = new THREE.MeshBasicMaterial({
+            color: 0x3498db, // Blue outline
+            side: THREE.BackSide,
+            transparent: false
+          })
+          const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMaterial)
+          outlineMesh.scale.multiplyScalar(1.05) // Slightly larger
+          outlineMesh.renderOrder = -1 // Render behind
+          mesh.add(outlineMesh)
+          mesh.userData.outline = outlineMesh
+        }
+        if (mesh.userData.outline) {
+          mesh.userData.outline.visible = true
+        }
+      } else {
+        // Hide outline
+        if (mesh.userData.outline) {
+          mesh.userData.outline.visible = false
         }
       }
     }
