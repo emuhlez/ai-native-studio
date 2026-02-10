@@ -54,39 +54,28 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
       const mesh = node as THREE.Mesh
       
       if (on) {
-        // Create thicker outline if it doesn't exist
+        // Create outline using backface rendering to avoid z-fighting
         if (!mesh.userData.outline) {
-          // Create a slightly larger version with blue color for outline effect
           const outlineMaterial = new THREE.MeshBasicMaterial({
             color: 0x3498db, // Blue outline
-            side: THREE.FrontSide,
+            side: THREE.BackSide,
             depthTest: true,
-            depthWrite: false
+            depthWrite: true
           })
-          const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMaterial)
-          outlineMesh.scale.setScalar(1.03) // Slightly larger for outline thickness
-          outlineMesh.renderOrder = 0
+          const outlineMesh = new THREE.Mesh(mesh.geometry.clone(), outlineMaterial)
+          // Scale slightly larger for outline visibility
+          outlineMesh.scale.setScalar(1.04)
+          outlineMesh.position.set(0, 0, 0)
           mesh.add(outlineMesh)
           mesh.userData.outline = outlineMesh
-          
-          // Store original renderOrder
-          if (mesh.userData.originalRenderOrder === undefined) {
-            mesh.userData.originalRenderOrder = mesh.renderOrder
-          }
-          mesh.renderOrder = 1 // Render main mesh on top of outline
         }
         if (mesh.userData.outline) {
           mesh.userData.outline.visible = true
-          mesh.renderOrder = 1
         }
       } else {
-        // Hide outline
+        // Hide outline and clean up
         if (mesh.userData.outline) {
           mesh.userData.outline.visible = false
-          // Restore original render order
-          if (mesh.userData.originalRenderOrder !== undefined) {
-            mesh.renderOrder = mesh.userData.originalRenderOrder
-          }
         }
       }
     }
