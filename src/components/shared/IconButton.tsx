@@ -1,4 +1,5 @@
 import type { ReactNode, ButtonHTMLAttributes } from 'react'
+import { setActiveComponent } from '../../utils/componentTracker'
 import styles from './IconButton.module.css'
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -16,10 +17,20 @@ export function IconButton({
   variant = 'default',
   tooltip,
   className,
+  onClick,
   ...props 
 }: IconButtonProps) {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // Track component usage
+    setActiveComponent('IconButton', 'src/components/shared/IconButton.tsx')
+    
+    // Call original onClick if provided
+    onClick?.(e)
+  }
+
   return (
     <button
+      data-component="IconButton"
       className={`
         ${styles.button} 
         ${styles[size]} 
@@ -28,6 +39,7 @@ export function IconButton({
         ${className || ''}
       `}
       title={tooltip}
+      onClick={handleClick}
       {...props}
     >
       {icon}
