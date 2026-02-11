@@ -43,6 +43,7 @@ const SPECIAL_NAV_ITEMS = [
 
 const INVENTORIES_NAV_ID = 'inventories'
 const EHOPE_NAV_ID = 'ehopehopehope'
+const ALPHA_STRIKE_NAV_ID = 'alpha-strike'
 
 const SIDE_NAV_MIN = 220
 const SIDE_NAV_MAX = 400
@@ -52,8 +53,9 @@ const SIDE_NAV_DEFAULT = 220
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
 
 export function Assets() {
-  const { assets, selectedAssetIds, selectAsset, importAssets, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
+  const { assets, selectedAssetIds, selectAsset, addToImportQueue, importQueue, removeFromImportQueue, clearImportQueue, processImportQueue, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
+  const [queueSearchQuery, setQueueSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
   const [projectExpanded, setProjectExpanded] = useState(true)
   const [crossyFarmExpanded, setCrossyFarmExpanded] = useState(true)
@@ -62,6 +64,7 @@ export function Assets() {
   const [assetViewMode, setAssetViewMode] = useState<'grid' | 'list'>('grid')
   const resizeStartRef = useRef({ x: 0, w: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const queueFileInputRef = useRef<HTMLInputElement>(null)
   const contextMenu = useContextMenu()
   const [contextMenuAssetId, setContextMenuAssetId] = useState<string | null>(null)
   const [lastOpenedFolderId, setLastOpenedFolderId] = useState<string | null>(null)
@@ -72,7 +75,7 @@ export function Assets() {
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
-    id !== null && (SPECIAL_NAV_ITEMS.some((s) => s.id === id) || id === INVENTORIES_NAV_ID || id === EHOPE_NAV_ID)
+    id !== null && (SPECIAL_NAV_ITEMS.some((s) => s.id === id) || id === INVENTORIES_NAV_ID || id === EHOPE_NAV_ID || id === ALPHA_STRIKE_NAV_ID)
   const displayAssets: Asset[] =
     selectedNavId === null
       ? assets
@@ -462,7 +465,42 @@ export function Assets() {
                   <span className={styles.sideNavIcon} aria-hidden />
                   <span className={styles.sideNavName}>Inventories</span>
                 </div>
-                {inventoriesExpanded && null}
+                {inventoriesExpanded && (
+                  <>
+                    <div
+                      className={`${styles.sideNavRow} ${selectedNavId === EHOPE_NAV_ID ? styles.sideNavRowSelected : ''}`}
+                      style={{ paddingLeft: '24px' }}
+                      onClick={() => setSelectedNavId(EHOPE_NAV_ID)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(EHOPE_NAV_ID)}
+                    >
+                      <span className={styles.sideNavExpand} aria-hidden={false}>
+                        <ExpandRightIcon />
+                      </span>
+                      <span className={styles.sideNavIcon}>
+                        <img src="/icons/inventory.svg" alt="Inventory" width={16} height={16} />
+                      </span>
+                      <span className={styles.sideNavName}>ehopehopehope</span>
+                    </div>
+                    <div
+                      className={`${styles.sideNavRow} ${selectedNavId === ALPHA_STRIKE_NAV_ID ? styles.sideNavRowSelected : ''}`}
+                      style={{ paddingLeft: '24px' }}
+                      onClick={() => setSelectedNavId(ALPHA_STRIKE_NAV_ID)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(ALPHA_STRIKE_NAV_ID)}
+                    >
+                      <span className={styles.sideNavExpand} aria-hidden={false}>
+                        <ExpandRightIcon />
+                      </span>
+                      <span className={styles.sideNavIcon}>
+                        <img src="/icons/group-inventory.svg" alt="Group Inventory" width={16} height={16} />
+                      </span>
+                      <span className={styles.sideNavName}>alpha strike</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </nav>
@@ -477,23 +515,81 @@ export function Assets() {
         </div>
         <div className={styles.content}>
           <div className={styles.contentRow}>
-            <div className={styles.contentRowSpacer} aria-hidden />
+            {isImportQueueView ? (
+              <>
+                <div className={styles.queueLeftActions}>
+                  <input
+                    ref={queueFileInputRef}
+                    type="file"
+                    multiple
+                    accept={IMPORT_ACCEPT}
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const files = e.target.files ? Array.from(e.target.files) : []
+                      if (files.length) addToImportQueue(files)
+                      e.target.value = ''
+                    }}
+                  />
+                  <IconButton 
+                    icon={<img src="/icons/Open.svg" alt="Open" width={16} height={16} />} 
+                    size="sm" 
+                    tooltip="Open" 
+                    onClick={() => queueFileInputRef.current?.click()}
+                  />
+                  <IconButton 
+                    icon={<img src="/icons/Cleanup.svg" alt="Cleanup" width={16} height={16} />} 
+                    size="sm" 
+                    tooltip="Clear Queue" 
+                    onClick={clearImportQueue}
+                  />
+                </div>
+                <div className={styles.contentRowSpacer} aria-hidden />
+                <div className={styles.queueSearchContainer}>
+                  <img src={searchIconImg} alt="Search" className={styles.queueSearchIcon} width={16} height={16} />
+                  <input
+                    type="text"
+                    placeholder="Search queue"
+                    value={queueSearchQuery}
+                    onChange={(e) => setQueueSearchQuery(e.target.value)}
+                    className={styles.queueSearchInput}
+                    aria-label="Search import queue"
+                  />
+                  {queueSearchQuery && (
+                    <button
+                      type="button"
+                      className={styles.queueSearchClear}
+                      onClick={() => setQueueSearchQuery('')}
+                      aria-label="Clear search"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <div className={styles.contentRowSpacer} aria-hidden />
+              </>
+            ) : (
+              <div className={styles.contentRowSpacer} aria-hidden />
+            )}
             <div className={styles.contentRowActions}>
-              <IconButton icon={<img src="/icons/refresh.svg" alt="Import Asset" width={16} height={16} />} size="xs" tooltip="Import Asset" />
-              <IconButton icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />} size="xs" tooltip="Filter" />
-              <IconButton
-                icon={
-                  assetViewMode === 'grid' ? (
-                    <img src="/icons/grid-view.svg" alt="Grid view" width={16} height={16} />
-                  ) : (
-                    <img src="/icons/list-view.svg" alt="List view" width={16} height={16} />
-                  )
-                }
-                size="xs"
-                tooltip={assetViewMode === 'grid' ? 'Grid view' : 'List view'}
-                onClick={() => setAssetViewMode((m) => (m === 'grid' ? 'list' : 'grid'))}
-              />
-              <div className={styles.contentRowSeparator} aria-hidden />
+              {!isImportQueueView && (
+                <>
+                  <IconButton icon={<img src="/icons/refresh.svg" alt="Import Asset" width={16} height={16} />} size="xs" tooltip="Import Asset" />
+                  <IconButton icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />} size="xs" tooltip="Filter" />
+                  <IconButton
+                    icon={
+                      assetViewMode === 'grid' ? (
+                        <img src="/icons/grid-view.svg" alt="Grid view" width={16} height={16} />
+                      ) : (
+                        <img src="/icons/list-view.svg" alt="List view" width={16} height={16} />
+                      )
+                    }
+                    size="xs"
+                    tooltip={assetViewMode === 'grid' ? 'Grid view' : 'List view'}
+                    onClick={() => setAssetViewMode((m) => (m === 'grid' ? 'list' : 'grid'))}
+                  />
+                  <div className={styles.contentRowSeparator} aria-hidden />
+                </>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -502,7 +598,11 @@ export function Assets() {
                 style={{ display: 'none' }}
                 onChange={(e) => {
                   const files = e.target.files ? Array.from(e.target.files) : []
-                  if (files.length) importAssets(files)
+                  if (files.length) {
+                    addToImportQueue(files)
+                    // Auto-process after adding to queue
+                    setTimeout(() => processImportQueue(), 100)
+                  }
                   e.target.value = ''
                 }}
               />
@@ -523,15 +623,8 @@ export function Assets() {
                 <table className={styles.contentTable}>
                   <thead>
                     <tr>
-                      <th className={styles.contentTableTh}>
-                        <span className={styles.contentTableThDropdown}>
-                          Name
-                          <ChevronDown size={12} className={styles.contentTableThDropdownIcon} />
-                        </span>
-                        <span className={styles.contentTableThDivider} aria-hidden />
-                      </th>
-                      <th className={styles.contentTableTh}>
-                        ID
+                      <th className={`${styles.contentTableTh} ${styles.contentTableThQueue}`}>
+                        Name
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
                       <th className={styles.contentTableTh}>
@@ -546,32 +639,42 @@ export function Assets() {
                         File Path
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
-                      <th className={styles.contentTableTh}>Status</th>
+                      <th className={`${styles.contentTableTh} ${styles.contentTableThStatus}`}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {displayAssets.length === 0 ? (
+                    {importQueue.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className={styles.contentTableEmpty}>
-                          No assets
+                        <td colSpan={5} className={styles.contentTableEmpty}>
+                          No items in import queue
                         </td>
                       </tr>
                     ) : (
-                      displayAssets.map((asset) => {
-                        const isFolder = asset.type === 'folder'
-                        const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
-                        const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
+                      importQueue.map((item) => {
+                        const icon = assetIcons[item.assetType]
+                        const statusIcon = item.status === 'success' ? '✓' : item.status === 'error' ? '✗' : item.status === 'importing' ? '⟳' : '⋯'
+                        const statusClass = item.status === 'success' ? styles.statusSuccess : item.status === 'error' ? styles.statusError : item.status === 'importing' ? styles.statusImporting : styles.statusPending
                         return (
-                          <tr key={asset.id} className={styles.contentTableRow}>
+                          <tr key={item.id} className={styles.contentTableRow}>
                             <td className={styles.contentTableTd}>
                               <span className={styles.contentTableAssetIcon}>{icon}</span>
-                              <span>{displayName}</span>
+                              <span>{item.fileName}</span>
                             </td>
-                            <td className={styles.contentTableTd}>{isFolder ? '—' : asset.assetId}</td>
-                            <td className={styles.contentTableTd}>—</td>
-                            <td className={styles.contentTableTd}>—</td>
-                            <td className={styles.contentTableTd}>—</td>
-                            <td className={styles.contentTableTd}>—</td>
+                            <td className={styles.contentTableTd}>{item.creator}</td>
+                            <td className={styles.contentTableTd}>
+                              <select className={styles.importPresetSelect} value={item.importPreset} onChange={() => {}}>
+                                <option>Default</option>
+                                <option>High Quality</option>
+                                <option>Optimized</option>
+                              </select>
+                            </td>
+                            <td className={styles.contentTableTd} title={item.filePath}>
+                              {item.filePath.length > 50 ? `...${item.filePath.slice(-47)}` : item.filePath}
+                            </td>
+                            <td className={`${styles.contentTableTd} ${styles.contentTableTdStatus} ${statusClass}`}>
+                              <span className={styles.statusIcon}>{statusIcon}</span>
+                              <span>{item.status}</span>
+                            </td>
                           </tr>
                         )
                       })

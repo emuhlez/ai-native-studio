@@ -135,6 +135,21 @@ export interface DockedWidget {
   order: number
 }
 
+export type ImportQueueStatus = 'pending' | 'importing' | 'success' | 'error'
+
+export interface ImportQueueItem {
+  id: string
+  file: File
+  fileName: string
+  filePath: string
+  creator: string
+  importPreset: string
+  status: ImportQueueStatus
+  assetType: Asset['type']
+  progress?: number
+  error?: string
+}
+
 
 
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { GameObject, Asset, ConsoleMessage, EditorState, GameObjectType, ViewportSelectedAsset } from '../types'
+import type { GameObject, Asset, ConsoleMessage, EditorState, GameObjectType, ViewportSelectedAsset, ImportQueueItem } from '../types'
 
 interface EditorStore extends EditorState {
   // Scene hierarchy
@@ -9,6 +9,9 @@ interface EditorStore extends EditorState {
   
   // Assets
   assets: Asset[]
+  
+  // Import Queue
+  importQueue: ImportQueueItem[]
   
   // Console
   consoleMessages: ConsoleMessage[]
@@ -43,6 +46,10 @@ interface EditorStore extends EditorState {
 
   // Actions - Assets
   importAssets: (files: File[]) => void
+  addToImportQueue: (files: File[]) => void
+  removeFromImportQueue: (id: string) => void
+  clearImportQueue: () => void
+  processImportQueue: () => void
   renameAsset: (id: string, newName: string) => void
   createFolder: (name?: string) => string
   moveAssetToFolder: (assetId: string, targetFolderId: string) => void
@@ -312,6 +319,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   gameObjects: initialScene.objects,
   rootObjectIds: initialScene.rootIds,
   assets: loadSavedAssets(),
+  importQueue: [],
   consoleMessages: [],
   
   // Selection
@@ -646,6 +654,90 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   clearConsole: () => set({ consoleMessages: [] }),
 
   // Assets
+  addToImportQueue: (files) => {
+    const EXCLUDED_EXT = new Set(['.gif', '.pdf'])
+    const EXT_TO_TYPE: Record<string, Asset['type']> = {
+      '.gltf': 'model', '.glb': 'model', '.fbx': 'model', '.obj': 'model', '.dae': 'model',
+      '.mp3': 'audio', '.mp4': 'audio', '.m4a': 'audio', '.wav': 'audio', '.ogg': 'audio', '.aac': 'audio', '.flac': 'audio',
+      '.mov': 'video', '.webm': 'video', '.avi': 'video', '.mkv': 'video',
+      '.png': 'texture', '.jpg': 'texture', '.jpeg': 'texture', '.webp': 'texture', '.tga': 'texture', '.tif': 'texture', '.tiff': 'texture', '.bmp': 'texture',
+      '.js': 'script', '.ts': 'script', '.cjs': 'script', '.mjs': 'script',
+      '.mat': 'material',
+      '.prefab': 'prefab',
+      '.scene': 'scene',
+    }
+
+    const queueItems: ImportQueueItem[] = []
+    for (const file of files) {
+      const ext = '.' + (file.name.split('.').pop()?.toLowerCase() ?? '')
+      if (EXCLUDED_EXT.has(ext)) continue
+      const type = EXT_TO_TYPE[ext]
+      if (!type) continue
+      
+      queueItems.push({
+        id: uuid(),
+        file,
+        fileName: file.name,
+        filePath: file.webkitRelativePath || file.name,
+        creator: 'ehopehopehope (Me)',
+        importPreset: 'Default',
+        status: 'pending',
+        assetType: type,
+      })
+    }
+
+    if (queueItems.length > 0) {
+      set((state) => ({
+        importQueue: [...state.importQueue, ...queueItems]
+      }))
+      get().log(`Added ${queueItems.length} file(s) to import queue`, 'info')
+    }
+  },
+
+  removeFromImportQueue: (id) => {
+    set((state) => ({
+      importQueue: state.importQueue.filter(item => item.id !== id)
+    }))
+  },
+
+  clearImportQueue: () => {
+    set({ importQueue: [] })
+    get().log('Cleared import queue', 'info')
+  },
+
+  processImportQueue: () => {
+    const state = get()
+    const pendingItems = state.importQueue.filter(item => item.status === 'pending')
+    
+    if (pendingItems.length === 0) {
+      get().log('No pending items in import queue', 'info')
+      return
+    }
+
+    // Mark items as importing
+    set((state) => ({
+      importQueue: state.importQueue.map(item =>
+        item.status === 'pending' ? { ...item, status: 'importing' as const } : item
+      )
+    }))
+
+    // Process each item
+    pendingItems.forEach((item) => {
+      // Simulate import process
+      setTimeout(() => {
+        const files = [item.file]
+        get().importAssets(files)
+        
+        // Mark as success
+        set((state) => ({
+          importQueue: state.importQueue.map(qItem =>
+            qItem.id === item.id ? { ...qItem, status: 'success' as const, progress: 100 } : qItem
+          )
+        }))
+      }, Math.random() * 1000 + 500) // Random delay 500-1500ms
+    })
+  },
+
   importAssets: (files) => {
     const EXCLUDED_EXT = new Set(['.gif', '.pdf'])
     const EXT_TO_TYPE: Record<string, Asset['type']> = {
