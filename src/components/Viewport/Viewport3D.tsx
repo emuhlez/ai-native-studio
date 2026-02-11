@@ -98,6 +98,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const focusSelectedRef = useRef(false)
   const needsRenderRef = useRef(false)
   const initializedRef = useRef(false)
+  const resizeTimeoutRef = useRef<number | null>(null)
   
   // Store function refs to keep stable references
   const setViewportSelectedAssetRef = useRef(useEditorStore.getState().setViewportSelectedAsset)
@@ -696,16 +697,15 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       console.log('[Viewport3D] Initial render complete')
     }
 
-    let resizeTimeout: number | null = null
     const onResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return
       
       // Throttle resize to avoid too many updates
-      if (resizeTimeout) {
-        clearTimeout(resizeTimeout)
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current)
       }
       
-      resizeTimeout = window.setTimeout(() => {
+      resizeTimeoutRef.current = window.setTimeout(() => {
         if (!containerRef.current || !rendererRef.current || !cameraRef.current) return
         const w = containerRef.current.clientWidth
         const h = containerRef.current.clientHeight
@@ -738,7 +738,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
 
     return () => {
       console.log('[Viewport3D] Cleaning up Three.js scene')
-      if (resizeTimeout) clearTimeout(resizeTimeout)
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
       resizeObserver.disconnect()
       canvas.removeEventListener('pointerdown', onPointerDown)
       canvas.removeEventListener('pointermove', onPointerMove)
