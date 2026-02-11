@@ -128,7 +128,11 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       width: container.clientWidth,
       height: container.clientHeight,
       display: window.getComputedStyle(container).display,
-      visibility: window.getComputedStyle(container).visibility
+      visibility: window.getComputedStyle(container).visibility,
+      initializedFlag: initializedRef.current,
+      hasRenderer: !!rendererRef.current,
+      hasScene: !!sceneRef.current,
+      hasCamera: !!cameraRef.current
     })
     
     if (!container.clientWidth || !container.clientHeight) {
@@ -143,16 +147,29 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       return () => clearTimeout(retryTimer)
     }
     
-    // Skip if already initialized (check refs instead of flag)
-    if (rendererRef.current && sceneRef.current && cameraRef.current) {
-      console.log('[Viewport3D] Already initialized, skipping')
+    // Skip if already initialized - use the flag, not the refs
+    // (refs might be set from a previous mount in React strict mode)
+    if (initializedRef.current) {
+      console.log('[Viewport3D] Already initialized (flag=true), skipping')
       return
+    }
+    
+    // Double-check refs aren't somehow set
+    if (rendererRef.current || sceneRef.current || cameraRef.current) {
+      console.warn('[Viewport3D] Refs are set but flag is false - cleaning up stale refs')
+      rendererRef.current?.dispose()
+      rendererRef.current = null
+      sceneRef.current = null
+      cameraRef.current = null
+      modelsGroupRef.current = null
     }
 
     console.log('[Viewport3D] ✅ Starting Three.js initialization', {
       width: container.clientWidth,
       height: container.clientHeight
     })
+    
+    // Set flag immediately to prevent double initialization in React strict mode
     initializedRef.current = true
     
     try {
