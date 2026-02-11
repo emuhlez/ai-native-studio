@@ -50,6 +50,7 @@ interface EditorStore extends EditorState {
   removeFromImportQueue: (id: string) => void
   clearImportQueue: () => void
   processImportQueue: () => void
+  updateImportQueueItem: (id: string, updates: Partial<ImportQueueItem>) => void
   renameAsset: (id: string, newName: string) => void
   createFolder: (name?: string) => string
   moveAssetToFolder: (assetId: string, targetFolderId: string) => void
@@ -665,6 +666,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       '.mat': 'material',
       '.prefab': 'prefab',
       '.scene': 'scene',
+      '.anim': 'animation', '.animset': 'animation',
     }
 
     const queueItems: ImportQueueItem[] = []
@@ -679,7 +681,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         file,
         fileName: file.name,
         filePath: file.webkitRelativePath || `~/Downloads/${file.name}`,
-        creator: 'ehopehopehope (Me)',
+        creator: 'ehopehopehope',
         importPreset: 'Default',
         status: 'pending',
         assetType: type,
@@ -703,6 +705,14 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   clearImportQueue: () => {
     set({ importQueue: [] })
     get().log('Cleared import queue', 'info')
+  },
+
+  updateImportQueueItem: (id, updates) => {
+    set((state) => ({
+      importQueue: state.importQueue.map(item =>
+        item.id === id ? { ...item, ...updates } : item
+      )
+    }))
   },
 
   processImportQueue: () => {

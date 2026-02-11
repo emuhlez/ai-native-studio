@@ -877,6 +877,8 @@
 .importPresetSelect {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 4px 8px;
   width: 100%;
   height: 28px;
@@ -889,6 +891,7 @@
   cursor: pointer;
   outline: none;
   transition: all var(--transition-fast);
+  text-align: left;
 }
 
 .importPresetSelect:hover {

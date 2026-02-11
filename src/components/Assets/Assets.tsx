@@ -17,7 +17,7 @@ import searchIconImg from '../../../images/search.png'
 import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { ContextMenu, useContextMenu } from '../shared/ContextMenu'
-import type { MenuItem } from '../shared/MenuDropdown'
+import { MenuDropdown, type MenuItem } from '../shared/MenuDropdown'
 import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
 import { AssetTile } from './AssetTile'
@@ -27,13 +27,14 @@ import styles from './Assets.module.css'
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
   folder: <Folder size={14} />,
   texture: <Image size={14} />,
-  model: <Box size={14} />,
+  model: <img src="/icons/model.svg" alt="Model" width={14} height={14} />,
   audio: <img src="/icons/audio.svg" alt="Audio" width={14} height={14} />,
   video: <Video size={14} />,
   script: <FileCode size={14} />,
   material: <Layers size={14} />,
   prefab: <Box size={14} />,
   scene: <Film size={14} />,
+  animation: <img src="/icons/animation.svg" alt="Animation" width={14} height={14} />,
 }
 
 const SPECIAL_NAV_ITEMS = [
@@ -50,10 +51,10 @@ const SIDE_NAV_MAX = 400
 const SIDE_NAV_DEFAULT = 220
 
 /** Accepted file extensions for import (excludes gif, pdf) */
-const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene'
+const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene,.anim,.animset'
 
 export function Assets() {
-  const { assets, selectedAssetIds, selectAsset, addToImportQueue, importQueue, removeFromImportQueue, clearImportQueue, processImportQueue, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
+  const { assets, selectedAssetIds, selectAsset, addToImportQueue, importQueue, removeFromImportQueue, clearImportQueue, processImportQueue, updateImportQueueItem, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [queueSearchQuery, setQueueSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)
@@ -73,6 +74,8 @@ export function Assets() {
   const [, setMoveDialogAssetId] = useState<string | null>(null)
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
   const [progressFrame, setProgressFrame] = useState(1)
+  const [openCreatorDropdown, setOpenCreatorDropdown] = useState<string | null>(null)
+  const [openPresetDropdown, setOpenPresetDropdown] = useState<string | null>(null)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -682,18 +685,43 @@ export function Assets() {
                               <span>{item.fileName}</span>
                             </td>
                             <td className={styles.contentTableTd}>
-                              <select className={styles.importPresetSelect} value={item.creator} onChange={() => {}}>
-                                <option>ehopehopehope (Me)</option>
-                                <option>Team Member 1</option>
-                                <option>Team Member 2</option>
-                              </select>
+                              <div style={{ position: 'relative' }}>
+                                <button
+                                  className={styles.importPresetSelect}
+                                  onClick={() => setOpenCreatorDropdown(openCreatorDropdown === item.id ? null : item.id)}
+                                >
+                                  <span>{item.creator}</span>
+                                  <ExpandDownIcon />
+                                </button>
+                                <MenuDropdown
+                                  items={[
+                                    { label: 'ehopehopehope', onClick: () => updateImportQueueItem(item.id, { creator: 'ehopehopehope' }) },
+                                    { label: 'alpha strike', onClick: () => updateImportQueueItem(item.id, { creator: 'alpha strike' }) },
+                                  ]}
+                                  isOpen={openCreatorDropdown === item.id}
+                                  onClose={() => setOpenCreatorDropdown(null)}
+                                />
+                              </div>
                             </td>
                             <td className={styles.contentTableTd}>
-                              <select className={styles.importPresetSelect} value={item.importPreset} onChange={() => {}}>
-                                <option>Default</option>
-                                <option>High Quality</option>
-                                <option>Optimized</option>
-                              </select>
+                              <div style={{ position: 'relative' }}>
+                                <button
+                                  className={styles.importPresetSelect}
+                                  onClick={() => setOpenPresetDropdown(openPresetDropdown === item.id ? null : item.id)}
+                                >
+                                  <span>{item.importPreset}</span>
+                                  <ExpandDownIcon />
+                                </button>
+                                <MenuDropdown
+                                  items={[
+                                    { label: 'Default', onClick: () => updateImportQueueItem(item.id, { importPreset: 'Default' }) },
+                                    { label: 'High Quality', onClick: () => updateImportQueueItem(item.id, { importPreset: 'High Quality' }) },
+                                    { label: 'Optimized', onClick: () => updateImportQueueItem(item.id, { importPreset: 'Optimized' }) },
+                                  ]}
+                                  isOpen={openPresetDropdown === item.id}
+                                  onClose={() => setOpenPresetDropdown(null)}
+                                />
+                              </div>
                             </td>
                             <td className={`${styles.contentTableTd} ${styles.contentTableTdFilePath}`} title={item.filePath}>
                               {item.filePath.length > 50 ? `...${item.filePath.slice(-47)}` : item.filePath}
