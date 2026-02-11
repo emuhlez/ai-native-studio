@@ -97,6 +97,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const resetViewRef = useRef(false)
   const focusSelectedRef = useRef(false)
   const needsRenderRef = useRef(false)
+  const initializedRef = useRef(false)
   
   // Store function refs to keep stable references
   const setViewportSelectedAssetRef = useRef(useEditorStore.getState().setViewportSelectedAsset)
@@ -115,9 +116,26 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const loadedMeshUrlsRef = useRef<Record<string, string>>({})
 
   useEffect(() => {
+    // Skip if already initialized
+    if (initializedRef.current) {
+      console.log('[Viewport3D] Already initialized, skipping')
+      return
+    }
+    
     const container = containerRef.current
-    if (!container) return
+    if (!container) {
+      console.warn('[Viewport3D] Container ref not ready')
+      return
+    }
+    
+    if (!container.clientWidth || !container.clientHeight) {
+      console.warn('[Viewport3D] Container has no dimensions')
+      return
+    }
 
+    console.log('[Viewport3D] Initializing Three.js scene')
+    initializedRef.current = true
+    
     const width = container.clientWidth
     const height = container.clientHeight
 
@@ -650,6 +668,12 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       }
     }
     animate()
+    
+    // Force initial render
+    if (rendererRef.current && sceneRef.current && cameraRef.current) {
+      rendererRef.current.render(sceneRef.current, cameraRef.current)
+      console.log('[Viewport3D] Initial render complete')
+    }
 
     const onResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return
@@ -687,10 +711,10 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       sceneRef.current = null
       cameraRef.current = null
       modelsGroupRef.current = null
+      initializedRef.current = false
+      console.log('[Viewport3D] Cleanup complete')
     }
-    // Empty dependency array - initialization happens once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [containerRef])
 
   // Highlight selected assets
   useEffect(() => {
