@@ -105,12 +105,20 @@
   opacity: 0.4;
 }
 
+.reimportProgress {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
 .nodeActions {
   display: flex;
   align-items: center;
   gap: 2px;
   opacity: 0;
   transition: opacity var(--transition-fast);
+  margin-left: auto;
 }
 
 .nodeRow:hover .nodeActions,

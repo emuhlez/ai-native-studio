@@ -47,13 +47,14 @@ function ReimportProgress() {
   }, [])
 
   return (
-    <img 
-      src={`/icons/ProgressCircle-${frame}.svg`} 
-      alt="Reimporting" 
-      width={16} 
-      height={16}
-      style={{ marginLeft: 'auto' }}
-    />
+    <div className={styles.reimportProgress}>
+      <img 
+        src={`/icons/ProgressCircle-${frame}.svg`} 
+        alt="Reimporting" 
+        width={16} 
+        height={16}
+      />
+    </div>
   )
 }
 
