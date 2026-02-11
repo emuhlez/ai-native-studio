@@ -90,6 +90,9 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   
   const contextMenu = useContextMenu()
   
+  // Test if reimportGameObject exists
+  console.log('TreeNode render, reimportGameObject exists?', typeof reimportGameObject)
+  
   const obj = gameObjects[objectId]
   if (!obj) return null
 
@@ -119,6 +122,10 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   }
 
   // Context menu items
+  console.log('📋 Building menu items for:', obj.name, objectId)
+  console.log('📋 reimportingObjectIds:', reimportingObjectIds)
+  console.log('📋 isReimporting:', isReimporting)
+  
   const menuItems: MenuItem[] = [
     {
       label: 'Cut',
@@ -142,7 +149,10 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     },
     {
       label: 'Delete',
-      onClick: () => deleteGameObject(objectId),
+      onClick: () => {
+        console.log('🗑️ DELETE CLICKED')
+        deleteGameObject(objectId)
+      },
       shortcut: '⌫',
     },
     {
@@ -192,7 +202,16 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     {
       label: 'Reimport',
       submenu: [
-        { label: 'Reimport', onClick: () => reimportGameObject(objectId), shortcut: '⌃⇧R' },
+        { 
+          label: 'Reimport', 
+          onClick: () => {
+            console.log('🎯 REIMPORT MENU CLICKED for objectId:', objectId)
+            console.log('🎯 reimportGameObject function:', reimportGameObject)
+            reimportGameObject(objectId)
+            console.log('🎯 After calling reimportGameObject')
+          }, 
+          shortcut: '⌃⇧R' 
+        },
         { label: 'Configure...', onClick: () => console.log('Configure Reimport') },
       ],
     },
