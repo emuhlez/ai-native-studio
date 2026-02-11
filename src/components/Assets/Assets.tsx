@@ -28,7 +28,7 @@ const assetIcons: Record<Asset['type'], React.ReactNode> = {
   folder: <Folder size={14} />,
   texture: <Image size={14} />,
   model: <Box size={14} />,
-  audio: <Volume2 size={14} />,
+  audio: <img src="/icons/audio.svg" alt="Audio" width={14} height={14} />,
   video: <Video size={14} />,
   script: <FileCode size={14} />,
   material: <Layers size={14} />,
@@ -623,8 +623,15 @@ export function Assets() {
                 <table className={styles.contentTable}>
                   <thead>
                     <tr>
+                      <th className={`${styles.contentTableTh} ${styles.contentTableThCheckbox}`}>
+                        <input 
+                          type="checkbox" 
+                          className={styles.tableCheckbox}
+                          aria-label="Select all"
+                        />
+                      </th>
                       <th className={`${styles.contentTableTh} ${styles.contentTableThQueue}`}>
-                        Name
+                        Asset
                         <span className={styles.contentTableThDivider} aria-hidden />
                       </th>
                       <th className={styles.contentTableTh}>
@@ -645,7 +652,7 @@ export function Assets() {
                   <tbody>
                     {importQueue.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className={styles.contentTableEmpty}>
+                        <td colSpan={6} className={styles.contentTableEmpty}>
                           No items in import queue
                         </td>
                       </tr>
@@ -656,6 +663,9 @@ export function Assets() {
                         const statusClass = item.status === 'success' ? styles.statusSuccess : item.status === 'error' ? styles.statusError : item.status === 'importing' ? styles.statusImporting : styles.statusPending
                         return (
                           <tr key={item.id} className={styles.contentTableRow}>
+                            <td className={`${styles.contentTableTd} ${styles.contentTableTdCheckbox}`}>
+                              <img src="/icons/checkbox-on.svg" alt="Selected" width={14} height={14} className={styles.tableCheckboxIcon} />
+                            </td>
                             <td className={styles.contentTableTd}>
                               <span className={styles.contentTableAssetIcon}>{icon}</span>
                               <span>{item.fileName}</span>
