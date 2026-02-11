@@ -628,11 +628,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     console.log('🔄 Reimport called for:', id, obj?.name)
     if (!obj) return
 
-    // Check if object has an import source
+    // Check if object has an import source or is from assets
     const hasImportSource = obj.importPath || obj.meshUrl || obj.meshFilename
+    const isFromAssets = state.assets.some(asset => asset.name === obj.name || asset.children?.some(child => child.name === obj.name))
     
-    if (!hasImportSource) {
-      console.log('⚠️ No import source found')
+    if (!hasImportSource && !isFromAssets) {
+      console.log('⚠️ No import source found and not from assets')
       get().log(`Cannot reimport "${obj.name}": No import source found`, 'warning')
       return
     }
@@ -652,7 +653,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     console.log('📊 Current reimporting IDs:', get().reimportingObjectIds)
 
     // Log the reimport action
-    const source = obj.importPath || obj.meshFilename || 'unknown source'
+    const source = obj.importPath || obj.meshFilename || (isFromAssets ? `asset: ${obj.name}` : 'unknown source')
     get().log(`Reimporting "${obj.name}" from ${source}`, 'info')
     
     // Simulate reimport process (2-3 seconds)
