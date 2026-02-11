@@ -99,6 +99,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const needsRenderRef = useRef(false)
   const initializedRef = useRef(false)
   const resizeTimeoutRef = useRef<number | null>(null)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
   
   // Store function refs to keep stable references
   const setViewportSelectedAssetRef = useRef(useEditorStore.getState().setViewportSelectedAsset)
@@ -147,14 +148,25 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       return () => clearTimeout(retryTimer)
     }
     
-    // Skip if already initialized - use the flag, not the refs
-    // (refs might be set from a previous mount in React strict mode)
+    // Check if initialization was started but not completed
     if (initializedRef.current) {
-      console.log('[Viewport3D] Already initialized (flag=true), skipping')
-      return
+      // If flag is true but refs aren't set, initialization failed - retry
+      if (!rendererRef.current || !sceneRef.current || !cameraRef.current) {
+        console.warn('[Viewport3D] Initialization flag set but refs missing - retrying initialization')
+        initializedRef.current = false
+        // Clean up any partial refs
+        rendererRef.current?.dispose()
+        rendererRef.current = null
+        sceneRef.current = null
+        cameraRef.current = null
+        modelsGroupRef.current = null
+      } else {
+        console.log('[Viewport3D] Already initialized and refs valid, skipping')
+        return
+      }
     }
     
-    // Double-check refs aren't somehow set
+    // Double-check refs aren't somehow set without flag
     if (rendererRef.current || sceneRef.current || cameraRef.current) {
       console.warn('[Viewport3D] Refs are set but flag is false - cleaning up stale refs')
       rendererRef.current?.dispose()
@@ -217,10 +229,12 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     skyMesh.renderOrder = -1 // Render first
     scene.add(skyMesh)
 
+    console.log('[Viewport3D] Creating camera...')
     const camera = new THREE.PerspectiveCamera(CAMERA_FOV, width / height, CAMERA_NEAR, CAMERA_FAR)
     camera.position.set(40, 35, 40)
     camera.lookAt(0, 0, 0)
     cameraRef.current = camera
+    console.log('[Viewport3D] Camera created ✓')
 
     const target = new THREE.Vector3(0, 0, 0)
     let radius = camera.position.distanceTo(target)
@@ -234,6 +248,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       camera.lookAt(target)
     }
 
+    console.log('[Viewport3D] Creating renderer...')
     const renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
       alpha: false,
@@ -248,6 +263,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     renderer.toneMappingExposure = 1.15
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    console.log('[Viewport3D] Renderer created ✓')
 
     const canvas = renderer.domElement
     canvas.className = styles.viewport3dCanvas
@@ -742,8 +758,8 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     }
     window.addEventListener('resize', onResize)
 
-    const resizeObserver = new ResizeObserver(onResize)
-    resizeObserver.observe(container)
+    resizeObserverRef.current = new ResizeObserver(onResize)
+    resizeObserverRef.current.observe(container)
     
     console.log('[Viewport3D] ✅ Initialization complete!')
     
@@ -756,7 +772,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     return () => {
       console.log('[Viewport3D] Cleaning up Three.js scene')
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
-      resizeObserver.disconnect()
+      if (resizeObserverRef.current) resizeObserverRef.current.disconnect()
       canvas.removeEventListener('pointerdown', onPointerDown)
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerup', onPointerUp)
