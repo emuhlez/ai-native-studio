@@ -72,6 +72,7 @@ export function Assets() {
   const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [, setMoveDialogAssetId] = useState<string | null>(null)
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null)
+  const [progressFrame, setProgressFrame] = useState(1)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -211,6 +212,18 @@ export function Assets() {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [selectedAssetIds, renamingAssetId, handleRenameAsset])
+
+  // Animate progress circle when importing
+  useEffect(() => {
+    const hasImporting = importQueue.some(item => item.status === 'importing')
+    if (!hasImporting) return
+
+    const interval = setInterval(() => {
+      setProgressFrame(prev => prev >= 4 ? 1 : prev + 1)
+    }, 500) // Change frame every 500ms
+
+    return () => clearInterval(interval)
+  }, [importQueue])
 
   const contextMenuAsset = contextMenuAssetId ? assets.find(a => a.id === contextMenuAssetId) : null
   const lastOpenedFolder = lastOpenedFolderId ? topLevelFolders.find(f => f.id === lastOpenedFolderId) : null
@@ -611,7 +624,13 @@ export function Assets() {
                 className={styles.importButton}
                 title="Import"
                 aria-label="Import"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  if (isImportQueueView) {
+                    processImportQueue()
+                  } else {
+                    fileInputRef.current?.click()
+                  }
+                }}
               >
                 <span>Import</span>
               </button>
@@ -647,13 +666,11 @@ export function Assets() {
                     {importQueue.length === 0 ? (
                       <tr>
                         <td colSpan={6} className={styles.contentTableEmpty}>
-                          No items in import queue
                         </td>
                       </tr>
                     ) : (
                       importQueue.map((item) => {
                         const icon = assetIcons[item.assetType]
-                        const statusIcon = item.status === 'success' ? '✓' : item.status === 'error' ? '✗' : item.status === 'importing' ? '⟳' : '⋯'
                         const statusClass = item.status === 'success' ? styles.statusSuccess : item.status === 'error' ? styles.statusError : item.status === 'importing' ? styles.statusImporting : styles.statusPending
                         return (
                           <tr key={item.id} className={styles.contentTableRow}>
@@ -664,7 +681,13 @@ export function Assets() {
                               <span className={styles.contentTableAssetIcon}>{icon}</span>
                               <span>{item.fileName}</span>
                             </td>
-                            <td className={styles.contentTableTd}>{item.creator}</td>
+                            <td className={styles.contentTableTd}>
+                              <select className={styles.importPresetSelect} value={item.creator} onChange={() => {}}>
+                                <option>ehopehopehope (Me)</option>
+                                <option>Team Member 1</option>
+                                <option>Team Member 2</option>
+                              </select>
+                            </td>
                             <td className={styles.contentTableTd}>
                               <select className={styles.importPresetSelect} value={item.importPreset} onChange={() => {}}>
                                 <option>Default</option>
@@ -676,8 +699,12 @@ export function Assets() {
                               {item.filePath.length > 50 ? `...${item.filePath.slice(-47)}` : item.filePath}
                             </td>
                             <td className={`${styles.contentTableTd} ${styles.contentTableTdStatus} ${statusClass}`}>
-                              <span className={styles.statusIcon}>{statusIcon}</span>
-                              <span>{item.status}</span>
+                              {item.status === 'importing' && (
+                                <img src={`/icons/ProgressCircle-${progressFrame}.svg`} alt="Importing" width={16} height={16} className={styles.progressCircle} />
+                              )}
+                              {item.status === 'success' && (
+                                <img src="/icons/success.svg" alt="Success" width={16} height={16} />
+                              )}
                             </td>
                           </tr>
                         )

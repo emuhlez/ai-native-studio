@@ -462,7 +462,7 @@
   text-align: left;
   padding: 4px 12px;
   font-family: 'Builder Sans', system-ui, -apple-system, sans-serif;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 10px;
   color: #BCBEC8;
   border-bottom: none;
@@ -871,22 +871,30 @@
 
 /* Import Queue Styles */
 .importPresetSelect {
+  display: flex;
+  align-items: center;
   padding: 4px 8px;
+  width: 100%;
+  height: 28px;
   font-size: 12px;
-  color: var(--content-emphasis);
-  background: var(--bg-surface200);
-  border: 1px solid var(--bg-contrast);
-  border-radius: 4px;
+  font-weight: 500;
+  color: var(--content-default);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
   outline: none;
+  transition: all var(--transition-fast);
 }
 
 .importPresetSelect:hover {
-  background: var(--bg-surface300);
+  background: transparent;
+  color: var(--content-emphasis);
 }
 
 .importPresetSelect:focus {
-  border-color: var(--accent-primary);
+  background: transparent;
+  color: var(--content-emphasis);
 }
 
 .statusIcon {
@@ -900,7 +908,6 @@
 
 .statusImporting {
   color: var(--accent-primary);
-  animation: spin 1s linear infinite;
 }
 
 .statusSuccess {
@@ -914,6 +921,10 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.progressCircle {
+  /* Progress animation handled by cycling through ProgressCircle-1.svg to ProgressCircle-4.svg */
 }
 
 .contentTableThCheckbox {
