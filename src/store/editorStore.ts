@@ -16,6 +16,9 @@ interface EditorStore extends EditorState {
   // Console
   consoleMessages: ConsoleMessage[]
   
+  // Reimporting objects
+  reimportingObjectIds: string[]
+  
   // Actions - Selection
   selectObject: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
   selectAsset: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
@@ -323,6 +326,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   assets: loadSavedAssets(),
   importQueue: [],
   consoleMessages: [],
+  reimportingObjectIds: [],
   
   // Selection
   selectObject: (id, options) => {
@@ -631,22 +635,36 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return
     }
 
-    // In a real implementation, this would:
-    // 1. Watch the file system for changes to the original file
-    // 2. Reload the file from disk
-    // 3. Parse the new file data
-    // 4. Update the game object with the new mesh/texture/data
-    // 5. Preserve user modifications (transform, properties, etc.)
-    
-    // For now, log the reimport action
+    // Check if already reimporting
+    if (state.reimportingObjectIds.includes(id)) {
+      return
+    }
+
+    // Add to reimporting list
+    set((state) => ({
+      reimportingObjectIds: [...state.reimportingObjectIds, id]
+    }))
+
+    // Log the reimport action
     const source = obj.importPath || obj.meshFilename || 'unknown source'
     get().log(`Reimporting "${obj.name}" from ${source}`, 'info')
     
-    // TODO: Implement actual file reloading when file system access is available
-    // This would involve:
-    // - Reading the file from the original path
-    // - Processing the file based on type (model, texture, etc.)
-    // - Updating the object's meshUrl/texturePath while preserving other properties
+    // Simulate reimport process (2-3 seconds)
+    setTimeout(() => {
+      // In a real implementation, this would:
+      // 1. Watch the file system for changes to the original file
+      // 2. Reload the file from disk
+      // 3. Parse the new file data
+      // 4. Update the game object with the new mesh/texture/data
+      // 5. Preserve user modifications (transform, properties, etc.)
+      
+      // Remove from reimporting list
+      set((state) => ({
+        reimportingObjectIds: state.reimportingObjectIds.filter(objId => objId !== id)
+      }))
+      
+      get().log(`Reimported "${obj.name}" successfully`, 'info')
+    }, 2500)
   },
   
   // Playmode

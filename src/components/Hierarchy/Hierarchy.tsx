@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Plus,
   Eye,
@@ -35,6 +35,28 @@ const typeIcons: Record<GameObjectType, React.ReactNode> = {
   script: <FileCode size={16} />,
 }
 
+function ReimportProgress() {
+  const [frame, setFrame] = useState(1)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(prev => (prev % 4) + 1)
+    }, 150) // Change frame every 150ms
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <img 
+      src={`/icons/ProgressCircle-${frame}.svg`} 
+      alt="Reimporting" 
+      width={16} 
+      height={16}
+      style={{ marginLeft: 'auto' }}
+    />
+  )
+}
+
 
 interface TreeNodeProps {
   objectId: string
@@ -49,7 +71,8 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     selectObject,
     updateGameObject,
     deleteGameObject,
-    reimportGameObject
+    reimportGameObject,
+    reimportingObjectIds
   } = useEditorStore()
   
   const contextMenu = useContextMenu()
@@ -60,6 +83,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   const hasChildren = obj.children.length > 0
   const isSelected = selectedObjectIds.includes(objectId)
   const isWorkspaceRoot = obj.parentId === null && obj.name === 'Workspace'
+  const isReimporting = reimportingObjectIds.includes(objectId)
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -218,6 +242,8 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
           <span className={`${styles.name} ${!obj.visible ? styles.dimmed : ''}`}>
             {obj.name}
           </span>
+
+          {isReimporting && <ReimportProgress />}
 
           <div className={styles.nodeActions}>
             <button 
