@@ -1,4 +1,4 @@
-import { useRef, useEffect, memo } from 'react'
+import { useRef, useEffect, useLayoutEffect, memo } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { useEditorStore } from '../../store/editorStore'
@@ -115,13 +115,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const rootObjectIds = useEditorStore((s) => s.rootObjectIds)
   const loadedMeshUrlsRef = useRef<Record<string, string>>({})
 
-  useEffect(() => {
-    // Skip if already initialized
-    if (initializedRef.current) {
-      console.log('[Viewport3D] Already initialized, skipping')
-      return
-    }
-    
+  useLayoutEffect(() => {
     const container = containerRef.current
     if (!container) {
       console.warn('[Viewport3D] Container ref not ready')
@@ -129,11 +123,23 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     }
     
     if (!container.clientWidth || !container.clientHeight) {
-      console.warn('[Viewport3D] Container has no dimensions')
+      console.warn('[Viewport3D] Container has no dimensions', {
+        width: container.clientWidth,
+        height: container.clientHeight
+      })
+      return
+    }
+    
+    // Skip if already initialized (check refs instead of flag)
+    if (rendererRef.current && sceneRef.current && cameraRef.current) {
+      console.log('[Viewport3D] Already initialized, skipping')
       return
     }
 
-    console.log('[Viewport3D] Initializing Three.js scene')
+    console.log('[Viewport3D] Initializing Three.js scene', {
+      width: container.clientWidth,
+      height: container.clientHeight
+    })
     initializedRef.current = true
     
     const width = container.clientWidth
@@ -714,7 +720,9 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       initializedRef.current = false
       console.log('[Viewport3D] Cleanup complete')
     }
-  }, [containerRef])
+    // Empty deps - only initialize once, never cleanup unless component unmounts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Highlight selected assets
   useEffect(() => {

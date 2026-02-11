@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { Hierarchy } from './components/Hierarchy/Hierarchy'
 import { Viewport } from './components/Viewport/Viewport'
@@ -12,7 +13,8 @@ import { Monitor } from 'lucide-react'
 import styles from './App.module.css'
 
 function App() {
-  const widgetMap = {
+  // Memoize widgetMap to prevent unnecessary remounts when docking layout changes
+  const widgetMap = useMemo(() => ({
     inspector: <Inspector />,
     viewport: (
       <DockablePanel widgetId="viewport" title="Viewport" icon={<Monitor size={16} />}>
@@ -23,7 +25,7 @@ function App() {
     console: <Console />,
     explorer: <Hierarchy />,
     componentGallery: <ComponentGallery />,
-  }
+  }), [])
 
   return (
     <div className={styles.editor}>
