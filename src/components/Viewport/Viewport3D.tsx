@@ -116,18 +116,30 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const loadedMeshUrlsRef = useRef<Record<string, string>>({})
 
   useLayoutEffect(() => {
+    console.log('[Viewport3D] useLayoutEffect triggered')
     const container = containerRef.current
     if (!container) {
       console.warn('[Viewport3D] Container ref not ready')
       return
     }
     
+    console.log('[Viewport3D] Container found', {
+      width: container.clientWidth,
+      height: container.clientHeight,
+      display: window.getComputedStyle(container).display,
+      visibility: window.getComputedStyle(container).visibility
+    })
+    
     if (!container.clientWidth || !container.clientHeight) {
-      console.warn('[Viewport3D] Container has no dimensions', {
-        width: container.clientWidth,
-        height: container.clientHeight
-      })
-      return
+      console.warn('[Viewport3D] Container has no dimensions - scheduling retry')
+      // Retry after a short delay to allow layout to complete
+      const retryTimer = window.setTimeout(() => {
+        if (containerRef.current && containerRef.current.clientWidth > 0) {
+          console.log('[Viewport3D] Retry successful, triggering re-render')
+          needsRenderRef.current = true
+        }
+      }, 100)
+      return () => clearTimeout(retryTimer)
     }
     
     // Skip if already initialized (check refs instead of flag)
@@ -136,17 +148,20 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       return
     }
 
-    console.log('[Viewport3D] Initializing Three.js scene', {
+    console.log('[Viewport3D] ✅ Starting Three.js initialization', {
       width: container.clientWidth,
       height: container.clientHeight
     })
     initializedRef.current = true
     
-    const width = container.clientWidth
-    const height = container.clientHeight
+    try {
+      const width = container.clientWidth
+      const height = container.clientHeight
 
-    const scene = new THREE.Scene()
-    sceneRef.current = scene
+      console.log('[Viewport3D] Creating scene...')
+      const scene = new THREE.Scene()
+      sceneRef.current = scene
+      console.log('[Viewport3D] Scene created ✓')
 
     // Create skybox with blue sky gradient
     const skyGeometry = new THREE.SphereGeometry(CAMERA_FAR * 0.9, 32, 32)
@@ -681,21 +696,49 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       console.log('[Viewport3D] Initial render complete')
     }
 
+    let resizeTimeout: number | null = null
     const onResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return
-      const w = containerRef.current.clientWidth
-      const h = containerRef.current.clientHeight
-      cameraRef.current.aspect = w / h
-      cameraRef.current.updateProjectionMatrix()
-      rendererRef.current.setSize(w, h)
-      enforceCanvasLock()
+      
+      // Throttle resize to avoid too many updates
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout)
+      }
+      
+      resizeTimeout = window.setTimeout(() => {
+        if (!containerRef.current || !rendererRef.current || !cameraRef.current) return
+        const w = containerRef.current.clientWidth
+        const h = containerRef.current.clientHeight
+        
+        if (w === 0 || h === 0) {
+          console.warn('[Viewport3D] Resize to zero dimensions, skipping')
+          return
+        }
+        
+        console.log('[Viewport3D] Resizing to', { w, h })
+        cameraRef.current.aspect = w / h
+        cameraRef.current.updateProjectionMatrix()
+        rendererRef.current.setSize(w, h)
+        enforceCanvasLock()
+        needsRenderRef.current = true
+      }, 100)
     }
     window.addEventListener('resize', onResize)
 
     const resizeObserver = new ResizeObserver(onResize)
     resizeObserver.observe(container)
+    
+    console.log('[Viewport3D] ✅ Initialization complete!')
+    
+    } catch (error) {
+      console.error('[Viewport3D] ❌ Initialization failed:', error)
+      initializedRef.current = false
+      return
+    }
 
     return () => {
+      console.log('[Viewport3D] Cleaning up Three.js scene')
+      if (resizeTimeout) clearTimeout(resizeTimeout)
       resizeObserver.disconnect()
       canvas.removeEventListener('pointerdown', onPointerDown)
       canvas.removeEventListener('pointermove', onPointerMove)
