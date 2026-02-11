@@ -7,12 +7,7 @@ export function Viewport() {
   const canvas3DRef = useRef<HTMLDivElement>(null)
   const {
     isPlaying,
-    selectedObjectIds,
-    gameObjects,
-    viewportSelectedAssetNames,
   } = useEditorStore()
-  const primaryId = selectedObjectIds.length > 0 ? selectedObjectIds[selectedObjectIds.length - 1] : null
-  const selectedObject = primaryId ? gameObjects[primaryId] : null
   return (
     <div className={styles.viewport}>
       <div className={styles.canvas}>
