@@ -199,16 +199,8 @@ const createInitialScene = (): { objects: Record<string, GameObject>, rootIds: s
 
 const initialScene = createInitialScene()
 
-// Load saved assets from localStorage or use initial demo assets
+// Always use initial demo assets (don't persist to localStorage)
 const loadSavedAssets = (): Asset[] => {
-  try {
-    const saved = localStorage.getItem('studio-shell-assets')
-    if (saved) {
-      return JSON.parse(saved)
-    }
-  } catch (error) {
-    console.error('Failed to load saved assets:', error)
-  }
   return initialAssets
 }
 
@@ -876,13 +868,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         return asset
       })
       
-      // Save to localStorage
-      try {
-        localStorage.setItem('studio-shell-assets', JSON.stringify(assets))
-      } catch (error) {
-        console.error('Failed to save assets:', error)
-      }
-      
       return { assets }
     })
     
@@ -900,16 +885,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       dateModified: generateDateModified(),
     }
     
-    set((state) => {
-      const newAssets = [...state.assets, newFolder]
-      // Save to localStorage
-      try {
-        localStorage.setItem('studio-shell-assets', JSON.stringify(newAssets))
-      } catch (error) {
-        console.error('Failed to save assets:', error)
-      }
-      return { assets: newAssets }
-    })
+    set((state) => ({
+      assets: [...state.assets, newFolder]
+    }))
     
     get().log(`Created folder "${name}"`, 'info')
     return id
@@ -947,13 +925,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         if (targetFolder && targetFolder.type === 'folder') {
           targetFolder.children = [...(targetFolder.children || []), assetToMove]
         }
-      }
-      
-      // Save to localStorage
-      try {
-        localStorage.setItem('studio-shell-assets', JSON.stringify(assets))
-      } catch (error) {
-        console.error('Failed to save assets:', error)
       }
       
       return { assets }
