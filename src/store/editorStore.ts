@@ -28,6 +28,7 @@ interface EditorStore extends EditorState {
   updateGameObject: (id: string, updates: Partial<GameObject>) => void
   duplicateGameObject: (id: string) => void
   reparentGameObject: (id: string, newParentId: string | null) => void
+  reimportGameObject: (id: string) => void
   
   // Actions - Playmode
   play: () => void
@@ -615,6 +616,37 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       
       return { gameObjects: newObjects, rootObjectIds: newRootIds }
     })
+  },
+
+  reimportGameObject: (id) => {
+    const state = get()
+    const obj = state.gameObjects[id]
+    if (!obj) return
+
+    // Check if object has an import source
+    const hasImportSource = obj.importPath || obj.meshUrl || obj.meshFilename
+    
+    if (!hasImportSource) {
+      get().log(`Cannot reimport "${obj.name}": No import source found`, 'warning')
+      return
+    }
+
+    // In a real implementation, this would:
+    // 1. Watch the file system for changes to the original file
+    // 2. Reload the file from disk
+    // 3. Parse the new file data
+    // 4. Update the game object with the new mesh/texture/data
+    // 5. Preserve user modifications (transform, properties, etc.)
+    
+    // For now, log the reimport action
+    const source = obj.importPath || obj.meshFilename || 'unknown source'
+    get().log(`Reimporting "${obj.name}" from ${source}`, 'info')
+    
+    // TODO: Implement actual file reloading when file system access is available
+    // This would involve:
+    // - Reading the file from the original path
+    // - Processing the file based on type (model, texture, etc.)
+    // - Updating the object's meshUrl/texturePath while preserving other properties
   },
   
   // Playmode

@@ -48,7 +48,8 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     selectedObjectIds, 
     selectObject,
     updateGameObject,
-    deleteGameObject
+    deleteGameObject,
+    reimportGameObject
   } = useEditorStore()
   
   const contextMenu = useContextMenu()
@@ -149,7 +150,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     {
       label: 'Reimport',
       submenu: [
-        { label: 'Reimport', onClick: () => console.log('Reimport'), shortcut: '⌃⇧R' },
+        { label: 'Reimport', onClick: () => reimportGameObject(objectId), shortcut: '⌃⇧R' },
         { label: 'Configure...', onClick: () => console.log('Configure Reimport') },
       ],
     },
