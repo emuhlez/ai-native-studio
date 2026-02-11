@@ -695,7 +695,7 @@ export function Assets() {
                                 <option>Optimized</option>
                               </select>
                             </td>
-                            <td className={styles.contentTableTd} title={item.filePath}>
+                            <td className={`${styles.contentTableTd} ${styles.contentTableTdFilePath}`} title={item.filePath}>
                               {item.filePath.length > 50 ? `...${item.filePath.slice(-47)}` : item.filePath}
                             </td>
                             <td className={`${styles.contentTableTd} ${styles.contentTableTdStatus} ${statusClass}`}>

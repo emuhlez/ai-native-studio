@@ -678,7 +678,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         id: uuid(),
         file,
         fileName: file.name,
-        filePath: file.webkitRelativePath || file.name,
+        filePath: file.webkitRelativePath || `~/Downloads/${file.name}`,
         creator: 'ehopehopehope (Me)',
         importPreset: 'Default',
         status: 'pending',

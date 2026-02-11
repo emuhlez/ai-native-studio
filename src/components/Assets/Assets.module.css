@@ -519,6 +519,10 @@
   max-width: 120px;
 }
 
+.contentTableTdFilePath {
+  color: #528BFF !important;
+}
+
 .contentTableRow {
   position: relative;
 }
