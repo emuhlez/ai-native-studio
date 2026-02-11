@@ -39,12 +39,22 @@ function ReimportProgress() {
   const [frame, setFrame] = useState(1)
 
   useEffect(() => {
+    console.log('🎬 ReimportProgress mounted, frame:', frame)
     const interval = setInterval(() => {
-      setFrame(prev => (prev % 4) + 1)
+      setFrame(prev => {
+        const next = (prev % 4) + 1
+        console.log('📽️ Frame update:', next)
+        return next
+      })
     }, 150) // Change frame every 150ms
 
-    return () => clearInterval(interval)
+    return () => {
+      console.log('🛑 ReimportProgress unmounted')
+      clearInterval(interval)
+    }
   }, [])
+
+  console.log('🎨 ReimportProgress render, frame:', frame, 'src:', `/icons/ProgressCircle-${frame}.svg`)
 
   return (
     <div className={styles.reimportProgress}>
@@ -53,6 +63,8 @@ function ReimportProgress() {
         alt="Reimporting" 
         width={16} 
         height={16}
+        onError={(e) => console.error('❌ Failed to load image:', e.currentTarget.src)}
+        onLoad={() => console.log('✅ Image loaded:', `/icons/ProgressCircle-${frame}.svg`)}
       />
     </div>
   )
@@ -85,6 +97,11 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   const isSelected = selectedObjectIds.includes(objectId)
   const isWorkspaceRoot = obj.parentId === null && obj.name === 'Workspace'
   const isReimporting = reimportingObjectIds.includes(objectId)
+  
+  // Debug logging
+  if (isReimporting) {
+    console.log('🎨 Rendering progress indicator for:', obj.name, objectId)
+  }
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation()
