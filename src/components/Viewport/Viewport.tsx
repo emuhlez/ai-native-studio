@@ -41,24 +41,6 @@ export function Viewport() {
             <span className={styles.playingBadge}>▶ Playing</span>
           </div>
         )}
-
-        {/* Selection info – hierarchy object or viewport 3D asset */}
-        {displaySelection && (
-          <div className={styles.selectionInfo}>
-            <span className={styles.selectionName}>
-              {displaySelection.count > 1
-                ? `${displaySelection.count} selected`
-                : displaySelection.name}
-            </span>
-            {selectedObject && displaySelection.count === 1 && (
-              <span className={styles.selectionCoords}>
-                ({selectedObject.transform.position.x.toFixed(1)}, 
-                {selectedObject.transform.position.y.toFixed(1)}, 
-                {selectedObject.transform.position.z.toFixed(1)})
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
