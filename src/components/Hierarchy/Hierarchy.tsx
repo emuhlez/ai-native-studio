@@ -149,8 +149,8 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     {
       label: 'Reimport',
       submenu: [
-        { label: 'From File', onClick: () => console.log('Reimport from File') },
-        { label: 'From Clipboard', onClick: () => console.log('Reimport from Clipboard') },
+        { label: 'Reimport', onClick: () => console.log('Reimport'), shortcut: '⌃⇧R' },
+        { label: 'Configure...', onClick: () => console.log('Configure Reimport') },
       ],
     },
     { divider: true },
