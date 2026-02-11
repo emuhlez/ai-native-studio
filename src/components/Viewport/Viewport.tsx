@@ -13,16 +13,6 @@ export function Viewport() {
   } = useEditorStore()
   const primaryId = selectedObjectIds.length > 0 ? selectedObjectIds[selectedObjectIds.length - 1] : null
   const selectedObject = primaryId ? gameObjects[primaryId] : null
-  const primaryName =
-    viewportSelectedAssetNames.length > 0
-      ? viewportSelectedAssetNames[viewportSelectedAssetNames.length - 1]
-      : selectedObject?.name ?? null
-  const hasMulti = selectedObjectIds.length > 1 || viewportSelectedAssetNames.length > 1
-  const displaySelection =
-    primaryName != null
-      ? { name: primaryName, count: hasMulti ? Math.max(selectedObjectIds.length, viewportSelectedAssetNames.length) : 1 }
-      : null
-
   return (
     <div className={styles.viewport}>
       <div className={styles.canvas}>

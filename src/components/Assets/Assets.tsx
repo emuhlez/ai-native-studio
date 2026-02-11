@@ -3,7 +3,6 @@ import {
   Folder,
   Image,
   FileCode,
-  Volume2,
   Box,
   Layers,
   Film,
@@ -54,7 +53,7 @@ const SIDE_NAV_DEFAULT = 220
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene,.anim,.animset'
 
 export function Assets() {
-  const { assets, selectedAssetIds, selectAsset, addToImportQueue, importQueue, removeFromImportQueue, clearImportQueue, processImportQueue, updateImportQueueItem, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
+  const { assets, selectedAssetIds, selectAsset, addToImportQueue, importQueue, clearImportQueue, processImportQueue, updateImportQueueItem, renameAsset, createFolder, moveAssetToFolder } = useEditorStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [queueSearchQuery, setQueueSearchQuery] = useState('')
   const [selectedNavId, setSelectedNavId] = useState<string | null>(null)

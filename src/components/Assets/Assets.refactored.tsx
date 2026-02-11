@@ -35,6 +35,7 @@ const assetIcons: Record<Asset['type'], React.ReactNode> = {
   material: <Layers size={14} />,
   prefab: <Box size={14} />,
   scene: <Film size={14} />,
+  animation: <img src="/icons/animation.svg" alt="Animation" width={14} height={14} />,
 }
 
 /**

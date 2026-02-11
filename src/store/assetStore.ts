@@ -164,7 +164,7 @@ export const useAssetStore = create<AssetStore>((set) => ({
     }
     const TYPE_TO_FOLDER: Record<Asset['type'], string> = {
       texture: 'Sprites', model: 'Models', audio: 'Audio', video: 'Videos',
-      script: 'Scripts', material: 'Materials', prefab: 'Prefabs', scene: 'Scenes', folder: 'Sprites',
+      script: 'Scripts', material: 'Materials', prefab: 'Prefabs', scene: 'Scenes', folder: 'Sprites', animation: 'Animations',
     }
 
     const toAdd: { file: File; type: Asset['type'] }[] = []

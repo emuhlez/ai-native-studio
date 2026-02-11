@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, ChevronRight, ChevronDown, Package, Zap, Box, FileCode, MousePointer } from 'lucide-react'
+import { Search, ChevronRight, ChevronDown, Package, Zap, MousePointer } from 'lucide-react'
 import { onActiveComponentChange, getActiveComponent, type ActiveComponentInfo } from '../../utils/componentTracker'
 import styles from './ComponentGallery.module.css'
 

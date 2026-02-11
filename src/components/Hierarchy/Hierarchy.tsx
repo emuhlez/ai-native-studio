@@ -11,8 +11,7 @@ import {
   Sparkles,
   FileCode,
   Volume2,
-  Layers,
-  Trash2
+  Layers
 } from 'lucide-react'
 import { DockablePanel } from '../shared/DockablePanel'
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'

@@ -135,16 +135,12 @@ const componentExamples: ComponentExample[] = [
   // PropertiesLabel Examples
   {
     name: 'PropertiesLabel',
-    description: 'Consistent labels for property fields',
+    description: 'Read-only display field for property values',
     category: 'Forms',
     location: 'src/components/shared/PropertiesLabel.tsx',
     preview: (
       <div style={{ width: '250px' }}>
-        <PropertiesLabel label="Transform">
-          <div style={{ padding: '8px', background: 'var(--bg-darkest)', borderRadius: '3px', fontSize: '12px' }}>
-            Position: (0, 0, 0)
-          </div>
-        </PropertiesLabel>
+        <PropertiesLabel value="Position: (0, 0, 0)" />
       </div>
     ),
   },
@@ -184,12 +180,12 @@ const componentExamples: ComponentExample[] = [
       <div style={{ width: '300px' }}>
         <TabHeader
           tabs={[
-            { id: 'home', label: 'Home', icon: <Home size={14} /> },
-            { id: 'settings', label: 'Settings', icon: <Settings size={14} /> },
-            { id: 'profile', label: 'Profile', icon: <Star size={14} /> },
+            { id: 'home', title: 'Home', icon: <Home size={14} /> },
+            { id: 'settings', title: 'Settings', icon: <Settings size={14} /> },
+            { id: 'profile', title: 'Profile', icon: <Star size={14} /> },
           ]}
           activeTabId="home"
-          onTabChange={() => {}}
+          onTabSelect={() => {}}
         />
       </div>
     ),
@@ -205,19 +201,14 @@ const componentExamples: ComponentExample[] = [
       <div style={{ width: '320px', background: 'var(--bg-dark)', borderRadius: '4px', border: '1px solid var(--bg-panel)' }}>
         <TabbedPanel
           tabs={[
-            { 
-              id: 'files', 
-              label: 'Files', 
-              icon: <Copy size={14} />,
-              content: <div style={{ padding: '12px', fontSize: '13px' }}>Files content</div>
-            },
-            { 
-              id: 'properties', 
-              label: 'Properties', 
-              icon: <Settings size={14} />,
-              content: <div style={{ padding: '12px', fontSize: '13px' }}>Properties content</div>
-            },
+            { id: 'files', title: 'Files', icon: <Copy size={14} /> },
+            { id: 'properties', title: 'Properties', icon: <Settings size={14} /> },
           ]}
+          tabContents={{
+            files: <div style={{ padding: '12px', fontSize: '13px' }}>Files content</div>,
+            properties: <div style={{ padding: '12px', fontSize: '13px' }}>Properties content</div>,
+          }}
+          zone="center-top"
         />
       </div>
     ),
