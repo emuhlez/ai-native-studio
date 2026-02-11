@@ -37,6 +37,7 @@ const typeIcons: Record<GameObjectType, React.ReactNode> = {
 
 function ReimportProgress({ isCompleting }: { isCompleting: boolean }) {
   const [frame, setFrame] = useState(1)
+  const [startTime] = useState(Date.now())
 
   useEffect(() => {
     if (isCompleting) {
@@ -45,21 +46,36 @@ function ReimportProgress({ isCompleting }: { isCompleting: boolean }) {
       return
     }
 
-    console.log('🎬 ReimportProgress mounted, frame:', frame)
+    console.log('🎬 ReimportProgress mounted')
+    
+    // Update frame based on elapsed time (linear progress)
+    // Total duration: 2500ms
+    // Frame 1: 0-833ms (0-33%)
+    // Frame 2: 833-1666ms (33-66%)
+    // Frame 3: 1666-2500ms (66-99%)
     const interval = setInterval(() => {
-      setFrame(prev => {
-        // Cycle through frames 1-3 (never reach 4/100% until complete)
-        const next = (prev % 3) + 1
-        console.log('📽️ Frame update:', next)
-        return next
-      })
-    }, 200) // Slightly slower animation (200ms per frame)
+      const elapsed = Date.now() - startTime
+      let newFrame: number
+      
+      if (elapsed < 833) {
+        newFrame = 1
+      } else if (elapsed < 1666) {
+        newFrame = 2
+      } else {
+        newFrame = 3
+      }
+      
+      if (newFrame !== frame) {
+        console.log('📽️ Frame update:', newFrame, 'elapsed:', elapsed)
+        setFrame(newFrame)
+      }
+    }, 100) // Check every 100ms
 
     return () => {
       console.log('🛑 ReimportProgress unmounted')
       clearInterval(interval)
     }
-  }, [isCompleting])
+  }, [isCompleting, startTime, frame])
 
   console.log('🎨 ReimportProgress render, frame:', frame, 'isCompleting:', isCompleting)
 
