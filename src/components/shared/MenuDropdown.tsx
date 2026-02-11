@@ -37,6 +37,8 @@ function SubmenuItem({ item, onClose, isHovered }: { item: MenuItem; onClose: ()
 
   if (!isHovered) return null
 
+  console.log('🎨 Rendering submenu with items:', item.submenu)
+
   return (
     <div 
       ref={submenuRef}
@@ -51,7 +53,12 @@ function SubmenuItem({ item, onClose, isHovered }: { item: MenuItem; onClose: ()
           <button
             key={subItem.label || `subitem-${subIndex}`}
             className={styles.dropdownItem}
-            onClick={() => {
+            onClick={(e) => {
+              console.log('🎯 SUBMENU ITEM CLICKED:', subItem.label)
+              console.log('🎯 Has onClick?', typeof subItem.onClick)
+              console.log('🎯 Event:', e)
+              e.stopPropagation()
+              e.preventDefault()
               subItem.onClick?.()
               onClose()
             }}
@@ -86,12 +93,19 @@ export function MenuDropdown({ items, isOpen, onClose }: MenuDropdownProps) {
           <div
             key={item.label || `item-${index}`}
             className={styles.menuItemWrapper}
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
+            onMouseEnter={() => {
+              console.log('🖱️ Mouse enter on:', item.label, 'index:', index, 'hasSubmenu:', hasSubmenu)
+              setHoveredIndex(index)
+            }}
+            onMouseLeave={() => {
+              console.log('🖱️ Mouse leave from:', item.label)
+              setHoveredIndex(null)
+            }}
           >
             <button
               className={styles.dropdownItem}
               onClick={() => {
+                console.log('🎯 Parent item clicked:', item.label, 'hasSubmenu:', hasSubmenu)
                 if (!hasSubmenu) {
                   item.onClick?.()
                   onClose()
