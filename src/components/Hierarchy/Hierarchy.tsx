@@ -306,8 +306,6 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
             {obj.name}
           </span>
 
-          {showProgress && <ReimportProgress isCompleting={isCompleting} />}
-
           <div className={styles.nodeActions}>
             <button 
               className={`${styles.actionBtn} ${!obj.visible ? styles.active : ''}`}
@@ -322,6 +320,8 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
               {obj.locked ? <Lock size={16} /> : <Unlock size={16} />}
             </button>
           </div>
+
+          {showProgress && <ReimportProgress isCompleting={isCompleting} />}
         </div>
 
         {hasChildren && isExpanded && (

@@ -108,7 +108,7 @@
 .reimportProgress {
   display: flex;
   align-items: center;
-  margin-left: auto;
+  margin-left: 4px;
   margin-right: 8px;
   flex-shrink: 0;
 }
@@ -120,6 +120,7 @@
   opacity: 0;
   transition: opacity var(--transition-fast);
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .nodeRow:hover .nodeActions,
