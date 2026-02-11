@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, memo } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { useEditorStore } from '../../store/editorStore'
@@ -86,7 +86,7 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
   })
 }
 
-export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
+export const Viewport3D = memo(function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
@@ -97,11 +97,19 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   const resetViewRef = useRef(false)
   const focusSelectedRef = useRef(false)
   const needsRenderRef = useRef(false)
+  
+  // Store function refs to keep stable references
+  const setViewportSelectedAssetRef = useRef(useEditorStore.getState().setViewportSelectedAsset)
+  const addWorkspaceModelRef = useRef(useEditorStore.getState().addWorkspaceModel)
+  const updateGameObjectRef = useRef(useEditorStore.getState().updateGameObject)
+  
+  useEffect(() => {
+    setViewportSelectedAssetRef.current = useEditorStore.getState().setViewportSelectedAsset
+    addWorkspaceModelRef.current = useEditorStore.getState().addWorkspaceModel
+    updateGameObjectRef.current = useEditorStore.getState().updateGameObject
+  })
 
   const viewportSelectedAssetNames = useEditorStore((s) => s.viewportSelectedAssetNames)
-  const setViewportSelectedAsset = useEditorStore((s) => s.setViewportSelectedAsset)
-  const addWorkspaceModel = useEditorStore((s) => s.addWorkspaceModel)
-  const updateGameObject = useEditorStore((s) => s.updateGameObject)
   const gameObjects = useEditorStore((s) => s.gameObjects)
   const rootObjectIds = useEditorStore((s) => s.rootObjectIds)
   const loadedMeshUrlsRef = useRef<Record<string, string>>({})
@@ -292,7 +300,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
         (gltf: { scene: THREE.Group }) => {
           const root = gltf.scene
           const displayName = getAssetDisplayName(filename)
-          const objId = addWorkspaceModel(displayName)
+          const objId = addWorkspaceModelRef.current(displayName)
           root.userData.assetName = displayName
           root.userData.objectId = objId
           root.traverse((node: THREE.Object3D) => {
@@ -304,7 +312,7 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
           const baseScale = fitScale(root)
           root.userData.baseScale = baseScale
           const { x, z } = placeModel(index)
-          updateGameObject(objId, {
+          updateGameObjectRef.current(objId, {
             transform: {
               position: { x, y: 0, z },
               rotation: { x: 0, y: 0, z: 0 },
@@ -358,9 +366,9 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       if (hits.length > 0) {
         const root = findRootWithAssetName(hits[0].object, modelsGroup)
         const name = root?.userData.assetName as string | undefined
-        if (name) setViewportSelectedAsset({ name }, { additive })
+        if (name) setViewportSelectedAssetRef.current({ name }, { additive })
       } else if (!additive) {
-        setViewportSelectedAsset(null)
+        setViewportSelectedAssetRef.current(null)
       }
     }
 
@@ -680,7 +688,9 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
       cameraRef.current = null
       modelsGroupRef.current = null
     }
-  }, [containerRef, setViewportSelectedAsset, addWorkspaceModel, updateGameObject])
+    // Empty dependency array - initialization happens once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Highlight selected assets
   useEffect(() => {
@@ -777,4 +787,4 @@ export function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTM
   }, [gameObjects, rootObjectIds])
 
   return null
-}
+})

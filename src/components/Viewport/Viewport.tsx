@@ -1,13 +1,12 @@
-import { useRef } from 'react'
+import { useRef, memo } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { Viewport3D } from './Viewport3D'
 import styles from './Viewport.module.css'
 
-export function Viewport() {
+export const Viewport = memo(function Viewport() {
   const canvas3DRef = useRef<HTMLDivElement>(null)
-  const {
-    isPlaying,
-  } = useEditorStore()
+  const isPlaying = useEditorStore((s) => s.isPlaying)
+  
   return (
     <div className={styles.viewport}>
       <div className={styles.canvas}>
@@ -29,7 +28,7 @@ export function Viewport() {
       </div>
     </div>
   )
-}
+})
 
 
 
