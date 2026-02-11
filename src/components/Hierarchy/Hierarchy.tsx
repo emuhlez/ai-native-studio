@@ -35,26 +35,33 @@ const typeIcons: Record<GameObjectType, React.ReactNode> = {
   script: <FileCode size={16} />,
 }
 
-function ReimportProgress() {
+function ReimportProgress({ isCompleting }: { isCompleting: boolean }) {
   const [frame, setFrame] = useState(1)
 
   useEffect(() => {
+    if (isCompleting) {
+      // Show frame 4 (100% complete)
+      setFrame(4)
+      return
+    }
+
     console.log('🎬 ReimportProgress mounted, frame:', frame)
     const interval = setInterval(() => {
       setFrame(prev => {
-        const next = (prev % 4) + 1
+        // Cycle through frames 1-3 (never reach 4/100% until complete)
+        const next = (prev % 3) + 1
         console.log('📽️ Frame update:', next)
         return next
       })
-    }, 150) // Change frame every 150ms
+    }, 200) // Slightly slower animation (200ms per frame)
 
     return () => {
       console.log('🛑 ReimportProgress unmounted')
       clearInterval(interval)
     }
-  }, [])
+  }, [isCompleting])
 
-  console.log('🎨 ReimportProgress render, frame:', frame, 'src:', `/icons/ProgressCircle-${frame}.svg`)
+  console.log('🎨 ReimportProgress render, frame:', frame, 'isCompleting:', isCompleting)
 
   return (
     <div className={styles.reimportProgress}>
@@ -85,7 +92,8 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     updateGameObject,
     deleteGameObject,
     reimportGameObject,
-    reimportingObjectIds
+    reimportingObjectIds,
+    completingReimportIds
   } = useEditorStore()
   
   const contextMenu = useContextMenu()
@@ -100,10 +108,12 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   const isSelected = selectedObjectIds.includes(objectId)
   const isWorkspaceRoot = obj.parentId === null && obj.name === 'Workspace'
   const isReimporting = reimportingObjectIds.includes(objectId)
+  const isCompleting = completingReimportIds.includes(objectId)
+  const showProgress = isReimporting || isCompleting
   
   // Debug logging
-  if (isReimporting) {
-    console.log('🎨 Rendering progress indicator for:', obj.name, objectId)
+  if (showProgress) {
+    console.log('🎨 Rendering progress indicator for:', obj.name, objectId, 'completing:', isCompleting)
   }
 
   const toggleExpanded = (e: React.MouseEvent) => {
@@ -280,7 +290,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
             {obj.name}
           </span>
 
-          {isReimporting && <ReimportProgress />}
+          {showProgress && <ReimportProgress isCompleting={isCompleting} />}
 
           <div className={styles.nodeActions}>
             <button 

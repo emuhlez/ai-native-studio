@@ -18,6 +18,7 @@ interface EditorStore extends EditorState {
   
   // Reimporting objects
   reimportingObjectIds: string[]
+  completingReimportIds: string[]
   
   // Actions - Selection
   selectObject: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
@@ -327,6 +328,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   importQueue: [],
   consoleMessages: [],
   reimportingObjectIds: [],
+  completingReimportIds: [],
   
   // Selection
   selectObject: (id, options) => {
@@ -659,12 +661,20 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     // Simulate reimport process (2-3 seconds)
     setTimeout(() => {
       console.log('✅ Reimport complete for:', obj.name)
-      // Remove from reimporting list
+      
+      // Move to completing state (shows frame 4/100%)
       set((state) => ({
-        reimportingObjectIds: state.reimportingObjectIds.filter(objId => objId !== id)
+        reimportingObjectIds: state.reimportingObjectIds.filter(objId => objId !== id),
+        completingReimportIds: [...state.completingReimportIds, id]
       }))
       
-      get().log(`Reimported "${obj.name}" successfully`, 'info')
+      // Remove from completing after brief display
+      setTimeout(() => {
+        set((state) => ({
+          completingReimportIds: state.completingReimportIds.filter(objId => objId !== id)
+        }))
+        get().log(`Reimported "${obj.name}" successfully`, 'info')
+      }, 400)
     }, 2500)
   },
   
