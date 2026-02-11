@@ -627,7 +627,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   reimportGameObject: (id) => {
     const state = get()
     const obj = state.gameObjects[id]
-    console.log('🔄 Reimport called for:', id, obj?.name)
     if (!obj) return
 
     // Check if object has an import source or is from assets
@@ -635,24 +634,19 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const isFromAssets = state.assets.some(asset => asset.name === obj.name || asset.children?.some(child => child.name === obj.name))
     
     if (!hasImportSource && !isFromAssets) {
-      console.log('⚠️ No import source found and not from assets')
       get().log(`Cannot reimport "${obj.name}": No import source found`, 'warning')
       return
     }
 
     // Check if already reimporting
     if (state.reimportingObjectIds.includes(id)) {
-      console.log('⚠️ Already reimporting')
       return
     }
 
-    console.log('✅ Adding to reimporting list')
     // Add to reimporting list
     set((state) => ({
       reimportingObjectIds: [...state.reimportingObjectIds, id]
     }))
-
-    console.log('📊 Current reimporting IDs:', get().reimportingObjectIds)
 
     // Log the reimport action
     const source = obj.importPath || obj.meshFilename || (isFromAssets ? `asset: ${obj.name}` : 'unknown source')
@@ -660,8 +654,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     
     // Simulate reimport process (2-3 seconds)
     setTimeout(() => {
-      console.log('✅ Reimport complete for:', obj.name)
-      
       // Move to completing state (shows frame 4/100%)
       set((state) => ({
         reimportingObjectIds: state.reimportingObjectIds.filter(objId => objId !== id),

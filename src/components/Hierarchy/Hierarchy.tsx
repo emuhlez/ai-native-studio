@@ -45,8 +45,6 @@ function ReimportProgress({ isCompleting }: { isCompleting: boolean }) {
       setFrame(4)
       return
     }
-
-    console.log('🎬 ReimportProgress mounted')
     
     // Update frame based on elapsed time (linear progress)
     // Total duration: 2500ms
@@ -66,18 +64,12 @@ function ReimportProgress({ isCompleting }: { isCompleting: boolean }) {
       }
       
       if (newFrame !== frame) {
-        console.log('📽️ Frame update:', newFrame, 'elapsed:', elapsed)
         setFrame(newFrame)
       }
     }, 100) // Check every 100ms
 
-    return () => {
-      console.log('🛑 ReimportProgress unmounted')
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [isCompleting, startTime, frame])
-
-  console.log('🎨 ReimportProgress render, frame:', frame, 'isCompleting:', isCompleting)
 
   return (
     <div className={styles.reimportProgress}>
@@ -86,8 +78,6 @@ function ReimportProgress({ isCompleting }: { isCompleting: boolean }) {
         alt="Reimporting" 
         width={16} 
         height={16}
-        onError={(e) => console.error('❌ Failed to load image:', e.currentTarget.src)}
-        onLoad={() => console.log('✅ Image loaded:', `/icons/ProgressCircle-${frame}.svg`)}
       />
     </div>
   )
@@ -114,9 +104,6 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   
   const contextMenu = useContextMenu()
   
-  // Test if reimportGameObject exists
-  console.log('TreeNode render, reimportGameObject exists?', typeof reimportGameObject)
-  
   const obj = gameObjects[objectId]
   if (!obj) return null
 
@@ -126,11 +113,6 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   const isReimporting = reimportingObjectIds.includes(objectId)
   const isCompleting = completingReimportIds.includes(objectId)
   const showProgress = isReimporting || isCompleting
-  
-  // Debug logging
-  if (showProgress) {
-    console.log('🎨 Rendering progress indicator for:', obj.name, objectId, 'completing:', isCompleting)
-  }
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -148,10 +130,6 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
   }
 
   // Context menu items
-  console.log('📋 Building menu items for:', obj.name, objectId)
-  console.log('📋 reimportingObjectIds:', reimportingObjectIds)
-  console.log('📋 isReimporting:', isReimporting)
-  
   const menuItems: MenuItem[] = [
     {
       label: 'Cut',
@@ -175,10 +153,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
     },
     {
       label: 'Delete',
-      onClick: () => {
-        console.log('🗑️ DELETE CLICKED')
-        deleteGameObject(objectId)
-      },
+      onClick: () => deleteGameObject(objectId),
       shortcut: '⌫',
     },
     {
@@ -230,12 +205,7 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
       submenu: [
         { 
           label: 'Reimport', 
-          onClick: () => {
-            console.log('🎯 REIMPORT MENU CLICKED for objectId:', objectId)
-            console.log('🎯 reimportGameObject function:', reimportGameObject)
-            reimportGameObject(objectId)
-            console.log('🎯 After calling reimportGameObject')
-          }, 
+          onClick: () => reimportGameObject(objectId), 
           shortcut: '⌃⇧R' 
         },
         { label: 'Configure...', onClick: () => console.log('Configure Reimport') },
