@@ -623,13 +623,7 @@ export function Assets() {
                 <table className={styles.contentTable}>
                   <thead>
                     <tr>
-                      <th className={`${styles.contentTableTh} ${styles.contentTableThCheckbox}`}>
-                        <input 
-                          type="checkbox" 
-                          className={styles.tableCheckbox}
-                          aria-label="Select all"
-                        />
-                      </th>
+                      <th className={`${styles.contentTableTh} ${styles.contentTableThCheckbox}`} aria-hidden="true"></th>
                       <th className={`${styles.contentTableTh} ${styles.contentTableThQueue}`}>
                         Asset
                         <span className={styles.contentTableThDivider} aria-hidden />
