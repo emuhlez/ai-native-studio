@@ -100,6 +100,8 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const initializedRef = useRef(false)
   const resizeTimeoutRef = useRef<number | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
   
   // Store function refs to keep stable references
   const setViewportSelectedAssetRef = useRef(useEditorStore.getState().setViewportSelectedAsset)
@@ -266,6 +268,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     console.log('[Viewport3D] Renderer created ✓')
 
     const canvas = renderer.domElement
+    canvasRef.current = canvas
     canvas.className = styles.viewport3dCanvas
     canvas.style.pointerEvents = 'auto'
     canvas.setAttribute('tabindex', '0')
@@ -274,6 +277,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     let lastPanTime = performance.now()
 
     const wrapper = document.createElement('div')
+    wrapperRef.current = wrapper
     wrapper.className = styles.canvas3DInner
     wrapper.style.pointerEvents = 'none'
     wrapper.appendChild(canvas)
@@ -773,26 +777,36 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       console.log('[Viewport3D] Cleaning up Three.js scene')
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
       if (resizeObserverRef.current) resizeObserverRef.current.disconnect()
-      canvas.removeEventListener('pointerdown', onPointerDown)
-      canvas.removeEventListener('pointermove', onPointerMove)
-      canvas.removeEventListener('pointerup', onPointerUp)
-      canvas.removeEventListener('pointerenter', onPointerEnter)
-      canvas.removeEventListener('pointerleave', onPointerLeave)
-      canvas.removeEventListener('wheel', onWheel, wheelOpts as object)
+      
+      const canvas = canvasRef.current
+      if (canvas) {
+        canvas.removeEventListener('pointerdown', onPointerDown)
+        canvas.removeEventListener('pointermove', onPointerMove)
+        canvas.removeEventListener('pointerup', onPointerUp)
+        canvas.removeEventListener('pointerenter', onPointerEnter)
+        canvas.removeEventListener('pointerleave', onPointerLeave)
+        canvas.removeEventListener('wheel', onWheel, wheelOpts as object)
+      }
+      
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('resize', onResize)
       if (frameRef.current) cancelAnimationFrame(frameRef.current)
-      if (containerRef.current && wrapper.parentNode === containerRef.current) {
+      
+      const wrapper = wrapperRef.current
+      if (containerRef.current && wrapper && wrapper.parentNode === containerRef.current) {
         containerRef.current.removeChild(wrapper)
       }
+      
       rendererRef.current?.dispose()
       rendererRef.current = null
       sceneRef.current = null
       cameraRef.current = null
       modelsGroupRef.current = null
+      canvasRef.current = null
+      wrapperRef.current = null
       initializedRef.current = false
       console.log('[Viewport3D] Cleanup complete')
     }
