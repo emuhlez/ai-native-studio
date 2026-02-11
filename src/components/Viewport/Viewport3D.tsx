@@ -102,6 +102,18 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const eventHandlersRef = useRef<{
+    onPointerDown?: (e: PointerEvent) => void
+    onPointerMove?: (e: PointerEvent) => void
+    onPointerUp?: (e: PointerEvent) => void
+    onPointerEnter?: () => void
+    onPointerLeave?: () => void
+    onWheel?: (e: WheelEvent) => void
+    onKeyDown?: (e: KeyboardEvent) => void
+    onKeyUp?: (e: KeyboardEvent) => void
+    onResize?: () => void
+    wheelOpts?: AddEventListenerOptions
+  }>({})
   
   // Store function refs to keep stable references
   const setViewportSelectedAssetRef = useRef(useEditorStore.getState().setViewportSelectedAsset)
@@ -507,6 +519,18 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     }
 
     const wheelOpts = { passive: false }
+    
+    // Store event handlers in ref for cleanup
+    eventHandlersRef.current = {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerEnter,
+      onPointerLeave,
+      onWheel,
+      wheelOpts
+    }
+    
     canvas.addEventListener('wheel', onWheel, wheelOpts as object)
     canvas.addEventListener('pointerdown', onPointerDown)
     canvas.addEventListener('pointermove', onPointerMove)
@@ -533,6 +557,11 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     const onKeyUp = (e: KeyboardEvent) => {
       keysPressed.delete(e.key.toLowerCase())
     }
+    
+    // Store keyboard handlers in ref
+    eventHandlersRef.current.onKeyDown = onKeyDown
+    eventHandlersRef.current.onKeyUp = onKeyUp
+    
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
 
@@ -760,6 +789,10 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         needsRenderRef.current = true
       }, 100)
     }
+    
+    // Store resize handler in ref
+    eventHandlersRef.current.onResize = onResize
+    
     window.addEventListener('resize', onResize)
 
     resizeObserverRef.current = new ResizeObserver(onResize)
@@ -779,20 +812,25 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       if (resizeObserverRef.current) resizeObserverRef.current.disconnect()
       
       const canvas = canvasRef.current
-      if (canvas) {
-        canvas.removeEventListener('pointerdown', onPointerDown)
-        canvas.removeEventListener('pointermove', onPointerMove)
-        canvas.removeEventListener('pointerup', onPointerUp)
-        canvas.removeEventListener('pointerenter', onPointerEnter)
-        canvas.removeEventListener('pointerleave', onPointerLeave)
-        canvas.removeEventListener('wheel', onWheel, wheelOpts as object)
+      const handlers = eventHandlersRef.current
+      
+      if (canvas && handlers) {
+        if (handlers.onPointerDown) canvas.removeEventListener('pointerdown', handlers.onPointerDown)
+        if (handlers.onPointerMove) canvas.removeEventListener('pointermove', handlers.onPointerMove)
+        if (handlers.onPointerUp) canvas.removeEventListener('pointerup', handlers.onPointerUp)
+        if (handlers.onPointerEnter) canvas.removeEventListener('pointerenter', handlers.onPointerEnter)
+        if (handlers.onPointerLeave) canvas.removeEventListener('pointerleave', handlers.onPointerLeave)
+        if (handlers.onWheel) canvas.removeEventListener('wheel', handlers.onWheel, handlers.wheelOpts as object)
       }
       
-      window.removeEventListener('pointermove', onPointerMove)
-      window.removeEventListener('pointerup', onPointerUp)
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('resize', onResize)
+      if (handlers) {
+        if (handlers.onPointerMove) window.removeEventListener('pointermove', handlers.onPointerMove)
+        if (handlers.onPointerUp) window.removeEventListener('pointerup', handlers.onPointerUp)
+        if (handlers.onKeyDown) window.removeEventListener('keydown', handlers.onKeyDown)
+        if (handlers.onKeyUp) window.removeEventListener('keyup', handlers.onKeyUp)
+        if (handlers.onResize) window.removeEventListener('resize', handlers.onResize)
+      }
+      
       if (frameRef.current) cancelAnimationFrame(frameRef.current)
       
       const wrapper = wrapperRef.current
@@ -807,6 +845,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       modelsGroupRef.current = null
       canvasRef.current = null
       wrapperRef.current = null
+      eventHandlersRef.current = {}
       initializedRef.current = false
       console.log('[Viewport3D] Cleanup complete')
     }
