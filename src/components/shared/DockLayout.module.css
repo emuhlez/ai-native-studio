@@ -211,7 +211,7 @@
 
 /* Drag overlay styles */
 .dockZone.dragOver {
-  background: rgba(230, 126, 34, 0.1) !important;
-  border: 2px dashed var(--accent-primary) !important;
+  background: rgba(208, 217, 251, 0.1) !important;
+  border: 2px dashed rgba(208, 217, 251, 0.4) !important;
 }
 
