@@ -280,9 +280,16 @@ export function Assets() {
   const handleSearchDialogSearch = useCallback((inventory: string, assetType: string) => {
     setSearchDialogInventory(inventory)
     setSearchDialogAssetType(assetType)
-    // Apply the search filters
+    
+    // Apply the search filters by setting active filters
+    setActiveFilters({
+      assetTypes: new Set([assetType]),
+      sources: new Set(),
+      creators: new Set(),
+    })
+    
+    // TODO: Filter by inventory when inventory system is implemented
     console.log('Search with inventory:', inventory, 'and asset type:', assetType)
-    // TODO: Implement actual filtering logic based on inventory and asset type
   }, [])
 
   // Drag and drop handlers
@@ -674,7 +681,8 @@ export function Assets() {
           />
         </div>
         <div className={styles.content}>
-          <div className={styles.contentRow}>
+          {!isSearchDialogOpen && (<>
+            <div className={styles.contentRow}>
             {isImportQueueView ? (
               <>
                 <div className={styles.queueLeftActions}>
@@ -1061,6 +1069,7 @@ export function Assets() {
               </div>
             )}
           </div>
+          </>)}
         </div>
       </div>
       

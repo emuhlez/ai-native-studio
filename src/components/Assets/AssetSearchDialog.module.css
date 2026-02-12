@@ -18,20 +18,21 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0px;
 }
 
 .sectionLabel {
   font-size: 12px;
   font-weight: 700;
   color: var(--content-default);
-  padding: 0 6px;
+  padding: 0 12px;
   margin-bottom: 8px;
 }
 
 /* Dropdown */
 .dropdown {
   position: relative;
+  margin: 0 8px;
 }
 
 .dropdownButton {
@@ -39,19 +40,31 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 8px;
   background: rgba(208, 217, 251, 0.04);
-  border: 1px solid rgba(208, 217, 251, 0.12);
+  border: none;
   border-radius: 6px;
   color: var(--content-emphasis);
   font-size: 13px;
   cursor: pointer;
   transition: all var(--transition-fast);
+  outline: none !important;
 }
 
 .dropdownButton:hover {
   background: rgba(208, 217, 251, 0.08);
-  border-color: rgba(208, 217, 251, 0.2);
+}
+
+.dropdownButton:focus {
+  outline: none !important;
+}
+
+.dropdownButton:focus-visible {
+  outline: none !important;
+}
+
+.dropdownButton:active {
+  outline: none !important;
 }
 
 .dropdownIcon {
@@ -115,7 +128,7 @@
 }
 
 .radioLabel.selected {
-  background: rgba(60, 100, 250, 0.08);
+  background: transparent;
 }
 
 .radioInput {
