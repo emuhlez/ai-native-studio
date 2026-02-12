@@ -7,6 +7,11 @@ node_modules
 
 # macOS
 .DS_Store
+*.DS_Store
+
+# Assets (large files - should be managed separately)
+textures/
+3d-space/
 
 # Local env files
 *.local
