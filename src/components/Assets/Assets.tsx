@@ -9,6 +9,8 @@ import {
   Video,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
@@ -88,6 +90,8 @@ export function Assets() {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false)
   const [searchDialogInventory, setSearchDialogInventory] = useState('ehopehopehope')
   const [searchDialogAssetType, setSearchDialogAssetType] = useState('Model')
+  const [navigationHistory, setNavigationHistory] = useState<(string | null)[]>([null])
+  const [historyIndex, setHistoryIndex] = useState(0)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -253,6 +257,43 @@ export function Assets() {
     }
     setIsFilterMenuOpen(!isFilterMenuOpen)
   }, [isFilterMenuOpen])
+
+  const navigateToFolder = useCallback((folderId: string | null) => {
+    setSelectedNavId(folderId)
+    // Add to history if it's different from current location
+    const currentInHistory = historyIndex >= 0 && historyIndex < navigationHistory.length ? navigationHistory[historyIndex] : null
+    if (folderId !== currentInHistory) {
+      const newHistory = navigationHistory.slice(0, historyIndex + 1)
+      newHistory.push(folderId)
+      setNavigationHistory(newHistory)
+      setHistoryIndex(newHistory.length - 1)
+    }
+  }, [navigationHistory, historyIndex])
+
+  const goBack = useCallback(() => {
+    // If search is active, clear it first
+    if (searchQuery) {
+      setSearchQuery('')
+      return
+    }
+    
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      setSelectedNavId(navigationHistory[newIndex])
+    }
+  }, [historyIndex, navigationHistory, searchQuery])
+
+  const goForward = useCallback(() => {
+    if (historyIndex < navigationHistory.length - 1) {
+      const newIndex = historyIndex + 1
+      setHistoryIndex(newIndex)
+      setSelectedNavId(navigationHistory[newIndex])
+    }
+  }, [historyIndex, navigationHistory])
+
+  const canGoBack = historyIndex > 0 || searchQuery.length > 0
+  const canGoForward = historyIndex < navigationHistory.length - 1
 
   const handleRenameAsset = useCallback((assetId: string) => {
     setRenamingAssetId(assetId)
@@ -543,10 +584,10 @@ export function Assets() {
                     <div
                       className={`${styles.sideNavRow} ${selectedNavId === 'recent' ? styles.sideNavRowSelected : ''}`}
                       style={{ paddingLeft: '24px' }}
-                      onClick={() => setSelectedNavId('recent')}
+                      onClick={() => navigateToFolder('recent')}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId('recent')}
+                      onKeyDown={(e) => e.key === 'Enter' && navigateToFolder('recent')}
                     >
                       <span className={styles.sideNavExpand} aria-hidden>
                         {null}
@@ -560,10 +601,10 @@ export function Assets() {
                       <div
                         className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === 'import-queue' ? styles.sideNavRowSelected : ''}`}
                         style={{ paddingLeft: '24px' }}
-                        onClick={() => setSelectedNavId('import-queue')}
+                        onClick={() => navigateToFolder('import-queue')}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId('import-queue')}
+                        onKeyDown={(e) => e.key === 'Enter' && navigateToFolder('import-queue')}
                       >
                         <span
                           className={styles.sideNavExpand}
@@ -590,14 +631,14 @@ export function Assets() {
                               className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === folder.id ? styles.sideNavRowSelected : ''}`}
                               style={{ paddingLeft: '40px' }}
                               onClick={() => {
-                                setSelectedNavId(folder.id)
+                                navigateToFolder(folder.id)
                                 setLastOpenedFolderId(folder.id)
                               }}
                               role="button"
                               tabIndex={0}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                  setSelectedNavId(folder.id)
+                                  navigateToFolder(folder.id)
                                   setLastOpenedFolderId(folder.id)
                                 }
                               }}
@@ -636,10 +677,10 @@ export function Assets() {
                     <div
                       className={`${styles.sideNavRow} ${selectedNavId === EHOPE_NAV_ID ? styles.sideNavRowSelected : ''}`}
                       style={{ paddingLeft: '24px' }}
-                      onClick={() => setSelectedNavId(EHOPE_NAV_ID)}
+                      onClick={() => navigateToFolder(EHOPE_NAV_ID)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(EHOPE_NAV_ID)}
+                      onKeyDown={(e) => e.key === 'Enter' && navigateToFolder(EHOPE_NAV_ID)}
                     >
                       <span className={styles.sideNavExpand} aria-hidden={false}>
                         <ExpandRightIcon />
@@ -652,10 +693,10 @@ export function Assets() {
                     <div
                       className={`${styles.sideNavRow} ${selectedNavId === ALPHA_STRIKE_NAV_ID ? styles.sideNavRowSelected : ''}`}
                       style={{ paddingLeft: '24px' }}
-                      onClick={() => setSelectedNavId(ALPHA_STRIKE_NAV_ID)}
+                      onClick={() => navigateToFolder(ALPHA_STRIKE_NAV_ID)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && setSelectedNavId(ALPHA_STRIKE_NAV_ID)}
+                      onKeyDown={(e) => e.key === 'Enter' && navigateToFolder(ALPHA_STRIKE_NAV_ID)}
                     >
                       <span className={styles.sideNavExpand} aria-hidden={false}>
                         <ExpandRightIcon />
@@ -683,6 +724,22 @@ export function Assets() {
         <div className={styles.content}>
           {!isSearchDialogOpen && (<>
             <div className={styles.contentRow}>
+              <div className={styles.contentRowChevrons}>
+                <IconButton 
+                  icon={<ChevronLeft size={16} />} 
+                  size="xs" 
+                  tooltip="Back" 
+                  onClick={goBack}
+                  disabled={!canGoBack}
+                />
+                <IconButton 
+                  icon={<ChevronRight size={16} />} 
+                  size="xs" 
+                  tooltip="Forward" 
+                  onClick={goForward}
+                  disabled={!canGoForward}
+                />
+              </div>
             {isImportQueueView ? (
               <>
                 <div className={styles.queueLeftActions}>
@@ -950,7 +1007,7 @@ export function Assets() {
                             className={`${styles.contentTableRow} ${isSelected ? styles.contentTableRowSelected : ''} ${isDragOver ? styles.dragOver : ''}`}
                             draggable={renamingAssetId !== asset.id}
                             onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: e.metaKey || e.ctrlKey, visibleAssetIds })}
-                            onDoubleClick={isFolder ? () => setSelectedNavId(asset.id) : undefined}
+                            onDoubleClick={isFolder ? () => navigateToFolder(asset.id) : undefined}
                             onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
                             onMouseDown={(e) => {
                               // Handle control+click as context menu
@@ -1036,7 +1093,7 @@ export function Assets() {
                         : ''
                     // Only pass modelPath for visible assets to reduce rendering load
                     const modelPath = asset.type === 'model' ? asset.path : undefined
-                    const handleDoubleClick = asset.type === 'folder' ? () => setSelectedNavId(asset.id) : undefined
+                    const handleDoubleClick = asset.type === 'folder' ? () => navigateToFolder(asset.id) : undefined
                     const isSelected = selectedAssetIds.includes(asset.id)
                     const isFolder = asset.type === 'folder'
                     const isDragOver = dragOverFolderId === asset.id
