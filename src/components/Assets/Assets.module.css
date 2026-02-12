@@ -389,6 +389,13 @@
   background: rgba(208, 217, 251, 0.12);
 }
 
+.contentRowChevrons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: auto;
+}
+
 .importButton {
   display: inline-flex;
   align-items: center;

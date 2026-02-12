@@ -1,6 +1,6 @@
 import { useRef, useState, memo } from 'react'
 import { IconButton } from '../shared/IconButton'
-import { FilterMenu } from './FilterMenu'
+import { FilterMenu, type ActiveFilters } from './FilterMenu'
 import styles from './Assets.module.css'
 
 interface AssetToolbarProps {
@@ -24,6 +24,11 @@ export const AssetToolbar = memo(function AssetToolbar({
   const filterButtonRef = useRef<HTMLButtonElement>(null)
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
   const [filterMenuPosition, setFilterMenuPosition] = useState({ top: 0, right: 0 })
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
+    assetTypes: new Set(),
+    sources: new Set(),
+    creators: new Set(),
+  })
 
   const handleFilterClick = () => {
     if (filterButtonRef.current) {
@@ -94,6 +99,8 @@ export const AssetToolbar = memo(function AssetToolbar({
         isOpen={isFilterMenuOpen}
         onClose={() => setIsFilterMenuOpen(false)}
         position={filterMenuPosition}
+        activeFilters={activeFilters}
+        onFilterChange={setActiveFilters}
       />
     </div>
   )
