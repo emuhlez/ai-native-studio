@@ -22,12 +22,11 @@
 }
 
 .sectionLabel {
-  font-size: 10px;
-  font-weight: 600;
-  color: #BCBEC8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--content-default);
   padding: 0 6px;
+  margin-bottom: 8px;
 }
 
 /* Dropdown */
