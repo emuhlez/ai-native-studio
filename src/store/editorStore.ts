@@ -25,7 +25,7 @@ interface EditorStore extends EditorState {
   
   // Actions - Selection
   selectObject: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
-  selectAsset: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
+  selectAsset: (id: string | null, options?: { additive?: boolean; range?: boolean; visibleAssetIds?: string[] }) => void
   setViewportSelectedAsset: (asset: ViewportSelectedAsset | null, options?: { additive?: boolean }) => void
   
   // Actions - Scene
@@ -321,17 +321,18 @@ export const useEditorStore = create<EditorStore>((set, get) => {
   const initialAssetList = loadSavedAssets()
   
   return {
-    // Initial state
-    selectedObjectIds: [],
-    selectedAssetIds: [],
-    viewportSelectedAssetNames: [],
-    isPlaying: false,
-    isPaused: false,
-    activeTool: 'select',
-    viewMode: '3d',
-    showGrid: true,
-    snapToGrid: true,
-    gridSize: 1,
+  // Initial state
+  selectedObjectIds: [],
+  selectedAssetIds: [],
+  selectedAssetAnchor: null as string | null,
+  viewportSelectedAssetNames: [],
+  isPlaying: false,
+  isPaused: false,
+  activeTool: 'select',
+  viewMode: '3d',
+  showGrid: true,
+  snapToGrid: true,
+  gridSize: 1,
     
     gameObjects: initialScene.objects,
     rootObjectIds: initialScene.rootIds,
@@ -398,23 +399,25 @@ export const useEditorStore = create<EditorStore>((set, get) => {
   },
   selectAsset: (id, options) => {
     if (id == null) {
-      set({ selectedAssetIds: [] })
+      set({ selectedAssetIds: [], selectedAssetAnchor: null })
       return
     }
     const state = get()
 
-    if (options?.range && state.selectedAssetIds.length > 0) {
-      // Use cached flat order for efficient range selection
-      const flat = state._flatAssetOrder
-      const lastId = state.selectedAssetIds[state.selectedAssetIds.length - 1]
-      const lastIdx = flat.indexOf(lastId)
-      const clickIdx = flat.indexOf(id)
-      if (lastIdx === -1 || clickIdx === -1) {
-        set({ selectedAssetIds: [id] })
+    if (options?.range && state.selectedAssetAnchor) {
+      // Use visible asset order for range selection
+      const visibleOrder = options.visibleAssetIds || state._flatAssetOrder
+      const anchorIdx = visibleOrder.indexOf(state.selectedAssetAnchor)
+      const clickIdx = visibleOrder.indexOf(id)
+      
+      if (anchorIdx === -1 || clickIdx === -1) {
+        // If anchor or clicked item not in visible order, fall back to single selection
+        set({ selectedAssetIds: [id], selectedAssetAnchor: id })
         return
       }
-      const [lo, hi] = lastIdx < clickIdx ? [lastIdx, clickIdx] : [clickIdx, lastIdx]
-      const rangeIds = flat.slice(lo, hi + 1)
+      
+      const [lo, hi] = anchorIdx < clickIdx ? [anchorIdx, clickIdx] : [clickIdx, anchorIdx]
+      const rangeIds = visibleOrder.slice(lo, hi + 1)
       set({ selectedAssetIds: rangeIds })
       return
     }
@@ -424,11 +427,13 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       const newIds = has
         ? state.selectedAssetIds.filter((x) => x !== id)
         : [...state.selectedAssetIds, id]
+      // Don't change anchor on additive selection
       set({ selectedAssetIds: newIds })
       return
     }
 
-    set({ selectedAssetIds: [id] })
+    // Normal click: set as both selection and anchor
+    set({ selectedAssetIds: [id], selectedAssetAnchor: id })
   },
   setViewportSelectedAsset: (asset, options) => {
     if (!asset) {

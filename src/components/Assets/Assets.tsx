@@ -97,6 +97,9 @@ export function Assets() {
         ? displayAssets[0].children ?? []
         : displayAssets
   ).sort((a, b) => a.name.localeCompare(b.name))
+  
+  // Extract visible asset IDs in display order for range selection
+  const visibleAssetIds = assetsForGrid.map(a => a.id)
 
   const getTypeLabel = (a: Asset): string =>
     a.type === 'folder' ? 'Folder' : a.type.charAt(0).toUpperCase() + a.type.slice(1)
@@ -789,7 +792,7 @@ export function Assets() {
                             key={asset.id}
                             className={`${styles.contentTableRow} ${isSelected ? styles.contentTableRowSelected : ''} ${isDragOver ? styles.dragOver : ''}`}
                             draggable={renamingAssetId !== asset.id}
-                            onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: e.metaKey || e.ctrlKey })}
+                            onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: e.metaKey || e.ctrlKey, visibleAssetIds })}
                             onDoubleClick={isFolder ? () => setSelectedNavId(asset.id) : undefined}
                             onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
                             onMouseDown={(e) => {
@@ -890,7 +893,7 @@ export function Assets() {
                         previewImageUrl={previewImageUrl}
                         modelPath={modelPath}
                         isSelected={isSelected}
-                        onSelect={(e) => selectAsset(asset.id, { range: e?.shiftKey, additive: e?.metaKey || e?.ctrlKey })}
+                        onSelect={(e) => selectAsset(asset.id, { range: e?.shiftKey, additive: e?.metaKey || e?.ctrlKey, visibleAssetIds })}
                         onDoubleClick={handleDoubleClick}
                         onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
                         isRenaming={renamingAssetId === asset.id}
