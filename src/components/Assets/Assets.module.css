@@ -525,6 +525,7 @@
 
 .contentTableRow {
   position: relative;
+  outline: none;
 }
 
 .contentTableRow::after {
@@ -547,6 +548,11 @@
 
 .contentTableRowSelected:hover {
   background: rgba(60, 100, 250, 0.16);
+}
+
+.contentTableRow:focus-visible {
+  outline: 2px solid rgba(60, 100, 250, 0.6);
+  outline-offset: -2px;
 }
 
 .contentTableRow.dragOver {
@@ -605,6 +611,8 @@
   /* Enable dragging */
   -webkit-user-drag: auto;
   user-select: none;
+  /* Remove default focus outline */
+  outline: none;
 }
 
 .assetTile[draggable="true"] {
@@ -644,6 +652,12 @@
 
 .assetTile.selected:hover {
   background: rgba(60, 100, 250, 0.08);
+}
+
+/* Focus state for keyboard navigation - only show when using keyboard */
+.assetTile:focus-visible {
+  outline: 2px solid rgba(60, 100, 250, 0.6);
+  outline-offset: -2px;
 }
 
 /* Drag over folder state */
