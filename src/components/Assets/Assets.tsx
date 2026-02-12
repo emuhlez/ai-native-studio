@@ -484,6 +484,12 @@ export function Assets() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={handleSearchDialogOpen}
+                onBlur={(e) => {
+                  // Don't close if clicking within the search dialog
+                  if (!e.relatedTarget?.closest) {
+                    return
+                  }
+                }}
                 className={styles.sideNavSearchInput}
                 aria-label="Search"
               />
@@ -499,23 +505,32 @@ export function Assets() {
               )}
             </div>
           </div>
-          <nav className={styles.sideNav} aria-label="Asset categories">
-            <div className={styles.sideNavTree}>
-              <div>
-                <div
-                  className={`${styles.sideNavRow} ${styles.sideNavRowProject}`}
-                  style={{ paddingLeft: '8px' }}
-                  onClick={() => setProjectExpanded(!projectExpanded)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && setProjectExpanded((p) => !p)}
-                >
-                  <span className={styles.sideNavExpand} aria-hidden={false}>
-                    {projectExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
-                  </span>
-                  <span className={styles.sideNavIcon} aria-hidden />
-                  <span className={styles.sideNavName}>Project</span>
-                </div>
+          {isSearchDialogOpen ? (
+            <AssetSearchDialog
+              isOpen={isSearchDialogOpen}
+              onClose={handleSearchDialogClose}
+              onSearch={handleSearchDialogSearch}
+              selectedInventory={searchDialogInventory}
+              selectedAssetType={searchDialogAssetType}
+            />
+          ) : (
+            <nav className={styles.sideNav} aria-label="Asset categories">
+              <div className={styles.sideNavTree}>
+                <div>
+                  <div
+                    className={`${styles.sideNavRow} ${styles.sideNavRowProject}`}
+                    style={{ paddingLeft: '8px' }}
+                    onClick={() => setProjectExpanded(!projectExpanded)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setProjectExpanded((p) => !p)}
+                  >
+                    <span className={styles.sideNavExpand} aria-hidden={false}>
+                      {projectExpanded ? <ExpandDownIcon /> : <ExpandRightIcon />}
+                    </span>
+                    <span className={styles.sideNavIcon} aria-hidden />
+                    <span className={styles.sideNavName}>Project</span>
+                  </div>
                 {projectExpanded && (
                   <>
                     <div
@@ -648,6 +663,7 @@ export function Assets() {
               </div>
             </div>
           </nav>
+          )}
           <div
             role="separator"
             aria-orientation="vertical"
@@ -1078,14 +1094,6 @@ export function Assets() {
         position={filterMenuPosition}
         activeFilters={activeFilters}
         onFilterChange={setActiveFilters}
-      />
-
-      <AssetSearchDialog
-        isOpen={isSearchDialogOpen}
-        onClose={handleSearchDialogClose}
-        onSearch={handleSearchDialogSearch}
-        selectedInventory={searchDialogInventory}
-        selectedAssetType={searchDialogAssetType}
       />
     </DockablePanel>
   )

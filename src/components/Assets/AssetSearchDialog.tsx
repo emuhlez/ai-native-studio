@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Search, ChevronDown } from 'lucide-react'
-import searchIconImg from '../../../images/search.png'
+import { ChevronDown } from 'lucide-react'
 import styles from './AssetSearchDialog.module.css'
 
 interface AssetSearchDialogProps {
@@ -50,80 +49,68 @@ export function AssetSearchDialog({
   }
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.dialog}>
-        <div className={styles.searchHeader}>
-          <img src={searchIconImg} alt="Search" className={styles.searchIcon} width={16} height={16} />
-          <input
-            type="text"
-            placeholder="Search"
-            className={styles.searchInput}
-            autoFocus
-          />
+    <div className={styles.container}>
+      <div className={styles.content}>
+        <div className={styles.section}>
+          <label className={styles.sectionLabel}>Inventory</label>
+          <div className={styles.dropdown}>
+            <button
+              className={styles.dropdownButton}
+              onClick={() => setIsInventoryOpen(!isInventoryOpen)}
+            >
+              <span>{inventory}</span>
+              <ChevronDown size={14} className={styles.dropdownIcon} />
+            </button>
+            {isInventoryOpen && (
+              <div className={styles.dropdownMenu}>
+                {INVENTORIES.map((inv) => (
+                  <button
+                    key={inv}
+                    className={`${styles.dropdownItem} ${inventory === inv ? styles.selected : ''}`}
+                    onClick={() => {
+                      setInventory(inv)
+                      setIsInventoryOpen(false)
+                    }}
+                  >
+                    {inv}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className={styles.content}>
-          <div className={styles.section}>
-            <label className={styles.sectionLabel}>Inventory</label>
-            <div className={styles.dropdown}>
-              <button
-                className={styles.dropdownButton}
-                onClick={() => setIsInventoryOpen(!isInventoryOpen)}
+        <div className={styles.section}>
+          <label className={styles.sectionLabel}>Asset Type</label>
+          <div className={styles.radioGroup}>
+            {ASSET_TYPES.map((type) => (
+              <label
+                key={type}
+                className={`${styles.radioLabel} ${assetType === type ? styles.selected : ''}`}
               >
-                <span>{inventory}</span>
-                <ChevronDown size={14} className={styles.dropdownIcon} />
-              </button>
-              {isInventoryOpen && (
-                <div className={styles.dropdownMenu}>
-                  {INVENTORIES.map((inv) => (
-                    <button
-                      key={inv}
-                      className={`${styles.dropdownItem} ${inventory === inv ? styles.selected : ''}`}
-                      onClick={() => {
-                        setInventory(inv)
-                        setIsInventoryOpen(false)
-                      }}
-                    >
-                      {inv}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.section}>
-            <label className={styles.sectionLabel}>Asset Type</label>
-            <div className={styles.radioGroup}>
-              {ASSET_TYPES.map((type) => (
-                <label
-                  key={type}
-                  className={`${styles.radioLabel} ${assetType === type ? styles.selected : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="assetType"
-                    value={type}
-                    checked={assetType === type}
-                    onChange={(e) => setAssetType(e.target.value)}
-                    className={styles.radioInput}
-                  />
-                  <span className={styles.radioCircle} />
-                  <span className={styles.radioText}>{type}</span>
-                </label>
-              ))}
-            </div>
+                <input
+                  type="radio"
+                  name="assetType"
+                  value={type}
+                  checked={assetType === type}
+                  onChange={(e) => setAssetType(e.target.value)}
+                  className={styles.radioInput}
+                />
+                <span className={styles.radioCircle} />
+                <span className={styles.radioText}>{type}</span>
+              </label>
+            ))}
           </div>
         </div>
+      </div>
 
-        <div className={styles.actions}>
-          <button className={styles.cancelButton} onClick={handleCancel}>
-            Cancel
-          </button>
-          <button className={styles.searchButton} onClick={handleSearch}>
-            Search
-          </button>
-        </div>
+      <div className={styles.actions}>
+        <button className={styles.cancelButton} onClick={handleCancel}>
+          Cancel
+        </button>
+        <button className={styles.searchButton} onClick={handleSearch}>
+          Search
+        </button>
       </div>
     </div>
   )

@@ -1,65 +1,18 @@
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 10vh;
-}
-
-.dialog {
-  width: 428px;
-  background: #1E1F25;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+.container {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.searchHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #2A2B31;
-  border-bottom: 1px solid rgba(208, 217, 251, 0.12);
-}
-
-.searchIcon {
-  width: 16px;
-  height: 16px;
-  opacity: 0.4;
-  flex-shrink: 0;
-}
-
-.searchInput {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--content-emphasis);
-  font-size: 14px;
-  font-family: inherit;
-}
-
-.searchInput::placeholder {
-  color: var(--content-muted);
+  height: 100%;
+  background: var(--bg-surface100);
 }
 
 .content {
-  padding: 20px;
+  flex: 1;
+  padding: 12px 6px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-height: 60vh;
+  gap: 20px;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .section {
@@ -69,11 +22,12 @@
 }
 
 .sectionLabel {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
-  color: var(--content-emphasis);
+  color: #BCBEC8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  padding: 0 6px;
 }
 
 /* Dropdown */
@@ -86,18 +40,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: #2A2B31;
+  padding: 8px 12px;
+  background: rgba(208, 217, 251, 0.04);
   border: 1px solid rgba(208, 217, 251, 0.12);
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--content-emphasis);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .dropdownButton:hover {
-  background: #32333A;
+  background: rgba(208, 217, 251, 0.08);
   border-color: rgba(208, 217, 251, 0.2);
 }
 
@@ -110,28 +64,28 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #2A2B31;
+  background: var(--bg-surface200);
   border: 1px solid rgba(208, 217, 251, 0.12);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   z-index: 10;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .dropdownItem {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   color: var(--content-emphasis);
-  font-size: 14px;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
 .dropdownItem:hover {
-  background: rgba(208, 217, 251, 0.08);
+  background: var(--content-hover);
 }
 
 .dropdownItem.selected {
@@ -149,16 +103,16 @@
 .radioLabel {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background var(--transition-fast);
   user-select: none;
 }
 
 .radioLabel:hover {
-  background: rgba(208, 217, 251, 0.04);
+  background: var(--content-hover);
 }
 
 .radioLabel.selected {
@@ -172,8 +126,8 @@
 }
 
 .radioCircle {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid rgba(208, 217, 251, 0.3);
   border-radius: 50%;
   position: relative;
@@ -196,14 +150,14 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   background: white;
   border-radius: 50%;
 }
 
 .radioText {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--content-emphasis);
   flex: 1;
 }
@@ -211,20 +165,21 @@
 /* Actions */
 .actions {
   display: flex;
-  gap: 12px;
-  padding: 16px 20px;
-  background: #2A2B31;
+  gap: 8px;
+  padding: 12px 6px;
+  background: var(--bg-surface100);
   border-top: 1px solid rgba(208, 217, 251, 0.12);
+  flex-shrink: 0;
 }
 
 .cancelButton {
   flex: 1;
-  padding: 10px 16px;
+  padding: 8px 12px;
   background: transparent;
   border: 1px solid rgba(208, 217, 251, 0.2);
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--content-emphasis);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -237,12 +192,12 @@
 
 .searchButton {
   flex: 1;
-  padding: 10px 16px;
+  padding: 8px 12px;
   background: #528BFF;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   color: white;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
