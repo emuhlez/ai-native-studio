@@ -21,7 +21,7 @@ import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
 import { AssetTile } from './AssetTile'
 import { MoveDialog } from './MoveDialog'
-import { FilterMenu } from './FilterMenu'
+import { FilterMenu, type ActiveFilters } from './FilterMenu'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -79,6 +79,11 @@ export function Assets() {
   const [openPresetDropdown, setOpenPresetDropdown] = useState<string | null>(null)
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
   const [filterMenuPosition, setFilterMenuPosition] = useState({ top: 0, right: 0 })
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
+    assetTypes: new Set(),
+    sources: new Set(),
+    creators: new Set(),
+  })
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -94,12 +99,94 @@ export function Assets() {
 
   /** Table (Import Queue columns) only for Import Queue; Crossy Farm and others show asset tiles */
   const isImportQueueView = selectedNavId === 'recent'
-  const assetsForGrid: Asset[] = (
-    selectedNavId === 'import-queue'
+  
+  // Apply filters to assets
+  const applyFilters = (assetList: Asset[]): Asset[] => {
+    const hasActiveFilters = 
+      activeFilters.assetTypes.size > 0 || 
+      activeFilters.sources.size > 0 || 
+      activeFilters.creators.size > 0
+
+    if (!hasActiveFilters) {
+      return assetList
+    }
+
+    // Map from FilterMenu labels to Asset types
+    const typeMap: Record<string, Asset['type'][]> = {
+      'Animation': ['animation'],
+      'Audio': ['audio'],
+      'Decal': ['texture'],
+      'FontFamily': ['material'],
+      'Image': ['texture'],
+      'Mesh': ['model'],
+      'MeshPart': ['model'],
+      'Model': ['model'],
+      'Only Archived': [], // Special filter - not a type
+      'Package': ['prefab'],
+      'Plugin': ['script'],
+      'Video': ['video'],
+    }
+
+    // Check if an asset matches the active filters
+    const matchesFilters = (asset: Asset): boolean => {
+      // Asset type filter
+      if (activeFilters.assetTypes.size > 0) {
+        const matchesType = Array.from(activeFilters.assetTypes).some(
+          (filterType) => {
+            const mappedTypes = typeMap[filterType] || []
+            return mappedTypes.includes(asset.type)
+          }
+        )
+        
+        if (!matchesType) {
+          return false
+        }
+      }
+
+      // Source filter (placeholder)
+      if (activeFilters.sources.size > 0) {
+        // For now, allow all assets through if source filter is active
+      }
+
+      // Creator filter (placeholder)
+      if (activeFilters.creators.size > 0) {
+        // For now, allow all assets through if creator filter is active
+      }
+
+      return true
+    }
+
+    // Recursively check if folder contains matching assets
+    const folderContainsMatches = (folder: Asset): boolean => {
+      if (!folder.children || folder.children.length === 0) {
+        return false
+      }
+
+      return folder.children.some((child) => {
+        if (child.type === 'folder') {
+          return folderContainsMatches(child)
+        }
+        return matchesFilters(child)
+      })
+    }
+
+    return assetList.filter((asset) => {
+      if (asset.type === 'folder') {
+        // Only show folder if it contains matching assets
+        return folderContainsMatches(asset)
+      }
+      
+      return matchesFilters(asset)
+    })
+  }
+  
+  const assetsForGrid: Asset[] = applyFilters(
+    (selectedNavId === 'import-queue'
       ? assets
       : displayAssets.length === 1 && displayAssets[0].type === 'folder'
         ? displayAssets[0].children ?? []
         : displayAssets
+    )
   ).sort((a, b) => a.name.localeCompare(b.name))
   
   // Extract visible asset IDs in display order for range selection
@@ -965,6 +1052,8 @@ export function Assets() {
         isOpen={isFilterMenuOpen}
         onClose={() => setIsFilterMenuOpen(false)}
         position={filterMenuPosition}
+        activeFilters={activeFilters}
+        onFilterChange={setActiveFilters}
       />
     </DockablePanel>
   )
