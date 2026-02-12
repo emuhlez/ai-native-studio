@@ -1,5 +1,6 @@
-import { useRef, memo } from 'react'
+import { useRef, useState, memo } from 'react'
 import { IconButton } from '../shared/IconButton'
+import { FilterMenu } from './FilterMenu'
 import styles from './Assets.module.css'
 
 interface AssetToolbarProps {
@@ -20,6 +21,20 @@ export const AssetToolbar = memo(function AssetToolbar({
   onImport,
 }: AssetToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [filterMenuPosition, setFilterMenuPosition] = useState({ top: 0, right: 0 })
+
+  const handleFilterClick = () => {
+    if (filterButtonRef.current) {
+      const rect = filterButtonRef.current.getBoundingClientRect()
+      setFilterMenuPosition({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      })
+    }
+    setIsFilterMenuOpen(!isFilterMenuOpen)
+  }
 
   return (
     <div className={styles.contentRow}>
@@ -30,10 +45,13 @@ export const AssetToolbar = memo(function AssetToolbar({
           size="xs" 
           tooltip="Import Asset" 
         />
-        <IconButton 
-          icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />} 
-          size="xs" 
-          tooltip="Filter" 
+        <IconButton
+          ref={filterButtonRef}
+          icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />}
+          size="xs"
+          tooltip="Filter"
+          onClick={handleFilterClick}
+          active={isFilterMenuOpen}
         />
         <IconButton
           icon={
@@ -72,6 +90,11 @@ export const AssetToolbar = memo(function AssetToolbar({
           <span>Import</span>
         </button>
       </div>
+      <FilterMenu
+        isOpen={isFilterMenuOpen}
+        onClose={() => setIsFilterMenuOpen(false)}
+        position={filterMenuPosition}
+      />
     </div>
   )
 })

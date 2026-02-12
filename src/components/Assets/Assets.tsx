@@ -21,6 +21,7 @@ import { useEditorStore } from '../../store/editorStore'
 import type { Asset } from '../../types'
 import { AssetTile } from './AssetTile'
 import { MoveDialog } from './MoveDialog'
+import { FilterMenu } from './FilterMenu'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -65,6 +66,7 @@ export function Assets() {
   const resizeStartRef = useRef({ x: 0, w: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queueFileInputRef = useRef<HTMLInputElement>(null)
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
   const contextMenu = useContextMenu()
   const [contextMenuAssetId, setContextMenuAssetId] = useState<string | null>(null)
   const [lastOpenedFolderId, setLastOpenedFolderId] = useState<string | null>(null)
@@ -75,6 +77,8 @@ export function Assets() {
   const [progressFrame, setProgressFrame] = useState(1)
   const [openCreatorDropdown, setOpenCreatorDropdown] = useState<string | null>(null)
   const [openPresetDropdown, setOpenPresetDropdown] = useState<string | null>(null)
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [filterMenuPosition, setFilterMenuPosition] = useState({ top: 0, right: 0 })
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -144,6 +148,17 @@ export function Assets() {
     contextMenu.closeContextMenu()
     setContextMenuAssetId(null)
   }, [contextMenu])
+
+  const handleFilterClick = useCallback(() => {
+    if (filterButtonRef.current) {
+      const rect = filterButtonRef.current.getBoundingClientRect()
+      setFilterMenuPosition({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      })
+    }
+    setIsFilterMenuOpen(!isFilterMenuOpen)
+  }, [isFilterMenuOpen])
 
   const handleRenameAsset = useCallback((assetId: string) => {
     setRenamingAssetId(assetId)
@@ -592,7 +607,14 @@ export function Assets() {
               {!isImportQueueView && (
                 <>
                   <IconButton icon={<img src="/icons/refresh.svg" alt="Import Asset" width={16} height={16} />} size="xs" tooltip="Import Asset" />
-                  <IconButton icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />} size="xs" tooltip="Filter" />
+                  <IconButton
+                    ref={filterButtonRef}
+                    icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />}
+                    size="xs"
+                    tooltip="Filter"
+                    onClick={handleFilterClick}
+                    active={isFilterMenuOpen}
+                  />
                   <IconButton
                     icon={
                       assetViewMode === 'grid' ? (
@@ -937,6 +959,12 @@ export function Assets() {
           setShowMoveDialog(false)
           setMoveDialogAssetId(null)
         }}
+      />
+
+      <FilterMenu
+        isOpen={isFilterMenuOpen}
+        onClose={() => setIsFilterMenuOpen(false)}
+        position={filterMenuPosition}
       />
     </DockablePanel>
   )

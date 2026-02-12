@@ -1,4 +1,5 @@
-import type { ReactNode, ButtonHTMLAttributes } from 'react'
+import type { ReactNode, ButtonHTMLAttributes, MouseEvent } from 'react'
+import { forwardRef } from 'react'
 import { setActiveComponent } from '../../utils/componentTracker'
 import styles from './IconButton.module.css'
 
@@ -10,42 +11,48 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip?: string
 }
 
-export function IconButton({ 
-  icon, 
-  active, 
-  size = 'md', 
-  variant = 'default',
-  tooltip,
-  className,
-  onClick,
-  ...props 
-}: IconButtonProps) {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    // Track component usage
-    setActiveComponent('IconButton', 'src/components/shared/IconButton.tsx')
-    
-    // Call original onClick if provided
-    onClick?.(e)
-  }
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
+  function IconButton(
+    { 
+      icon, 
+      active, 
+      size = 'md', 
+      variant = 'default',
+      tooltip,
+      className,
+      onClick,
+      ...props 
+    },
+    ref
+  ) {
+    const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+      // Track component usage
+      setActiveComponent('IconButton', 'src/components/shared/IconButton.tsx')
+      
+      // Call original onClick if provided
+      onClick?.(e)
+    }
 
-  return (
-    <button
-      data-component="IconButton"
-      className={`
-        ${styles.button} 
-        ${styles[size]} 
-        ${styles[variant]}
-        ${active ? styles.active : ''} 
-        ${className || ''}
-      `}
-      title={tooltip}
-      onClick={handleClick}
-      {...props}
-    >
-      {icon}
-    </button>
-  )
-}
+    return (
+      <button
+        ref={ref}
+        data-component="IconButton"
+        className={`
+          ${styles.button} 
+          ${styles[size]} 
+          ${styles[variant]}
+          ${active ? styles.active : ''} 
+          ${className || ''}
+        `}
+        title={tooltip}
+        onClick={handleClick}
+        {...props}
+      >
+        {icon}
+      </button>
+    )
+  }
+)
 
 
 
