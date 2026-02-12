@@ -9,6 +9,9 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
   "dependencies": {
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
