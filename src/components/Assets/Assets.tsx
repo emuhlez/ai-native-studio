@@ -192,8 +192,11 @@ export function Assets() {
   // Extract visible asset IDs in display order for range selection
   const visibleAssetIds = assetsForGrid.map(a => a.id)
 
-  const getTypeLabel = (a: Asset): string =>
-    a.type === 'folder' ? 'Folder' : a.type.charAt(0).toUpperCase() + a.type.slice(1)
+  const getTypeLabel = (a: Asset): string => {
+    if (a.type === 'folder') return 'Folder'
+    if (a.type === 'texture') return 'Image'
+    return a.type.charAt(0).toUpperCase() + a.type.slice(1)
+  }
 
   const onResizePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
