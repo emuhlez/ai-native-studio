@@ -648,10 +648,12 @@
   width: 117px;
   height: 165px;
   margin: -4px;
+  border-radius: 0;
 }
 
 .assetTile.selected:hover {
   background: rgba(60, 100, 250, 0.08);
+  border-radius: 0;
 }
 
 /* Focus state for keyboard navigation - only show when using keyboard */
