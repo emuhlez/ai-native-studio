@@ -22,6 +22,7 @@ import type { Asset } from '../../types'
 import { AssetTile } from './AssetTile'
 import { MoveDialog } from './MoveDialog'
 import { FilterMenu, type ActiveFilters } from './FilterMenu'
+import { AssetSearchDialog } from './AssetSearchDialog'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -84,6 +85,9 @@ export function Assets() {
     sources: new Set(),
     creators: new Set(),
   })
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false)
+  const [searchDialogInventory, setSearchDialogInventory] = useState('ehopehopehope')
+  const [searchDialogAssetType, setSearchDialogAssetType] = useState('Model')
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -263,6 +267,22 @@ export function Assets() {
 
   const handleCancelRename = useCallback(() => {
     setRenamingAssetId(null)
+  }, [])
+
+  const handleSearchDialogOpen = useCallback(() => {
+    setIsSearchDialogOpen(true)
+  }, [])
+
+  const handleSearchDialogClose = useCallback(() => {
+    setIsSearchDialogOpen(false)
+  }, [])
+
+  const handleSearchDialogSearch = useCallback((inventory: string, assetType: string) => {
+    setSearchDialogInventory(inventory)
+    setSearchDialogAssetType(assetType)
+    // Apply the search filters
+    console.log('Search with inventory:', inventory, 'and asset type:', assetType)
+    // TODO: Implement actual filtering logic based on inventory and asset type
   }, [])
 
   // Drag and drop handlers
@@ -463,6 +483,7 @@ export function Assets() {
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={handleSearchDialogOpen}
                 className={styles.sideNavSearchInput}
                 aria-label="Search"
               />
@@ -1057,6 +1078,14 @@ export function Assets() {
         position={filterMenuPosition}
         activeFilters={activeFilters}
         onFilterChange={setActiveFilters}
+      />
+
+      <AssetSearchDialog
+        isOpen={isSearchDialogOpen}
+        onClose={handleSearchDialogClose}
+        onSearch={handleSearchDialogSearch}
+        selectedInventory={searchDialogInventory}
+        selectedAssetType={searchDialogAssetType}
       />
     </DockablePanel>
   )
