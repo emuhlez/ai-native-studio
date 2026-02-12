@@ -179,8 +179,8 @@
 .cancelButton {
   flex: 1;
   padding: 8px 12px;
-  background: transparent;
-  border: 1px solid rgba(208, 217, 251, 0.2);
+  background: rgba(208, 217, 251, 0.12);
+  border: none;
   border-radius: 6px;
   color: var(--content-emphasis);
   font-size: 12px;
@@ -190,8 +190,7 @@
 }
 
 .cancelButton:hover {
-  background: rgba(208, 217, 251, 0.04);
-  border-color: rgba(208, 217, 251, 0.3);
+  background: rgba(208, 217, 251, 0.2);
 }
 
 .searchButton {
