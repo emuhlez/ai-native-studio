@@ -90,7 +90,7 @@
 
 .dropdownItem.selected {
   background: rgba(60, 100, 250, 0.12);
-  color: #528BFF;
+  color: var(--accent-primary);
 }
 
 /* Radio Group */
@@ -140,8 +140,8 @@
 }
 
 .radioInput:checked + .radioCircle {
-  border-color: #528BFF;
-  background: #528BFF;
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
 }
 
 .radioInput:checked + .radioCircle::after {
@@ -197,7 +197,7 @@
 .searchButton {
   flex: 1;
   padding: 8px 12px;
-  background: #528BFF;
+  background: var(--accent-primary);
   border: none;
   border-radius: 6px;
   color: white;
@@ -208,9 +208,11 @@
 }
 
 .searchButton:hover {
-  background: #6B9FFF;
+  background: var(--accent-primary);
+  opacity: 0.9;
 }
 
 .searchButton:active {
-  background: #4A7DE5;
+  background: var(--accent-primary);
+  opacity: 0.8;
 }
