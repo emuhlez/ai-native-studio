@@ -10,6 +10,9 @@ interface EditorStore extends EditorState {
   // Assets
   assets: Asset[]
   
+  // Cached flat asset order for efficient range selection
+  _flatAssetOrder: string[]
+  
   // Import Queue
   importQueue: ImportQueueItem[]
   
@@ -204,6 +207,19 @@ const loadSavedAssets = (): Asset[] => {
   return initialAssets
 }
 
+// Helper to compute flat asset order for efficient range selection
+const computeFlatAssetOrder = (assets: Asset[]): string[] => {
+  const order: string[] = []
+  const walk = (assetList: Asset[]) => {
+    assetList.forEach((asset) => {
+      order.push(asset.id)
+      if (asset.children?.length) walk(asset.children)
+    })
+  }
+  walk(assets)
+  return order
+}
+
 // Initial demo assets
 const initialAssets: Asset[] = [
   { id: uuid(), name: 'Bench A', type: 'model', path: '/3d-space/Bench A.glb', thumbnail: '/thumbnails/Bench-A.png', assetId: generateAssetId(), dateModified: generateDateModified() },
@@ -301,26 +317,30 @@ const initialAssets: Asset[] = [
   },
 ]
 
-export const useEditorStore = create<EditorStore>((set, get) => ({
-  // Initial state
-  selectedObjectIds: [],
-  selectedAssetIds: [],
-  viewportSelectedAssetNames: [],
-  isPlaying: false,
-  isPaused: false,
-  activeTool: 'select',
-  viewMode: '3d',
-  showGrid: true,
-  snapToGrid: true,
-  gridSize: 1,
+export const useEditorStore = create<EditorStore>((set, get) => {
+  const initialAssetList = loadSavedAssets()
   
-  gameObjects: initialScene.objects,
-  rootObjectIds: initialScene.rootIds,
-  assets: loadSavedAssets(),
-  importQueue: [],
-  consoleMessages: [],
-  reimportingObjectIds: [],
-  completingReimportIds: [],
+  return {
+    // Initial state
+    selectedObjectIds: [],
+    selectedAssetIds: [],
+    viewportSelectedAssetNames: [],
+    isPlaying: false,
+    isPaused: false,
+    activeTool: 'select',
+    viewMode: '3d',
+    showGrid: true,
+    snapToGrid: true,
+    gridSize: 1,
+    
+    gameObjects: initialScene.objects,
+    rootObjectIds: initialScene.rootIds,
+    assets: initialAssetList,
+    _flatAssetOrder: computeFlatAssetOrder(initialAssetList),
+    importQueue: [],
+    consoleMessages: [],
+    reimportingObjectIds: [],
+    completingReimportIds: [],
   
   // Selection
   selectObject: (id, options) => {
@@ -382,21 +402,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return
     }
     const state = get()
-    
-    const getFlatAssetOrder = (): string[] => {
-      const order: string[] = []
-      const walk = (assets: Asset[]) => {
-        assets.forEach((asset) => {
-          order.push(asset.id)
-          if (asset.children?.length) walk(asset.children)
-        })
-      }
-      walk(state.assets)
-      return order
-    }
 
     if (options?.range && state.selectedAssetIds.length > 0) {
-      const flat = getFlatAssetOrder()
+      // Use cached flat order for efficient range selection
+      const flat = state._flatAssetOrder
       const lastId = state.selectedAssetIds[state.selectedAssetIds.length - 1]
       const lastIdx = flat.indexOf(lastId)
       const clickIdx = flat.indexOf(id)
@@ -845,7 +854,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         }
         folder.children = [...(folder.children ?? []), child]
       }
-      return { assets }
+      
+      // Recompute flat asset order cache
+      const flatOrder = computeFlatAssetOrder(assets)
+      
+      return { assets, _flatAssetOrder: flatOrder }
     })
   },
 
@@ -868,6 +881,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         return asset
       })
       
+      // Note: Rename doesn't change asset order, so no need to recompute cache
       return { assets }
     })
     
@@ -885,9 +899,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       dateModified: generateDateModified(),
     }
     
-    set((state) => ({
-      assets: [...state.assets, newFolder]
-    }))
+    set((state) => {
+      const assets = [...state.assets, newFolder]
+      const flatOrder = computeFlatAssetOrder(assets)
+      return { assets, _flatAssetOrder: flatOrder }
+    })
     
     get().log(`Created folder "${name}"`, 'info')
     return id
@@ -927,7 +943,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         }
       }
       
-      return { assets }
+      // Recompute flat asset order cache
+      const flatOrder = computeFlatAssetOrder(assets)
+      
+      return { assets, _flatAssetOrder: flatOrder }
     })
     
     const asset = get().assets.find(a => a.id === assetId) || 
@@ -979,13 +998,16 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         prefabsFolder.children = [...(prefabsFolder.children || []), newAsset]
       }
       
-      return { assets }
+      // Recompute flat asset order cache
+      const flatOrder = computeFlatAssetOrder(assets)
+      
+      return { assets, _flatAssetOrder: flatOrder }
     })
     
     get().log(`Saved "${assetName}" as prefab`, 'info')
     return assetId
   },
-}))
+}})
 
 
 
