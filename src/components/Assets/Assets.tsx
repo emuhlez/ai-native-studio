@@ -53,7 +53,7 @@ const ALPHA_STRIKE_NAV_ID = 'alpha-strike'
 const SIDE_NAV_MIN = 220
 const SIDE_NAV_MAX = 400
 const SIDE_NAV_DEFAULT = 220
-/** When panel width <= this, default to sidebar-only (hide content/midsection) */
+/** When panel width <= this, use narrow layout: sidebar-only by default; toggle opens content; double-click nav row opens content. Resize the left column to this width or less to see it. */
 const PANEL_NARROW_THRESHOLD = 330
 
 /** Accepted file extensions for import (excludes gif, pdf) */
@@ -630,6 +630,7 @@ export function Assets() {
                       className={`${styles.sideNavRow} ${selectedNavId === 'recent' ? styles.sideNavRowSelected : ''}`}
                       style={{ paddingLeft: '24px' }}
                       onClick={() => navigateToFolder('recent')}
+                      onDoubleClick={() => { if (isNarrow) setIsSideNavOpen(false) }}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && navigateToFolder('recent')}
@@ -647,6 +648,7 @@ export function Assets() {
                         className={`${styles.sideNavRow} ${styles.sideNavRowWithChevron} ${selectedNavId === 'import-queue' ? styles.sideNavRowSelected : ''}`}
                         style={{ paddingLeft: '24px' }}
                         onClick={() => navigateToFolder('import-queue')}
+                        onDoubleClick={() => { if (isNarrow) setIsSideNavOpen(false) }}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => e.key === 'Enter' && navigateToFolder('import-queue')}
@@ -679,6 +681,7 @@ export function Assets() {
                                 navigateToFolder(folder.id)
                                 setLastOpenedFolderId(folder.id)
                               }}
+                              onDoubleClick={() => { if (isNarrow) setIsSideNavOpen(false) }}
                               role="button"
                               tabIndex={0}
                               onKeyDown={(e) => {
@@ -723,6 +726,7 @@ export function Assets() {
                       className={`${styles.sideNavRow} ${selectedNavId === EHOPE_NAV_ID ? styles.sideNavRowSelected : ''}`}
                       style={{ paddingLeft: '24px' }}
                       onClick={() => navigateToFolder(EHOPE_NAV_ID)}
+                      onDoubleClick={() => { if (isNarrow) setIsSideNavOpen(false) }}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && navigateToFolder(EHOPE_NAV_ID)}
@@ -739,6 +743,7 @@ export function Assets() {
                       className={`${styles.sideNavRow} ${selectedNavId === ALPHA_STRIKE_NAV_ID ? styles.sideNavRowSelected : ''}`}
                       style={{ paddingLeft: '24px' }}
                       onClick={() => navigateToFolder(ALPHA_STRIKE_NAV_ID)}
+                      onDoubleClick={() => { if (isNarrow) setIsSideNavOpen(false) }}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && navigateToFolder(ALPHA_STRIKE_NAV_ID)}
@@ -757,17 +762,17 @@ export function Assets() {
             </div>
           </nav>
           )}
-          {showContent && (
-            <div
-              role="separator"
-              aria-orientation="vertical"
-              className={styles.sideNavResizeHandle}
-              onPointerDown={onResizePointerDown}
-              onPointerMove={onResizePointerMove}
-              onPointerUp={onResizePointerUp}
-            />
-          )}
         </div>
+        )}
+        {showContent && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            className={styles.sideNavResizeHandle}
+            onPointerDown={onResizePointerDown}
+            onPointerMove={onResizePointerMove}
+            onPointerUp={onResizePointerUp}
+          />
         )}
         {showContent && (
         <div className={styles.content}>
@@ -898,8 +903,8 @@ export function Assets() {
               <button
                 type="button"
                 className={styles.importButton}
-                title="Import"
-                aria-label="Import"
+                title={isImportQueueView ? "Import" : "Upload"}
+                aria-label={isImportQueueView ? "Import" : "Upload"}
                 onClick={() => {
                   if (isImportQueueView) {
                     processImportQueue()
@@ -908,7 +913,7 @@ export function Assets() {
                   }
                 }}
               >
-                <span>Import</span>
+                <span>{isImportQueueView ? "Import" : "Upload"}</span>
               </button>
             </div>
           </div>

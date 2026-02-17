@@ -41,6 +41,8 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  align-self: stretch;
+  gap: 0;
   overflow: hidden;
   background: var(--bg-surface100);
 }
@@ -50,10 +52,11 @@
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
-  height: 100%;
+  align-self: stretch;
   min-height: 0;
+  height: 100%;
   background: var(--bg-surface100);
-  border-right: 1px solid var(--border-subtle);
+  border-right: none;
 }
 
 /* Search field – same height as .contentRow (42px), shared bottom border */
@@ -155,7 +158,7 @@
   min-width: 0;
   min-height: 0;
   padding: 8px 0;
-  background: var(--bg-surface100);
+  background-color: rgba(25, 26, 31, 1);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -250,18 +253,15 @@
   text-overflow: ellipsis;
 }
 
-/* Resize handle spans full height of side nav (positioned relative to .sideNavWrap) */
+/* Resize handle spans full height of widget (sibling of .sideNavWrap and .content under .body); left border is the only divider so no gap */
 .sideNavResizeHandle {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  left: auto;
+  flex-shrink: 0;
   width: 4px;
   min-width: 4px;
-  height: 100%;
+  align-self: stretch;
   cursor: ew-resize;
   background: transparent;
+  border-left: 1px solid var(--border-subtle);
   transition: background 0.12s ease;
   pointer-events: auto;
 }
@@ -274,23 +274,26 @@
 .content {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  min-height: 0;
+  width: 100%;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-surface100);
 }
 
-/* Permanent row – same height (42px) as .sideNavSearch, shared bottom border */
+/* Permanent row – same height (42px) as .sideNavSearch, shared bottom border; no left border so it’s continuous with resize handle */
 .contentRow {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  min-width: 0;
   height: 42px;
   padding: 0 12px;
   background: var(--bg-surface100);
-  border-left: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -345,8 +348,8 @@
   align-items: center;
   gap: 8px;
   padding: 4px 12px;
-  width: 400px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   height: 28px;
   background: rgba(208, 217, 251, 0.08);
   border: none;
@@ -447,20 +450,24 @@
 }
 
 .contentTableWrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   background: var(--bg-surface100);
   isolation: isolate;
   transform: translateZ(0);
-  min-width: 100%;
 }
 
 .contentTable {
   width: 100%;
-  min-width: 800px;
+  min-width: 0;
+  max-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
+  table-layout: fixed;
 }
 
 .contentTable thead {
@@ -498,6 +505,9 @@
   vertical-align: middle;
   position: relative;
   background: transparent;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .contentTableTh:first-child {
@@ -537,13 +547,13 @@
 }
 
 .contentTableThStatus {
-  width: 120px;
-  max-width: 120px;
+  min-width: 0;
+  width: 15%;
 }
 
 .contentTableTdStatus {
-  width: 120px;
-  max-width: 120px;
+  min-width: 0;
+  width: 15%;
 }
 
 .contentTableTdFilePath {

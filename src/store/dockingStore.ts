@@ -115,7 +115,7 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
   },
 
   setPanelSize: (key, value) => {
-    const min = key === 'leftWidth' ? 200 : key === 'rightWidth' ? 260 : 120
+    const min = key === 'leftWidth' ? 220 : key === 'rightWidth' ? 260 : 120
     const clamped = Math.max(min, value)
     set((state) => ({
       panelSizes: { ...state.panelSizes, [key]: clamped },

@@ -122,7 +122,16 @@ export function DockLayout({ leftZone, centerTopZone, centerBottomZone, rightTop
     <div className={styles.dockLayout}>
       <div
         className={`${styles.leftColumn} ${!hasLeftWidgets ? styles.emptyColumn : ''}`}
-        style={hasLeftWidgets ? { width: panelSizes.leftWidth, minWidth: panelSizes.leftWidth } : undefined}
+        style={
+          hasLeftWidgets
+            ? {
+                flex: '0 0 auto',
+                width: panelSizes.leftWidth,
+                minWidth: panelSizes.leftWidth,
+                maxWidth: panelSizes.leftWidth,
+              }
+            : undefined
+        }
       >
         <DockZoneContainer zone="left">
           {leftZone}
