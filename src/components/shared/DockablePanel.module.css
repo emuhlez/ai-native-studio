@@ -35,9 +35,13 @@
 }
 
 .panelContent {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  overflow: auto;
   min-height: 0;
+  height: 100%;
+  overflow: auto;
+  background: var(--bg-surface100);
 }
 
 .dockablePanel.dragging {

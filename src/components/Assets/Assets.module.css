@@ -41,7 +41,8 @@
   display: flex;
   flex: 1;
   min-height: 0;
-  height: 100%;
+  overflow: hidden;
+  background: var(--bg-surface100);
 }
 
 .sideNavWrap {
@@ -51,6 +52,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  background: var(--bg-surface100);
   border-right: 1px solid var(--border-subtle);
 }
 
@@ -59,10 +61,11 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: 8px;
   width: 100%;
   flex-shrink: 0;
   height: 42px;
-  padding: 0 6px;
+  padding: 0 8px;
   background: var(--bg-surface100);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -72,7 +75,8 @@
   align-items: center;
   gap: 8px;
   padding: 4px 12px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 28px;
   background: rgba(208, 217, 251, 0.08); /* #D0D9FB at 8% */
   border: none;
@@ -90,6 +94,14 @@
 .sideNavSearchContainer:focus-within {
   background: rgba(208, 217, 251, 0.08); /* #D0D9FB at 8% */
   color: rgba(40, 41, 49, 1);
+}
+
+.sideNavSidebarIcon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .sideNavSearchIcon {
@@ -139,6 +151,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   padding: 8px 0;
@@ -151,6 +164,9 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
   user-select: none;
 }
 
@@ -262,6 +278,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--bg-surface100);
 }
 
 /* Permanent row – same height (42px) as .sideNavSearch, shared bottom border */
@@ -421,7 +438,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   border-radius: 0px;
   background: var(--bg-surface100);
   padding: 0;
@@ -430,14 +447,17 @@
 }
 
 .contentTableWrap {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--bg-surface100);
   isolation: isolate;
   transform: translateZ(0);
+  min-width: 100%;
 }
 
 .contentTable {
   width: 100%;
+  min-width: 800px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;

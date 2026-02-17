@@ -15,6 +15,7 @@ import {
 
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
 import searchIconImg from '../../../images/search.png'
+import sidebarIconSvg from '/icons/sidebar.svg'
 import { DockablePanel } from '../shared/DockablePanel'
 import { IconButton } from '../shared/IconButton'
 import { ContextMenu, useContextMenu } from '../shared/ContextMenu'
@@ -52,6 +53,8 @@ const ALPHA_STRIKE_NAV_ID = 'alpha-strike'
 const SIDE_NAV_MIN = 220
 const SIDE_NAV_MAX = 400
 const SIDE_NAV_DEFAULT = 220
+/** When panel width <= this, default to sidebar-only (hide content/midsection) */
+const PANEL_NARROW_THRESHOLD = 330
 
 /** Accepted file extensions for import (excludes gif, pdf) */
 const IMPORT_ACCEPT = '.gltf,.glb,.fbx,.obj,.dae,.mp3,.mp4,.m4a,.wav,.ogg,.aac,.flac,.mov,.webm,.avi,.mkv,.png,.jpg,.jpeg,.webp,.tga,.tif,.tiff,.bmp,.js,.ts,.cjs,.mjs,.mat,.prefab,.scene,.anim,.animset'
@@ -92,6 +95,9 @@ export function Assets() {
   const [searchDialogAssetType, setSearchDialogAssetType] = useState('Model')
   const [navigationHistory, setNavigationHistory] = useState<(string | null)[]>([null])
   const [historyIndex, setHistoryIndex] = useState(0)
+  const [isSideNavOpen, setIsSideNavOpen] = useState(true)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [bodyWidth, setBodyWidth] = useState(0)
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -403,6 +409,31 @@ export function Assets() {
     return () => clearInterval(interval)
   }, [importQueue])
 
+  // Track panel width for responsive layout: narrow => sidebar only by default
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width
+        setBodyWidth(w)
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // When panel becomes narrow, ensure sidebar is open (otherwise nothing would show)
+  useEffect(() => {
+    if (bodyWidth > 0 && bodyWidth <= PANEL_NARROW_THRESHOLD) {
+      setIsSideNavOpen(true)
+    }
+  }, [bodyWidth])
+
+  const isNarrow = bodyWidth <= PANEL_NARROW_THRESHOLD
+  // When narrow: show content if sidebar is closed. When wide: always show content.
+  const showContent = !isNarrow || !isSideNavOpen
+
   const contextMenuAsset = contextMenuAssetId ? assets.find(a => a.id === contextMenuAssetId) : null
   const lastOpenedFolder = lastOpenedFolderId ? topLevelFolders.find(f => f.id === lastOpenedFolderId) : null
   const lastOpenedFolderDisplayName = lastOpenedFolder 
@@ -521,9 +552,23 @@ export function Assets() {
       title="Asset Manager"
       icon={<Folder size={16} />}
     >
-      <div className={styles.body}>
-        <div className={styles.sideNavWrap} style={{ width: sideNavWidth, minWidth: sideNavWidth }}>
+      <div ref={bodyRef} className={styles.body}>
+        {isSideNavOpen && (
+        <div
+          className={styles.sideNavWrap}
+          style={
+            showContent
+              ? { width: sideNavWidth, minWidth: sideNavWidth }
+              : { flex: 1, minWidth: 0 }
+          }
+        >
           <div className={styles.sideNavSearch}>
+            <IconButton 
+              icon={<img src={sidebarIconSvg} alt="Toggle Sidebar" width={16} height={16} />}
+              size="xs" 
+              tooltip="Toggle Sidebar" 
+              onClick={() => setIsSideNavOpen(!isSideNavOpen)}
+            />
             <div className={styles.sideNavSearchContainer}>
               <img src={searchIconImg} alt="Search" className={styles.sideNavSearchIcon} width={16} height={16} />
               <input
@@ -712,19 +757,31 @@ export function Assets() {
             </div>
           </nav>
           )}
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            className={styles.sideNavResizeHandle}
-            onPointerDown={onResizePointerDown}
-            onPointerMove={onResizePointerMove}
-            onPointerUp={onResizePointerUp}
-          />
+          {showContent && (
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              className={styles.sideNavResizeHandle}
+              onPointerDown={onResizePointerDown}
+              onPointerMove={onResizePointerMove}
+              onPointerUp={onResizePointerUp}
+            />
+          )}
         </div>
+        )}
+        {showContent && (
         <div className={styles.content}>
           {!isSearchDialogOpen && (<>
             <div className={styles.contentRow}>
               <div className={styles.contentRowChevrons}>
+                {!isSideNavOpen && (
+                  <IconButton 
+                    icon={<img src={sidebarIconSvg} alt="Toggle Sidebar" width={16} height={16} />}
+                    size="xs" 
+                    tooltip="Toggle Sidebar" 
+                    onClick={() => setIsSideNavOpen(!isSideNavOpen)}
+                  />
+                )}
                 <IconButton 
                   icon={<ChevronLeft size={16} />} 
                   size="xs" 
@@ -1128,6 +1185,7 @@ export function Assets() {
           </div>
           </>)}
         </div>
+        )}
       </div>
       
       <ContextMenu

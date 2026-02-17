@@ -41,6 +41,7 @@
   flex-direction: column;
   min-width: 0;
   position: relative;
+  background: var(--bg-surface100);
 }
 
 .leftColumn.emptyColumn {

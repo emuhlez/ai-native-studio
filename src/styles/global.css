@@ -86,7 +86,11 @@
   --bg-surface100: #191A1F;
   --bg-surface200: #202227;
   --bg-surface300: #272930;
-  
+  /* Panel/zone background – match surface100 so panels and dock zones are consistent */
+  --bg-panel: var(--bg-surface100);
+  --bg-darkest: var(--bg-surface0);
+  --bg-surface: var(--bg-surface100);
+
   /* Accent - blue */
   --accent-primary: #335FFF;
   
@@ -147,7 +151,7 @@ html, body, #root {
 
 body {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--content-emphasis);
   background: var(--bg-surface0);
