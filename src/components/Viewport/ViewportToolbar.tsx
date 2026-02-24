@@ -41,7 +41,13 @@ export const ViewportToolbar = memo(function ViewportToolbar() {
           title="More options"
           aria-label="More options"
         >
-          <span className={styles.dots} />
+          <img
+            src="/icons/more.svg"
+            alt=""
+            width={16}
+            height={16}
+            className={styles.toolIconImg}
+          />
         </button>
       </div>
     </div>

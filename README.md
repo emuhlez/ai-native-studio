@@ -1,4 +1,4 @@
-# Studio Shell
+# AI Native Studio
 
 A modern game editor built with React and TypeScript. Features a professional-grade UI inspired by industry-standard game engines like Unity and Unreal, with a distinctive forge-inspired aesthetic.
 

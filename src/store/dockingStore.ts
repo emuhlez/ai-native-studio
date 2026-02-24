@@ -60,9 +60,12 @@ interface DockingStore {
   /** Chatbot UI: 'tabs' = conversation tabs, 'dropdown' = Tasks header with dropdown list */
   chatbotUIMode: 'tabs' | 'dropdown'
   setChatbotUIMode: (mode: 'tabs' | 'dropdown') => void
-  /** Dropdown task list status display: 'color' = colored indicators, 'status' = text status */
-  dropdownTaskListStatusOption: 'color' | 'status'
-  setDropdownTaskListStatusOption: (option: 'color' | 'status') => void
+  /** Dropdown task list status display: 'color' = colored indicators, 'status' = text status, 'none' = no status */
+  dropdownTaskListStatusOption: 'color' | 'status' | 'none'
+  setDropdownTaskListStatusOption: (option: 'color' | 'status' | 'none') => void
+  /** Tabs status display: 'color' = dots, 'status' = checkmark icon, 'none' = only critical indicators */
+  tabsStatusOption: 'color' | 'status' | 'none'
+  setTabsStatusOption: (option: 'color' | 'status' | 'none') => void
 }
 
 export const useDockingStore = create<DockingStore>((set, get) => ({
@@ -209,6 +212,10 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
   chatbotUIMode: 'tabs',
   setChatbotUIMode: (mode) => set({ chatbotUIMode: mode }),
   dropdownTaskListStatusOption: 'color',
-  setDropdownTaskListStatusOption: (option) => set({ dropdownTaskListStatusOption: option }),
+  setDropdownTaskListStatusOption: (option: 'color' | 'status' | 'none') =>
+    set({ dropdownTaskListStatusOption: option }),
+  tabsStatusOption: 'color',
+  setTabsStatusOption: (option: 'color' | 'status' | 'none') =>
+    set({ tabsStatusOption: option }),
 }))
 

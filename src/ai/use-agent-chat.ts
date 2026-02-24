@@ -98,6 +98,7 @@ export function useAgentChat(options?: UseAgentChatOptions) {
             ),
             mode: effectiveMode,
             cameraContext,
+            background: isBackgroundTasks || undefined,
           }
         },
       }),

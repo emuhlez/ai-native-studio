@@ -1,9 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Plus, X, ChevronDown, MessageSquare, Pencil, Palette, Image, Loader2 } from 'lucide-react'
+import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import { useConversationStore } from '../../store/conversationStore'
 import { usePlanStore } from '../../store/planStore'
 import { useAgentChat } from '../../ai/use-agent-chat'
 import { listTemplates } from '../../ai/prompt-templates'
+import { useDockingStore } from '../../store/dockingStore'
 import styles from './AIAssistant.module.css'
 
 interface ConversationSwitcherProps {
@@ -30,6 +32,7 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
   const { status: chatStatus } = useAgentChat()
   const activePlan = usePlanStore((s) => s.activePlan)
   const streamingIds = useConversationStore((s) => s.streamingIds)
+  const tabsStatusOption = useDockingStore((s) => s.tabsStatusOption)
 
   const isChatLoading = chatStatus === 'streaming' || chatStatus === 'submitted'
   const isPlanPendingApproval = activePlan?.status === 'pending'
@@ -111,14 +114,19 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
               type="button"
               className={styles.tabButton}
               onClick={() => handleSwitch(conv.id)}
-              title={conv.title}
+              title={stripLeadingBrackets(conv.title)}
             >
               {(() => {
                 const isActive = conv.id === activeId
                 const showSpinner = isActive && isChatLoading
                 const isStreamingInBackground = !isActive && streamingIds.has(conv.id)
-                const showYellowDot = (isActive && isPlanPendingApproval && !showSpinner) || isStreamingInBackground
+                const showYellowDot =
+                  (isActive && isPlanPendingApproval && !showSpinner) || isStreamingInBackground
                 const showBlueDot = !showSpinner && !showYellowDot
+                const showStatusArea =
+                  tabsStatusOption === 'color' ||
+                  tabsStatusOption === 'status' ||
+                  (tabsStatusOption === 'none' && showYellowDot)
                 return (
                   <>
                     {editingId === conv.id ? (
@@ -139,20 +147,31 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
                   className={styles.tabLabel}
                   onDoubleClick={(e) => handleStartRename(e, conv.id, conv.title)}
                 >
-                  {conv.title}
+                  {stripLeadingBrackets(conv.title)}
                 </span>
               )}
-                    <span className={styles.tabStatusIndicator} aria-hidden>
-                      {showSpinner && (
-                        <Loader2 size={10} className={styles.tabStatusSpinner} />
-                      )}
-                      {showYellowDot && (
-                        <span className={styles.tabStatusDotPending} />
-                      )}
-                      {showBlueDot && (
-                        <span className={styles.tabStatusDotDone} />
-                      )}
-                    </span>
+                    {showStatusArea && (
+                      <span className={styles.tabStatusIndicator} aria-hidden>
+                        {tabsStatusOption !== 'none' && showSpinner && (
+                          <Loader2 size={10} className={styles.tabStatusSpinner} />
+                        )}
+                        {showYellowDot && (
+                          <span className={styles.tabStatusDotPending} />
+                        )}
+                        {tabsStatusOption === 'color' && showBlueDot && (
+                          <span className={styles.tabStatusDotDone} />
+                        )}
+                        {tabsStatusOption === 'status' && !showSpinner && !showYellowDot && (
+                          <img
+                            src="/prompts/completed.svg"
+                            alt="Done"
+                            className={styles.tasksDropdownItemDoneIcon}
+                            width={14}
+                            height={14}
+                          />
+                        )}
+                      </span>
+                    )}
                   </>
                 )
               })()}
@@ -163,7 +182,7 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
                 className={styles.tabClose}
                 onClick={(e) => handleDelete(e, conv.id)}
                 title="Close"
-                aria-label={`Close ${conv.title}`}
+                aria-label={`Close ${stripLeadingBrackets(conv.title)}`}
               >
                 <X size={12} />
               </button>

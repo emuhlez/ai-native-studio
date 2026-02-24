@@ -99,5 +99,5 @@
   height: 3px;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 3px 0 0 currentColor, 6px 0 0 currentColor;
+  box-shadow: 4px 0 0 currentColor, 8px 0 0 currentColor;
 }

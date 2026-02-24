@@ -1,6 +1,7 @@
 import type { UIMessage } from '@ai-sdk/react'
 import { ToolCallPart } from './ToolCallPart'
 import { PlanCard } from './PlanCard'
+import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import styles from './AIAssistant.module.css'
 
 interface MessageBubbleProps {
@@ -45,7 +46,7 @@ export function MessageBubble({ message, isGenerating = false }: MessageBubblePr
     .map((p) => (p as { type: 'text'; text: string }).text)
     .join('') || ''
 
-  const displayText = textParts.replace(/\[OPEN_ASSISTANT\]/g, '').trim()
+  const displayText = stripLeadingBrackets(textParts).trim()
   const showGeneratingPlaceholder =
     !isUser && isGenerating && !displayText && message.parts?.filter(isToolPart).length === 0
 

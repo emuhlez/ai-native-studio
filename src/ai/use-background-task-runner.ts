@@ -3,7 +3,8 @@ import { useBackgroundTaskStore } from '../store/backgroundTaskStore'
 import { useConversationStore } from '../store/conversationStore'
 import { useDockingStore } from '../store/dockingStore'
 import { useAgentChat } from './use-agent-chat'
-import { classifyResponse, extractTaskSummary } from './classify-response'
+import { extractTaskSummary } from './classify-response'
+import { stripLeadingBrackets } from './strip-brackets'
 import type { PersistedMessage } from '../types'
 
 /** Extract tool call data from AI SDK message parts for persistence. */
@@ -29,7 +30,8 @@ function createConversationFromTask(
   toolCalls?: PersistedMessage['toolCalls'],
 ): string {
   const convStore = useConversationStore.getState()
-  const title = command.slice(0, 40) + (command.length > 40 ? '...' : '')
+  const cleanCommand = stripLeadingBrackets(command)
+  const title = cleanCommand.slice(0, 40) + (cleanCommand.length > 40 ? '...' : '')
   const convId = convStore.createConversation(title)
 
   const userMsg: PersistedMessage = {
@@ -83,7 +85,7 @@ export function useBackgroundTaskRunner() {
     sendMessage({ text: pending.command })
   }, [tasks, status, sendMessage, setMessages, messages.length])
 
-  // Mid-stream detection: check for [OPEN_ASSISTANT] or createPlan while streaming
+  // Mid-stream detection: check for createPlan while streaming — promote to conversation panel
   useEffect(() => {
     if (!runningTaskIdRef.current) return
     if (promotedRef.current) return
@@ -95,16 +97,15 @@ export function useBackgroundTaskRunner() {
     const hasPlan = lastMsg.parts.some(
       (p) => (p as { type: string }).type === 'tool-createPlan'
     )
-    const textContent = lastMsg.parts
-      .filter((p) => (p as { type: string }).type === 'text')
-      .map((p) => (p as { text: string }).text)
-      .join('')
-    const wantsAssistant = textContent.includes('[OPEN_ASSISTANT]')
 
-    if (hasPlan || wantsAssistant) {
-      // Immediately promote to a new conversation tab
+    if (hasPlan) {
+      // Immediately promote plans to a new conversation tab (they need user approval)
       promotedRef.current = true
       const taskId = runningTaskIdRef.current
+      const textContent = lastMsg.parts
+        .filter((p) => (p as { type: string }).type === 'text')
+        .map((p) => (p as { text: string }).text)
+        .join('')
       const task = useBackgroundTaskStore.getState().tasks.find((t) => t.id === taskId)
       if (task) {
         const toolCalls = extractToolCallsFromParts(lastMsg.parts as Array<{ type: string; [key: string]: unknown }>)
@@ -167,21 +168,10 @@ export function useBackgroundTaskRunner() {
       }
     }
 
-    const wantsAssistant = textContent.includes('[OPEN_ASSISTANT]')
-    const classification = classifyResponse({ textContent, toolNames, hasPlan, wantsAssistant })
     const summary = extractTaskSummary(textContent, toolNames)
 
-    if (classification === 'task') {
-      // Keep in drawer — no need to hide message IDs since tasks use a separate chat instance
-      useBackgroundTaskStore.getState().classifyAndComplete(taskId, {
-        classification,
-        summary,
-        fullResponseText: textContent,
-        toolCalls,
-        messageIds,
-      })
-    } else {
-      // Conversation: create a new conversation tab, remove from drawer, expand panel
+    if (hasPlan) {
+      // Safety net: promote plans that weren't caught mid-stream
       const task = useBackgroundTaskStore.getState().tasks.find((t) => t.id === taskId)
       if (task) {
         const persistedToolCalls = lastAssistant?.parts
@@ -191,6 +181,15 @@ export function useBackgroundTaskRunner() {
       }
       useBackgroundTaskStore.getState().dismissTask(taskId)
       useDockingStore.getState().setAiAssistantBodyCollapsed(false)
+    } else {
+      // All contextual inputs stay as tasks in the drawer
+      useBackgroundTaskStore.getState().classifyAndComplete(taskId, {
+        classification: 'task',
+        summary,
+        fullResponseText: textContent,
+        toolCalls,
+        messageIds,
+      })
     }
   }, [status, messages])
 

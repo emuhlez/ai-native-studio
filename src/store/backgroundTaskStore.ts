@@ -18,14 +18,12 @@ interface BackgroundTaskStore {
   addRunningTask: (command: string) => string
   startTask: (id: string) => void
   completeTask: (id: string) => void
-  /** Classify and complete a task with response data. No auto-remove timer. */
+  /** Classify and complete a task with response data. Auto-dismisses 'task' classification after 4s. */
   classifyAndComplete: (id: string, data: ClassifyAndCompleteData) => void
   failTask: (id: string, error: string) => void
   removeTask: (id: string) => void
   getNextPending: () => BackgroundTask | undefined
   addHiddenMessageIds: (ids: string[]) => void
-  /** Toggle the expanded flag on a task */
-  toggleTaskExpanded: (id: string) => void
   /** Remove task from list and un-hide its message IDs */
   dismissTask: (id: string) => void
   /** Remove task from drawer, un-hide its messages so they appear in chat */
@@ -33,6 +31,9 @@ interface BackgroundTaskStore {
 }
 
 let taskCounter = 0
+
+/** Active auto-dismiss timers keyed by task ID */
+const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => ({
   tasks: [],
@@ -97,6 +98,15 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
           : t
       ),
     }))
+
+    // Auto-dismiss completed tasks (not errors, not conversations)
+    if (data.classification === 'task') {
+      const timer = setTimeout(() => {
+        dismissTimers.delete(id)
+        get().dismissTask(id)
+      }, 4000)
+      dismissTimers.set(id, timer)
+    }
   },
 
   failTask: (id: string, error: string) => {
@@ -125,15 +135,14 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
     })
   },
 
-  toggleTaskExpanded: (id: string) => {
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === id ? { ...t, expanded: !t.expanded } : t
-      ),
-    }))
-  },
-
   dismissTask: (id: string) => {
+    // Clear any pending auto-dismiss timer
+    const timer = dismissTimers.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      dismissTimers.delete(id)
+    }
+
     const task = get().tasks.find((t) => t.id === id)
     if (!task) return
     set((state) => ({

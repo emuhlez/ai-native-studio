@@ -29,10 +29,8 @@ export function executeTransformObject(args: TransformObjectArgs): { updated: bo
     transform.scale = { x: args.scale[0], y: args.scale[1], z: args.scale[2] }
   }
 
-  store.updateGameObject(args.id, { transform })
-
-  // Select the modified object
-  store.selectObject(args.id)
+  // Single batched update + select
+  store.updateAndSelectObject(args.id, { transform })
 
   const changes: string[] = []
   if (args.position) changes.push('position')

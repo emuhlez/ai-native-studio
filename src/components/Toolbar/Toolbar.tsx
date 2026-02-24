@@ -5,15 +5,15 @@ import {
   Settings,
 } from 'lucide-react'
 import { ExpandDownIcon } from '../shared/ExpandIcons'
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useDockingStore } from '../../store/dockingStore'
 import { MenuDropdown, MenuItem } from '../shared/MenuDropdown'
 import { useAgentChat } from '../../ai/use-agent-chat'
 import { isAIIntent } from '../../ai/detect-ai-intent'
 import { parseResponse } from '../../ai/parse-response'
+import type { Asset } from '../../types'
 import styles from './Toolbar.module.css'
-import searchIconImg from '../../../images/search.png'
 import aiAssistantIcon from '../../../images/AI Assistant.png'
 import partBlockIcon from '../../../images/Part_Block.png'
 
@@ -27,11 +27,14 @@ export function Toolbar() {
   const [aiResponseText, setAiResponseText] = useState<string | null>(null)
   const [aiSubmitted, setAiSubmitted] = useState(false)
   const [showAiSettingsDropdown, setShowAiSettingsDropdown] = useState(false)
+  const [omnisearchMode, setOmnisearchMode] = useState<'primary-search' | 'primary-assistant'>('primary-search')
   const [aiAssistantMode, setAiAssistantMode] = useState<'Omnisearch' | 'Chat' | 'Off'>('Omnisearch')
   const chatbotUIMode = useDockingStore((s) => s.chatbotUIMode)
   const setChatbotUIMode = useDockingStore((s) => s.setChatbotUIMode)
   const dropdownTaskListStatusOption = useDockingStore((s) => s.dropdownTaskListStatusOption)
   const setDropdownTaskListStatusOption = useDockingStore((s) => s.setDropdownTaskListStatusOption)
+  const tabsStatusOption = useDockingStore((s) => s.tabsStatusOption)
+  const setTabsStatusOption = useDockingStore((s) => s.setTabsStatusOption)
   const aiDismissTimer = useRef<ReturnType<typeof setTimeout>>()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -224,6 +227,7 @@ export function Toolbar() {
     pause,
     stop,
     isPlaying,
+    assets,
   } = useEditorStore()
 
   const { widgets, dockWidget, undockWidget } = useDockingStore()
@@ -375,15 +379,43 @@ export function Toolbar() {
     clearTimeout(aiDismissTimer.current)
   }
 
-  // Mock search results - replace with actual search logic
-  const searchResults = searchQuery.length > 0 ? [
-    { type: 'Script', name: 'PlayerController', path: 'Workspace > Scripts' },
-    { type: 'Part', name: 'Platform', path: 'Workspace > Models' },
-    { type: 'Model', name: 'PlayerModel', path: 'Workspace' },
-  ].filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.type.toLowerCase().includes(searchQuery.toLowerCase())
-  ) : []
+  // Flatten all assets (including folders and nested children) for global search
+  const flattenedAssets = useMemo(() => {
+    const all: { type: string; name: string; path: string }[] = []
+
+    const walk = (list: Asset[], parentPath = '') => {
+      list.forEach((asset) => {
+        const displayPath = asset.path || (parentPath ? `${parentPath}/${asset.name}` : asset.name)
+        all.push({
+          type:
+            asset.type === 'folder'
+              ? 'Folder'
+              : asset.type.charAt(0).toUpperCase() + asset.type.slice(1),
+          name: asset.name,
+          path: displayPath,
+        })
+
+        if (asset.children?.length) {
+          walk(asset.children, displayPath)
+        }
+      })
+    }
+
+    walk(assets)
+    return all
+  }, [assets])
+
+  const searchResults =
+    searchQuery.length > 0
+      ? flattenedAssets.filter((item) => {
+          const q = searchQuery.toLowerCase()
+          return (
+            item.name.toLowerCase().includes(q) ||
+            item.type.toLowerCase().includes(q) ||
+            item.path.toLowerCase().includes(q)
+          )
+        })
+      : []
 
   return (
     <header className={styles.toolbar}>
@@ -458,14 +490,15 @@ export function Toolbar() {
 
       <div className={styles.searchWrapper} ref={searchRef}>
         <div className={styles.searchContainer}>
-          <img src={searchIconImg} alt="Search" className={styles.searchIcon} width={16} height={16} />
-          {aiMode && <span className={styles.aiIndicator}>AI</span>}
+          {searchQuery.trim() && !aiMode && (
+            <span className={styles.aiIndicator}>AI</span>
+          )}
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search Project"
+            placeholder={omnisearchMode === 'primary-assistant' ? 'What do you want to build?' : 'Search or ask'}
             className={styles.searchInput}
-            aria-label="Search Project"
+            aria-label={omnisearchMode === 'primary-assistant' ? 'What do you want to build?' : 'Search or ask'}
             value={searchQuery}
             onChange={handleSearchChange}
             onKeyDown={handleSearchKeyDown}
@@ -483,14 +516,68 @@ export function Toolbar() {
         </div>
         {showSearchResults && (
           <div className={styles.searchResultsMenu}>
-            {aiMode || aiSubmitted ? (
+            {omnisearchMode === 'primary-search' ? (
+              <>
+                {(aiMode || aiSubmitted) && (
+                  <div className={styles.aiResponse}>
+                    {aiIsLoading && (
+                      <div className={styles.aiResponseStatus}>
+                        <span className={styles.aiStatusDot} />
+                        <span>
+                          {aiPendingToolCount > 0
+                            ? `Executing ${aiPendingToolCount} tool${aiPendingToolCount > 1 ? 's' : ''}...`
+                            : 'Thinking...'}
+                        </span>
+                      </div>
+                    )}
+                    {aiResponseText && (
+                      <div className={styles.aiResponseText}>{aiResponseText}</div>
+                    )}
+                    {!aiIsLoading && !aiResponseText && !aiSubmitted && (
+                      <div className={styles.aiResponseHint}>Press Enter to ask AI</div>
+                    )}
+                    <button
+                      className={styles.continueLink}
+                      onClick={() => {
+                        dockWidget('ai-assistant', 'right-top')
+                        setShowSearchResults(false)
+                      }}
+                    >
+                      Continue in Assistant →
+                    </button>
+                  </div>
+                )}
+                {searchResults.length > 0 ? (
+                  searchResults.map((result, index) => (
+                    <button
+                      key={index}
+                      className={styles.searchResultItem}
+                      onClick={() => {
+                        console.log('Selected:', result)
+                        setShowSearchResults(false)
+                      }}
+                    >
+                      <div className={styles.resultType}>{result.type}</div>
+                      <div className={styles.resultInfo}>
+                        <div className={styles.resultName}>{result.name}</div>
+                        <div className={styles.resultPath}>{result.path}</div>
+                      </div>
+                    </button>
+                  ))
+                ) : !(aiMode || aiSubmitted) ? (
+                  <div className={styles.noResults}>
+                    No results found for &quot;{searchQuery}&quot;
+                  </div>
+                ) : null}
+              </>
+            ) : aiMode || aiSubmitted ? (
               <div className={styles.aiResponse}>
                 {aiIsLoading && (
                   <div className={styles.aiResponseStatus}>
                     <span className={styles.aiStatusDot} />
                     <span>
                       {aiPendingToolCount > 0
-                        ? `Executing ${aiPendingToolCount} tool${aiPendingToolCount > 1 ? 's' : ''}...`
+                        ? `Executing ${aiPendingToolCount > 1 ? 'tool' : 'tools'}...`
                         : 'Thinking...'}
                     </span>
                   </div>
@@ -587,6 +674,37 @@ export function Toolbar() {
                     />
                     Tabs
                   </label>
+                  {chatbotUIMode === 'tabs' && (
+                    <div className={styles.aiSettingsSubOptions}>
+                      <label className={styles.aiSettingsRadioRow}>
+                        <input
+                          type="radio"
+                          name="tabs-status-option"
+                          checked={tabsStatusOption === 'color'}
+                          onChange={() => setTabsStatusOption('color')}
+                        />
+                        Color status
+                      </label>
+                      <label className={styles.aiSettingsRadioRow}>
+                        <input
+                          type="radio"
+                          name="tabs-status-option"
+                          checked={tabsStatusOption === 'status'}
+                          onChange={() => setTabsStatusOption('status')}
+                        />
+                        Status
+                      </label>
+                      <label className={styles.aiSettingsRadioRow}>
+                        <input
+                          type="radio"
+                          name="tabs-status-option"
+                          checked={tabsStatusOption === 'none'}
+                          onChange={() => setTabsStatusOption('none')}
+                        />
+                        None
+                      </label>
+                    </div>
+                  )}
                   <label className={styles.aiSettingsRadioRow}>
                     <input
                       type="radio"
@@ -616,8 +734,36 @@ export function Toolbar() {
                         />
                         Status
                       </label>
+                      <label className={styles.aiSettingsRadioRow}>
+                        <input
+                          type="radio"
+                          name="dropdown-status-option"
+                          checked={dropdownTaskListStatusOption === 'none'}
+                          onChange={() => setDropdownTaskListStatusOption('none')}
+                        />
+                        None
+                      </label>
                     </div>
                   )}
+                  <div className={styles.aiSettingsSectionHeader}>Omnisearch</div>
+                  <label className={styles.aiSettingsRadioRow}>
+                    <input
+                      type="radio"
+                      name="omnisearch-mode"
+                      checked={omnisearchMode === 'primary-search'}
+                      onChange={() => setOmnisearchMode('primary-search')}
+                    />
+                    Primary search
+                  </label>
+                  <label className={styles.aiSettingsRadioRow}>
+                    <input
+                      type="radio"
+                      name="omnisearch-mode"
+                      checked={omnisearchMode === 'primary-assistant'}
+                      onChange={() => setOmnisearchMode('primary-assistant')}
+                    />
+                    Primary Assistant
+                  </label>
                 </div>
               </div>
             )}

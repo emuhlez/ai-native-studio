@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
+import { stripLeadingBrackets } from '../ai/strip-brackets'
 import { localStorageManager } from './utils/localStorage'
 import type { Conversation, PersistedMessage, ConversationMode } from '../types'
 
@@ -38,6 +39,23 @@ const persistConversations = (conversations: Record<string, Conversation>) => {
 export const useConversationStore = create<ConversationStore>((set, get) => {
   let saved = loadConversations()
   let savedIds = Object.keys(saved)
+
+  // Migrate: fix conversation titles that contain [Context: ...] bracket content
+  let migrated = false
+  for (const id of savedIds) {
+    const conv = saved[id]
+    if (conv.title.startsWith('[')) {
+      const firstUserMsg = conv.messages.find((m) => m.role === 'user')
+      if (firstUserMsg) {
+        const clean = stripLeadingBrackets(firstUserMsg.textContent)
+        conv.title = clean.slice(0, 40) + (clean.length > 40 ? '...' : '') || 'New Chat'
+      } else {
+        conv.title = 'New Chat'
+      }
+      migrated = true
+    }
+  }
+  if (migrated) persistConversations(saved)
 
   // Ensure there's always at least one conversation
   if (savedIds.length === 0) {
@@ -118,10 +136,11 @@ export const useConversationStore = create<ConversationStore>((set, get) => {
       set((state) => {
         const conv = state.conversations[conversationId]
         if (!conv) return state
-        // Auto-title from first user message
+        // Auto-title from first user message (strip internal brackets like [Context: ...])
         const isFirstUserMessage = message.role === 'user' && conv.messages.length === 0
+        const cleanText = stripLeadingBrackets(message.textContent)
         const title = isFirstUserMessage
-          ? message.textContent.slice(0, 40) + (message.textContent.length > 40 ? '...' : '')
+          ? cleanText.slice(0, 40) + (cleanText.length > 40 ? '...' : '')
           : conv.title
 
         const conversations = {

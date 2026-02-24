@@ -162,7 +162,7 @@
   display: flex;
   flex-flow: row;
   align-items: center;
-  gap: 0px;
+  gap: 4px;
   padding: 0px;
   height: 28px;
   width: fit-content;
@@ -538,13 +538,17 @@
 
 /* Active toolbar icon (e.g., AI Assistant toggle) – same pressed look as aiSettingsWrap; override .group > div */
 .group > div.activeToolbarIcon {
+  width: 24px;
+  height: 24px;
   background: rgba(208, 217, 251, 0.12);
   border-radius: var(--radius-sm);
 }
 
 /* Wrapper for AI settings button + dropdown so menu anchors under the button */
-.aiSettingsWrap {
+.group > div.aiSettingsWrap {
   position: relative;
+  width: 24px;
+  height: 24px;
 }
 
 .group > div.aiSettingsWrap.pressed,

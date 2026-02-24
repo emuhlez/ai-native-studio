@@ -26,6 +26,9 @@ export function PlanCard({ toolData }: PlanCardProps) {
   const input = toolData.input as { todos?: Array<{ label: string; category?: string }> }
   const todos = input?.todos ?? []
 
+  // Don't render the card if there are no to-do items
+  if (todos.length === 0) return null
+
   const isPending = activePlan?.id === toolData.toolCallId && activePlan?.status === 'pending'
   const isExecuting = activePlan?.id === toolData.toolCallId && activePlan?.status === 'executing'
   const isDone = activePlan?.id === toolData.toolCallId && activePlan?.status === 'done'

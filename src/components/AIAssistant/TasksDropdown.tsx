@@ -1,5 +1,6 @@
 import { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import { ChevronDown, Loader2, Plus } from 'lucide-react'
+import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import { useConversationStore } from '../../store/conversationStore'
 import { usePlanStore } from '../../store/planStore'
 import { useAgentChat } from '../../ai/use-agent-chat'
@@ -120,8 +121,12 @@ export function TasksDropdown() {
                     ? 'Loading'
                     : null
                   : null
-              const showPendingIcon = statusOption === 'status' && showYellowDot
+              const showPendingIcon = (statusOption === 'status' || statusOption === 'none') && showYellowDot
               const showDoneIcon = statusOption === 'status' && !showSpinner && !showYellowDot
+              const showStatusArea =
+                statusOption === 'color' ||
+                statusOption === 'status' ||
+                (statusOption === 'none' && showYellowDot)
               return (
                 <button
                   key={conv.id}
@@ -131,8 +136,8 @@ export function TasksDropdown() {
                   className={styles.tasksDropdownItem}
                   onClick={() => handleSelect(conv.id)}
                 >
-                  <span className={styles.tasksDropdownItemLabel}>{conv.title}</span>
-                  {(statusOption === 'color' || statusOption === 'status') && (
+                  <span className={styles.tasksDropdownItemLabel}>{stripLeadingBrackets(conv.title)}</span>
+                  {showStatusArea && (
                     <span className={styles.tasksDropdownItemStatus} aria-hidden>
                       {statusOption === 'color' && showSpinner && (
                         <Loader2 size={10} className={styles.tasksDropdownItemSpinner} />

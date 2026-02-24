@@ -31,10 +31,8 @@ export function executeSetMaterial(args: SetMaterialArgs): { updated: boolean; i
     updates.transparency = 1 - args.opacity
   }
 
-  store.updateGameObject(args.id, updates)
-
-  // Select the modified object
-  store.selectObject(args.id)
+  // Single batched update + select
+  store.updateAndSelectObject(args.id, updates)
 
   const changes: string[] = []
   if (args.color !== undefined) changes.push(`color=${args.color}`)

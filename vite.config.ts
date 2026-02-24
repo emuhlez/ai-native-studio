@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig({
+  base: process.env.PAGES_BASE ?? '/',
   plugins: [react()],
   server: {
     port: 3000,

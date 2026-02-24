@@ -1,5 +1,6 @@
 import { useEditorStore } from '../../store/editorStore'
 import { useDockingStore } from '../../store/dockingStore'
+import type { GameObject } from '../../types'
 
 export interface AddObjectArgs {
   name: string
@@ -13,17 +14,12 @@ export interface AddObjectArgs {
 export function executeAddObject(args: AddObjectArgs): { id: string; name: string } {
   console.log('[executeAddObject] args:', args)
   const store = useEditorStore.getState()
-
-  // Find the workspace (first root object) to parent new objects under it
   const workspaceId = store.rootObjectIds[0]
 
-  const id = store.createGameObject('mesh', args.name, workspaceId)
-
-  // Build updates from tool args
-  const updates: Record<string, unknown> = {}
-
-  // Store the primitive type so the viewport can render the correct geometry
-  updates.primitiveType = args.primitive
+  // Build all updates upfront
+  const updates: Partial<GameObject> = {
+    primitiveType: args.primitive,
+  }
 
   if (args.position) {
     updates.transform = {
@@ -41,22 +37,22 @@ export function executeAddObject(args: AddObjectArgs): { id: string; name: strin
     updates.reflectance = args.metalness
   }
 
-  if (Object.keys(updates).length > 0) {
-    store.updateGameObject(id, updates)
-  }
+  const [px, py, pz] = args.position ?? [0, 0, 0]
 
-  // Select the newly created object
-  store.selectObject(id)
+  // Single batched store update: create + configure + select + creation effect
+  const id = store.createAndConfigureObject(
+    'mesh',
+    args.name,
+    workspaceId,
+    updates,
+    { x: px, y: py, z: pz },
+  )
 
-  // Open Properties panel and request viewport to focus on the new object
+  // Open Properties panel and request viewport focus (deferred, no store churn)
   useDockingStore.getState().setInspectorBodyCollapsed(false)
   setTimeout(() => {
     useEditorStore.getState().setRequestFocusSelection(true)
   }, 150)
-
-  // Trigger particle burst at creation position
-  const [px, py, pz] = args.position ?? [0, 0, 0]
-  store.setCreationEffectPosition({ x: px, y: py, z: pz })
 
   store.log(`AI: Created "${args.name}" (${args.primitive})`, 'info', 'AI Agent')
 

@@ -182,6 +182,9 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const activeTool = useEditorStore((s) => s.activeTool)
   const gameObjects = useEditorStore((s) => s.gameObjects)
   const rootObjectIds = useEditorStore((s) => s.rootObjectIds)
+
+  // Track previous gameObjects for diff-based scene sync
+  const prevGameObjectsRef = useRef<typeof gameObjects>(gameObjects)
   const isPlaying = useEditorStore((s) => s.isPlaying)
 
   useEffect(() => {
@@ -1549,7 +1552,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     needsRenderRef.current = true
   }, [viewportSelectedAssetNames])
 
-  // Sync color/material for all objects (GLB models + primitives) when gameObject.color changes
+  // Sync color/material for changed objects only (GLB models + primitives)
   useEffect(() => {
     const group = modelsGroupRef.current
     if (!group || rootObjectIds.length === 0) return
@@ -1558,9 +1561,14 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     const workspace = gameObjects[workspaceId]
     if (!workspace?.children) return
 
+    const prev = prevGameObjectsRef.current
+
     workspace.children.forEach((objId) => {
       const obj = gameObjects[objId]
       if (!obj?.color) return
+      // Skip objects whose color hasn't changed
+      const prevObj = prev[objId]
+      if (prevObj && prevObj.color === obj.color && prevObj.reflectance === obj.reflectance && prevObj.transparency === obj.transparency) return
 
       const root = group.children.find(
         (c) => (c.userData.objectId as string) === objId
@@ -1584,6 +1592,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   }, [gameObjects, rootObjectIds])
 
   // Create/update/remove primitive meshes for AI-created objects (box, sphere, cylinder, etc.)
+  // Diff-based: only processes new, changed, or removed objects.
   useEffect(() => {
     const group = modelsGroupRef.current
     if (!group || rootObjectIds.length === 0) return
@@ -1593,17 +1602,15 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     if (!workspace?.children) return
 
     const childSet = new Set(workspace.children)
+    const prev = prevGameObjectsRef.current
     const DEG2RAD = Math.PI / 180
 
     // Remove Three.js objects for deleted game objects (primitives only)
     const toRemove: THREE.Object3D[] = []
     group.children.forEach((child) => {
       const objId = child.userData.objectId as string | undefined
-      if (objId && !childSet.has(objId)) {
-        // Check if this was a primitive (has isPrimitive flag)
-        if (child.userData.isPrimitive) {
-          toRemove.push(child)
-        }
+      if (objId && !childSet.has(objId) && child.userData.isPrimitive) {
+        toRemove.push(child)
       }
     })
     toRemove.forEach((child) => {
@@ -1623,11 +1630,14 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       const obj = gameObjects[objId]
       if (!obj?.primitiveType) return
 
-      // If a Three.js object already exists, sync its material properties
       const existing = group.children.find(
         (c) => (c.userData.objectId as string) === objId
       )
+
       if (existing) {
+        // Skip entirely if this object hasn't changed
+        if (prev[objId] === obj) return
+
         // Update color/material on existing primitives
         existing.traverse((node: THREE.Object3D) => {
           if ((node as THREE.Mesh).isMesh) {
@@ -1645,7 +1655,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         return
       }
 
-      // Create the appropriate geometry
+      // New primitive — create geometry
       let geometry: THREE.BufferGeometry
       switch (obj.primitiveType) {
         case 'sphere':
@@ -1682,7 +1692,6 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       mesh.castShadow = true
       mesh.receiveShadow = true
 
-      // Wrap in a group so the structure matches GLB-loaded models
       const root = new THREE.Group()
       root.add(mesh)
       root.userData.assetName = obj.name
@@ -1690,7 +1699,6 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       root.userData.baseScale = 1
       root.userData.isPrimitive = true
 
-      // Apply transform
       const { position, rotation, scale } = obj.transform
       root.position.set(position.x, position.y, position.z)
       root.rotation.set(
@@ -1705,7 +1713,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     })
   }, [gameObjects, rootObjectIds])
 
-  // Replace meshes when meshUrl is set (user-selected file)
+  // Replace meshes when meshUrl is set (user-selected file) — diff-based
   useEffect(() => {
     const group = modelsGroupRef.current
     if (!group || rootObjectIds.length === 0) return
@@ -1713,6 +1721,15 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     const workspaceId = rootObjectIds[0]
     const workspace = gameObjects[workspaceId]
     if (!workspace?.children) return
+
+    // Quick check: skip if no meshUrl changed
+    const prev = prevGameObjectsRef.current
+    const anyMeshUrlChanged = workspace.children.some((objId) => {
+      const obj = gameObjects[objId]
+      const prevObj = prev[objId]
+      return obj?.meshUrl && (!prevObj || prevObj.meshUrl !== obj.meshUrl)
+    })
+    if (!anyMeshUrlChanged) return
 
     const MODEL_SCALE = 2
     const fitScale = (obj: THREE.Object3D) => {
@@ -1785,6 +1802,11 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       )
     })
   }, [gameObjects, rootObjectIds])
+
+  // Update prev snapshot after all sync effects have run
+  useEffect(() => {
+    prevGameObjectsRef.current = gameObjects
+  }, [gameObjects])
 
   return null
 })

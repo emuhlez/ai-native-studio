@@ -207,6 +207,11 @@ export function AIAssistant() {
 
   const compactInputBar = (inExpandedView: boolean) => {
     const handleSubmit = inExpandedView ? onExpandedSubmit : onCollapsedSubmit
+    const hasCurrentTask =
+      chatbotUIMode === 'dropdown' &&
+      activePlan &&
+      (activePlan.status === 'pending' || activePlan.status === 'executing')
+    const placeholderText = hasCurrentTask ? 'Add a follow-up' : 'Build with Assistant'
     return (
     <div className={`${styles.collapsedInputOnly} ${inExpandedView ? styles.compactInputBarInExpanded : ''}`}>
       <div className={styles.collapsedInputRowBottom}>
@@ -262,7 +267,7 @@ export function AIAssistant() {
               segments={segments}
               onSegmentsChange={setSegments}
               onSubmit={handleSubmit}
-              placeholder={isLoading ? 'Generating...' : 'Build with Assistant'}
+              placeholder={placeholderText}
               disabled={isLoading}
               className={`${styles.input} ${styles.inputCollapsedTextarea}`}
               ariaLabel="Build with Assistant"

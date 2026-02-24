@@ -45,9 +45,14 @@ function shouldForcePlan(messages: Array<Record<string, unknown>>): boolean {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
   if (!lastUserMsg) return false
 
-  const text = extractUserText(lastUserMsg).toLowerCase()
+  let text = extractUserText(lastUserMsg).toLowerCase()
   console.log('[chat] shouldForcePlan check, text:', JSON.stringify(text))
 
+  if (!text) return false
+
+  // Strip [Context: ...] brackets added by the viewport contextual input.
+  // Use greedy .* to handle nested brackets like [1.52, 0, -4.85] inside the context.
+  text = text.replace(/^\[context:.*\]\s*/i, '').trim()
   if (!text) return false
 
   // Pattern: "build/create/design/make" + something that isn't a single simple object
@@ -67,7 +72,7 @@ chatRouter.post('/chat', async (req, res) => {
   console.log(`[chat] Received request: ${msgCount} messages, mode=${mode}, body=${Math.round(bodySize / 1024)}KB`)
 
   try {
-    const { messages, sceneContext, selectionContext, cameraContext } = req.body
+    const { messages, sceneContext, selectionContext, cameraContext, background } = req.body
 
     const systemPrompt = buildSystemPrompt({
       sceneContext: sceneContext ?? 'The scene is currently empty.',
@@ -84,12 +89,18 @@ chatRouter.post('/chat', async (req, res) => {
       console.log('[chat] Forcing createPlan tool for complex request')
     }
 
+    // Use Haiku for background tasks (fast tool execution), Sonnet for conversations
+    const model = background
+      ? anthropic('claude-3-5-haiku-20241022')
+      : anthropic('claude-sonnet-4-20250514')
+
     const result = streamText({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model,
       system: systemPrompt,
       messages: modelMessages,
       tools: toolRegistry.getTools(),
       maxSteps: 5,
+      maxTokens: background ? 512 : 1024,
       toolChoice: forcePlan ? { type: 'tool', toolName: 'createPlan' } : undefined,
     })
 

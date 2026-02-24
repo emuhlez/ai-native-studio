@@ -46,6 +46,10 @@ interface EditorStore extends EditorState {
   
   // Actions - Scene
   createGameObject: (type: GameObjectType, name?: string, parentId?: string | null, options?: { select?: boolean }) => string
+  /** Batched create: creates object, applies updates, selects, and sets creation effect in a single store update */
+  createAndConfigureObject: (type: GameObjectType, name: string, parentId: string | null, updates: Partial<GameObject>, effectPos?: { x: number; y: number; z: number }) => string
+  /** Batched update+select: applies updates and selects object in a single store update */
+  updateAndSelectObject: (id: string, updates: Partial<GameObject>) => void
   addWorkspaceModel: (name: string) => string
   deleteGameObject: (id: string) => void
   updateGameObject: (id: string, updates: Partial<GameObject>) => void
@@ -568,6 +572,76 @@ export const useEditorStore = create<EditorStore>((set, get) => {
 
     get().log(`Created ${gameObject.name}`, 'info')
     return id
+  },
+
+  createAndConfigureObject: (type, name, parentId = null, updates, effectPos) => {
+    const id = uuid()
+    const gameObject: GameObject = {
+      id,
+      name: name || getDefaultName(type),
+      type,
+      transform: createDefaultTransform(),
+      pivot: createDefaultPivot(),
+      visible: true,
+      locked: false,
+      children: [],
+      parentId,
+      components: [],
+      ...updates,
+    }
+
+    set((state) => {
+      const newObjects = { ...state.gameObjects, [id]: gameObject }
+      let newRootIds = state.rootObjectIds
+
+      if (parentId) {
+        const parent = newObjects[parentId]
+        if (parent) {
+          newObjects[parentId] = {
+            ...parent,
+            children: [...parent.children, id],
+          }
+        }
+      } else {
+        newRootIds = [...state.rootObjectIds, id]
+      }
+
+      return {
+        gameObjects: newObjects,
+        rootObjectIds: newRootIds,
+        selectedObjectIds: [id],
+        creationEffectPosition: effectPos ?? null,
+      }
+    })
+
+    get().log(`Created ${gameObject.name}`, 'info')
+    return id
+  },
+
+  updateAndSelectObject: (id, updates) => {
+    set((state) => {
+      const obj = state.gameObjects[id]
+      if (!obj) return state
+      const newGameObjects = {
+        ...state.gameObjects,
+        [id]: { ...obj, ...updates },
+      }
+      // Update viewport selected names if name changed
+      let viewportSelectedAssetNames = state.viewportSelectedAssetNames
+      if (updates.name != null) {
+        const oldName = obj.name
+        if (oldName && viewportSelectedAssetNames.includes(oldName)) {
+          viewportSelectedAssetNames = viewportSelectedAssetNames.map(
+            (n) => (n === oldName ? updates.name as string : n)
+          )
+        }
+      }
+      return {
+        gameObjects: newGameObjects,
+        selectedObjectIds: [id],
+        viewportSelectedAssetNames,
+      }
+    })
   },
 
   addWorkspaceModel: (name) => {
