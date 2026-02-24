@@ -589,8 +589,6 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--content-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .aiSettingsRadioRow {
@@ -616,6 +614,45 @@
 }
 
 .aiSettingsRadioRow input {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+/* Progressive disclosure: sub-options when Dropdown task list is selected */
+.aiSettingsSubOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-left: 12px;
+  padding-bottom: 4px;
+}
+
+.aiSettingsCheckRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 12px;
+  min-height: 24px;
+  font-size: 13px;
+  color: var(--content-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.aiSettingsCheckRow:hover {
+  background: rgba(208, 217, 251, 0.12);
+  color: var(--content-emphasis);
+}
+
+.aiSettingsCheckRow input {
   margin: 0;
   width: 14px;
   height: 14px;

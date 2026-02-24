@@ -60,6 +60,9 @@ interface DockingStore {
   /** Chatbot UI: 'tabs' = conversation tabs, 'dropdown' = Tasks header with dropdown list */
   chatbotUIMode: 'tabs' | 'dropdown'
   setChatbotUIMode: (mode: 'tabs' | 'dropdown') => void
+  /** Dropdown task list status display: 'color' = colored indicators, 'status' = text status */
+  dropdownTaskListStatusOption: 'color' | 'status'
+  setDropdownTaskListStatusOption: (option: 'color' | 'status') => void
 }
 
 export const useDockingStore = create<DockingStore>((set, get) => ({
@@ -199,11 +202,13 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
 
   inspectorBodyCollapsed: false,
   setInspectorBodyCollapsed: (collapsed) => set({ inspectorBodyCollapsed: collapsed }),
-  aiAssistantBodyCollapsed: true,
+  aiAssistantBodyCollapsed: false,
   setAiAssistantBodyCollapsed: (collapsed) => set({ aiAssistantBodyCollapsed: collapsed }),
   viewportAIInputOpen: false,
   setViewportAIInputOpen: (open) => set({ viewportAIInputOpen: open }),
   chatbotUIMode: 'tabs',
   setChatbotUIMode: (mode) => set({ chatbotUIMode: mode }),
+  dropdownTaskListStatusOption: 'color',
+  setDropdownTaskListStatusOption: (option) => set({ dropdownTaskListStatusOption: option }),
 }))
 

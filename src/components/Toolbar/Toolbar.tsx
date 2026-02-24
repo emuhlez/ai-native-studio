@@ -30,6 +30,8 @@ export function Toolbar() {
   const [aiAssistantMode, setAiAssistantMode] = useState<'Omnisearch' | 'Chat' | 'Off'>('Omnisearch')
   const chatbotUIMode = useDockingStore((s) => s.chatbotUIMode)
   const setChatbotUIMode = useDockingStore((s) => s.setChatbotUIMode)
+  const dropdownTaskListStatusOption = useDockingStore((s) => s.dropdownTaskListStatusOption)
+  const setDropdownTaskListStatusOption = useDockingStore((s) => s.setDropdownTaskListStatusOption)
   const aiDismissTimer = useRef<ReturnType<typeof setTimeout>>()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -573,7 +575,7 @@ export function Toolbar() {
                 }
               >
                 <div className={styles.aiSettingsPanel}>
-                  <div className={styles.aiSettingsSectionHeader}>CHATBOT</div>
+                  <div className={styles.aiSettingsSectionHeader}>Task Drawer</div>
                   {/* Tabs: keep this option — conversation switcher shows tabs */}
                   <label className={styles.aiSettingsRadioRow}>
                     <input
@@ -593,6 +595,28 @@ export function Toolbar() {
                     />
                     Dropdown task list
                   </label>
+                  {chatbotUIMode === 'dropdown' && (
+                    <div className={styles.aiSettingsSubOptions}>
+                      <label className={styles.aiSettingsRadioRow}>
+                        <input
+                          type="radio"
+                          name="dropdown-status-option"
+                          checked={dropdownTaskListStatusOption === 'color'}
+                          onChange={() => setDropdownTaskListStatusOption('color')}
+                        />
+                        Color status
+                      </label>
+                      <label className={styles.aiSettingsRadioRow}>
+                        <input
+                          type="radio"
+                          name="dropdown-status-option"
+                          checked={dropdownTaskListStatusOption === 'status'}
+                          onChange={() => setDropdownTaskListStatusOption('status')}
+                        />
+                        Status
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

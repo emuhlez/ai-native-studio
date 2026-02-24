@@ -3,6 +3,7 @@ import { ChevronDown, Loader2, Plus } from 'lucide-react'
 import { useConversationStore } from '../../store/conversationStore'
 import { usePlanStore } from '../../store/planStore'
 import { useAgentChat } from '../../ai/use-agent-chat'
+import { useDockingStore } from '../../store/dockingStore'
 import styles from './AIAssistant.module.css'
 
 export function TasksDropdown() {
@@ -17,6 +18,7 @@ export function TasksDropdown() {
   const { status: chatStatus } = useAgentChat()
   const activePlan = usePlanStore((s) => s.activePlan)
   const streamingIds = useConversationStore((s) => s.streamingIds)
+  const statusOption = useDockingStore((s) => s.dropdownTaskListStatusOption)
 
   const isChatLoading = chatStatus === 'streaming' || chatStatus === 'submitted'
   const isPlanPendingApproval = activePlan?.status === 'pending'
@@ -112,6 +114,14 @@ export function TasksDropdown() {
               const isStreamingInBackground = !isActive && streamingIds.has(conv.id)
               const showYellowDot = (isActive && isPlanPendingApproval && !showSpinner) || isStreamingInBackground
               const showBlueDot = !showSpinner && !showYellowDot
+              const statusText =
+                statusOption === 'status'
+                  ? showSpinner
+                    ? 'Loading'
+                    : null
+                  : null
+              const showPendingIcon = statusOption === 'status' && showYellowDot
+              const showDoneIcon = statusOption === 'status' && !showSpinner && !showYellowDot
               return (
                 <button
                   key={conv.id}
@@ -122,17 +132,39 @@ export function TasksDropdown() {
                   onClick={() => handleSelect(conv.id)}
                 >
                   <span className={styles.tasksDropdownItemLabel}>{conv.title}</span>
-                  <span className={styles.tasksDropdownItemStatus} aria-hidden>
-                    {showSpinner && (
-                      <Loader2 size={10} className={styles.tasksDropdownItemSpinner} />
-                    )}
-                    {showYellowDot && (
-                      <span className={styles.tasksDropdownDotPending} />
-                    )}
-                    {showBlueDot && (
-                      <span className={styles.tasksDropdownDotDone} />
-                    )}
-                  </span>
+                  {(statusOption === 'color' || statusOption === 'status') && (
+                    <span className={styles.tasksDropdownItemStatus} aria-hidden>
+                      {statusOption === 'color' && showSpinner && (
+                        <Loader2 size={10} className={styles.tasksDropdownItemSpinner} />
+                      )}
+                      {statusOption === 'color' && showYellowDot && (
+                        <span className={styles.tasksDropdownDotPending} />
+                      )}
+                      {statusOption === 'color' && showBlueDot && (
+                        <span className={styles.tasksDropdownDotDone} />
+                      )}
+                      {statusOption === 'status' && statusText && (
+                        <span className={styles.tasksDropdownItemStatusText}>{statusText}</span>
+                      )}
+                      {showPendingIcon && (
+                        <img
+                          src="/prompts/awaiting-approval.svg"
+                          alt="Awaiting approval"
+                          className={styles.tasksDropdownItemPendingIcon}
+                          height={14}
+                        />
+                      )}
+                      {showDoneIcon && (
+                        <img
+                          src="/prompts/completed.svg"
+                          alt="Done"
+                          className={styles.tasksDropdownItemDoneIcon}
+                          width={14}
+                          height={14}
+                        />
+                      )}
+                    </span>
+                  )}
                 </button>
               )
             })
