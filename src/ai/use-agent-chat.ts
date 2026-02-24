@@ -17,6 +17,20 @@ function persistedToUIMessages(messages: PersistedMessage[]): UIMessage[] {
       parts.push({ type: 'text' as const, text: m.textContent })
     }
 
+    // Restore tool call parts so PlanCard and ToolCallPart render after reload
+    if (m.toolCalls?.length) {
+      for (const tc of m.toolCalls) {
+        parts.push({
+          type: `tool-${tc.toolName}`,
+          toolCallId: tc.toolCallId ?? `tc-${m.id}-${tc.toolName}`,
+          toolName: tc.toolName,
+          state: 'result',
+          input: tc.args ?? {},
+          output: tc.result,
+        } as unknown as UIMessage['parts'][number])
+      }
+    }
+
     // Ensure every message has at least one part
     if (parts.length === 0) {
       parts.push({ type: 'text' as const, text: '' })
@@ -133,6 +147,7 @@ export function useAgentChat(options?: UseAgentChatOptions) {
           const part = p as any
           return {
             toolName: part.type.slice(5) as string,
+            toolCallId: (part.toolCallId as string) ?? undefined,
             args: (part.input ?? {}) as Record<string, unknown>,
             result: part.output,
           }

@@ -227,7 +227,8 @@ export function Toolbar() {
   } = useEditorStore()
 
   const { widgets, dockWidget, undockWidget } = useDockingStore()
-  const aiPanelVisible = !!widgets['ai-assistant']
+  const aiAssistantBodyCollapsed = useDockingStore((s) => s.aiAssistantBodyCollapsed)
+  const aiPanelVisible = !!widgets['ai-assistant'] && !aiAssistantBodyCollapsed
 
   const toggleAIPanel = () => {
     if (aiPanelVisible) {

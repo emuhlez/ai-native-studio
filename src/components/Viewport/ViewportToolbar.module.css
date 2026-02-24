@@ -35,6 +35,7 @@
   color: var(--text-secondary, #bcbec8);
   cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease;
+  position: relative;
 }
 
 .toolBtn .toolIconImg {

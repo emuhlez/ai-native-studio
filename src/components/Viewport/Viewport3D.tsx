@@ -153,6 +153,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     onPointerEnter?: () => void
     onPointerLeave?: () => void
     onWheel?: (e: WheelEvent) => void
+    onDblClick?: (e: MouseEvent) => void
     onKeyDown?: (e: KeyboardEvent) => void
     onKeyUp?: (e: KeyboardEvent) => void
     onResize?: () => void
@@ -861,8 +862,18 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       needsRender = true // Force render on zoom
     }
 
+    const onDblClick = (e: MouseEvent) => {
+      if (e.button !== 0) return
+      const tool = useEditorStore.getState().activeTool
+      if (tool === 'select') {
+        useEditorStore.getState().setSkipPillInsertion(true)
+        performPick(e.clientX, e.clientY, false)
+        focusSelectedRef.current = true
+      }
+    }
+
     const wheelOpts = { passive: false }
-    
+
     // Store event handlers in ref for cleanup
     eventHandlersRef.current = {
       onPointerDown,
@@ -871,15 +882,17 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       onPointerEnter,
       onPointerLeave,
       onWheel,
+      onDblClick,
       wheelOpts
     }
-    
+
     canvas.addEventListener('wheel', onWheel, wheelOpts as object)
     canvas.addEventListener('pointerdown', onPointerDown)
     canvas.addEventListener('pointermove', onPointerMove)
     canvas.addEventListener('pointerup', onPointerUp)
     canvas.addEventListener('pointerenter', onPointerEnter)
     canvas.addEventListener('pointerleave', onPointerLeave)
+    canvas.addEventListener('dblclick', onDblClick)
 
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
@@ -1448,6 +1461,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         if (handlers.onPointerEnter) canvas.removeEventListener('pointerenter', handlers.onPointerEnter)
         if (handlers.onPointerLeave) canvas.removeEventListener('pointerleave', handlers.onPointerLeave)
         if (handlers.onWheel) canvas.removeEventListener('wheel', handlers.onWheel, handlers.wheelOpts as object)
+        if (handlers.onDblClick) canvas.removeEventListener('dblclick', handlers.onDblClick)
       }
       
       if (handlers) {

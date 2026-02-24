@@ -6,8 +6,28 @@ import { useAgentChat } from './use-agent-chat'
 import { classifyResponse, extractTaskSummary } from './classify-response'
 import type { PersistedMessage } from '../types'
 
+/** Extract tool call data from AI SDK message parts for persistence. */
+function extractToolCallsFromParts(parts: Array<{ type: string; [key: string]: unknown }>): PersistedMessage['toolCalls'] {
+  const toolCalls: NonNullable<PersistedMessage['toolCalls']> = []
+  for (const part of parts) {
+    if (part.type.startsWith('tool-')) {
+      toolCalls.push({
+        toolName: part.type.slice(5) as string,
+        toolCallId: (part.toolCallId as string) ?? undefined,
+        args: (part.input ?? {}) as Record<string, unknown>,
+        result: part.output as unknown,
+      })
+    }
+  }
+  return toolCalls.length > 0 ? toolCalls : undefined
+}
+
 /** Create a new conversation tab pre-populated with a user message and assistant response. */
-function createConversationFromTask(command: string, responseText: string): string {
+function createConversationFromTask(
+  command: string,
+  responseText: string,
+  toolCalls?: PersistedMessage['toolCalls'],
+): string {
   const convStore = useConversationStore.getState()
   const title = command.slice(0, 40) + (command.length > 40 ? '...' : '')
   const convId = convStore.createConversation(title)
@@ -20,11 +40,12 @@ function createConversationFromTask(command: string, responseText: string): stri
   }
   convStore.addMessage(convId, userMsg)
 
-  if (responseText) {
+  if (responseText || toolCalls?.length) {
     const assistantMsg: PersistedMessage = {
       id: `assistant-task-${Date.now()}`,
       role: 'assistant',
       textContent: responseText,
+      toolCalls: toolCalls?.length ? toolCalls : undefined,
       timestamp: Date.now(),
     }
     convStore.addMessage(convId, assistantMsg)
@@ -86,7 +107,8 @@ export function useBackgroundTaskRunner() {
       const taskId = runningTaskIdRef.current
       const task = useBackgroundTaskStore.getState().tasks.find((t) => t.id === taskId)
       if (task) {
-        createConversationFromTask(task.command, textContent)
+        const toolCalls = extractToolCallsFromParts(lastMsg.parts as Array<{ type: string; [key: string]: unknown }>)
+        createConversationFromTask(task.command, textContent, toolCalls)
       }
       useBackgroundTaskStore.getState().dismissTask(taskId)
       useDockingStore.getState().setAiAssistantBodyCollapsed(false)
@@ -162,7 +184,10 @@ export function useBackgroundTaskRunner() {
       // Conversation: create a new conversation tab, remove from drawer, expand panel
       const task = useBackgroundTaskStore.getState().tasks.find((t) => t.id === taskId)
       if (task) {
-        createConversationFromTask(task.command, textContent)
+        const persistedToolCalls = lastAssistant?.parts
+          ? extractToolCallsFromParts(lastAssistant.parts as Array<{ type: string; [key: string]: unknown }>)
+          : undefined
+        createConversationFromTask(task.command, textContent, persistedToolCalls)
       }
       useBackgroundTaskStore.getState().dismissTask(taskId)
       useDockingStore.getState().setAiAssistantBodyCollapsed(false)

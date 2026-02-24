@@ -37,6 +37,9 @@ interface EditorStore extends EditorState {
   /** When true, viewport will focus camera on selected object(s) on next frame */
   requestFocusSelection: boolean
   setRequestFocusSelection: (v: boolean) => void
+  /** When true, the next selection change should NOT insert a pill into the AI input (e.g. double-click to focus) */
+  skipPillInsertion: boolean
+  setSkipPillInsertion: (v: boolean) => void
   /** When set, viewport plays a particle burst at this position (e.g. when AI creates an object) */
   creationEffectPosition: { x: number; y: number; z: number } | null
   setCreationEffectPosition: (p: { x: number; y: number; z: number } | null) => void
@@ -57,6 +60,7 @@ interface EditorStore extends EditorState {
   
   // Actions - Tools
   setActiveTool: (tool: EditorState['activeTool']) => void
+  setSelectMode: (mode: EditorState['selectMode']) => void
   setViewMode: (mode: EditorState['viewMode']) => void
   toggleGrid: () => void
   toggleSnap: () => void
@@ -371,10 +375,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
   aiInputAnchorPosition: null as { x: number; y: number } | null,
   penToolLastDrawnPosition: null as { x: number; y: number } | null,
   requestFocusSelection: false,
+  skipPillInsertion: false,
   creationEffectPosition: null,
   isPlaying: false,
   isPaused: false,
   activeTool: 'select',
+  selectMode: 'single',
   viewMode: '3d',
   showGrid: true,
   snapToGrid: true,
@@ -450,6 +456,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     set({ selectedObjectIds: [id], viewportSelectedAssetNames: idsToNames([id]) })
   },
   setRequestFocusSelection: (v) => set({ requestFocusSelection: v }),
+  setSkipPillInsertion: (v) => set({ skipPillInsertion: v }),
   setCreationEffectPosition: (p) => set({ creationEffectPosition: p }),
   selectAsset: (id, options) => {
     if (id == null) {
@@ -750,6 +757,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
   
   // Tools
   setActiveTool: (tool) => set({ activeTool: tool }),
+  setSelectMode: (mode) => set({ selectMode: mode }),
   setViewMode: (mode) => set({ viewMode: mode }),
   toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
   toggleSnap: () => set((state) => ({ snapToGrid: !state.snapToGrid })),

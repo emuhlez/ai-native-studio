@@ -14,6 +14,7 @@ import { MessageList } from './MessageList'
 import { BackgroundTaskDrawer } from './BackgroundTaskDrawer'
 import { useBackgroundTaskRunner } from '../../ai/use-background-task-runner'
 import { useBackgroundTaskStore } from '../../store/backgroundTaskStore'
+import { PlanCard } from './PlanCard'
 import { PillInput } from '../shared/PillInput'
 import type { InputSegment, PillInputHandle } from '../../types'
 import styles from './AIAssistant.module.css'
@@ -32,6 +33,7 @@ export function AIAssistant() {
   const hiddenMessageIds = useBackgroundTaskStore((s) => s.hiddenMessageIds)
   const visibleMessages = messages.filter((m) => !hiddenMessageIds.has(m.id))
   usePlanExecutor({ sendMessage, status })
+  const activePlan = usePlanStore((s) => s.activePlan)
   const [segments, setSegments] = useState<InputSegment[]>([])
   const [collapsedVoiceAccumulated, setCollapsedVoiceAccumulated] = useState('')
   const pillInputRef = useRef<PillInputHandle>(null)
@@ -71,8 +73,12 @@ export function AIAssistant() {
     const newIds = selectedObjectIds.filter(id => !prevIds.has(id))
     prevSelectionRef.current = currentIds
     if (newIds.length === 0) return
-    // Skip pill insertion while a task is running — only insert from user-initiated selections
     if (isLoadingRef.current) return
+    // Skip pill insertion on double-click (focus action)
+    if (useEditorStore.getState().skipPillInsertion) {
+      useEditorStore.getState().setSkipPillInsertion(false)
+      return
+    }
     const newPills = newIds
       .map(id => ({ id, label: gameObjects[id]?.name ?? id }))
       .filter(p => p.label)
@@ -87,8 +93,12 @@ export function AIAssistant() {
     const newIds = selectedAssetIds.filter(id => !prevIds.has(id))
     prevAssetSelectionRef.current = currentIds
     if (newIds.length === 0) return
-    // Skip pill insertion while a task is running — only insert from user-initiated selections
     if (isLoadingRef.current) return
+    // Skip pill insertion on double-click (focus action)
+    if (useEditorStore.getState().skipPillInsertion) {
+      useEditorStore.getState().setSkipPillInsertion(false)
+      return
+    }
     const newPills = newIds
       .map(id => assetByIdRef.current.get(id))
       .filter((p): p is { id: string; name: string } => p != null && p.name != null)
@@ -302,6 +312,22 @@ export function AIAssistant() {
               isLoading={isLoading}
               pendingToolCount={pendingToolCount}
             />
+            {/* Standalone plan card when the plan isn't visible in any message (e.g. promoted from background task) */}
+            {activePlan && (activePlan.status === 'pending' || activePlan.status === 'executing') && !visibleMessages.some((m) =>
+              m.parts?.some((p) => {
+                const part = p as { type: string; toolCallId?: string }
+                return part.type === 'tool-createPlan' && part.toolCallId === activePlan.id
+              })
+            ) && (
+              <div style={{ padding: '0 12px 8px' }}>
+                <PlanCard toolData={{
+                  toolCallId: activePlan.id,
+                  toolName: 'createPlan',
+                  state: 'result',
+                  input: activePlan.data,
+                }} />
+              </div>
+            )}
             <BackgroundTaskDrawer />
             {compactInputBar(true)}
           </>

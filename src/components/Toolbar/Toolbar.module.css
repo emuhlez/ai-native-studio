@@ -536,9 +536,9 @@
   color: var(--content-muted);
 }
 
-/* Active toolbar icon (e.g., AI Assistant toggle) */
-.activeToolbarIcon {
-  background: rgba(208, 217, 251, 0.16);
+/* Active toolbar icon (e.g., AI Assistant toggle) – same pressed look as aiSettingsWrap; override .group > div */
+.group > div.activeToolbarIcon {
+  background: rgba(208, 217, 251, 0.12);
   border-radius: var(--radius-sm);
 }
 

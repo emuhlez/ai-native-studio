@@ -126,6 +126,8 @@ export interface EditorState {
   isPlaying: boolean
   isPaused: boolean
   activeTool: 'select' | 'move' | 'rotate' | 'scale' | 'transform' | 'pen' | null
+  /** When activeTool is 'select', which selection mode to use */
+  selectMode: 'single' | 'box'
   viewMode: '2d' | '3d'
   showGrid: boolean
   snapToGrid: boolean
@@ -140,7 +142,7 @@ export interface PersistedMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
   textContent: string
-  toolCalls?: { toolName: string; args: Record<string, unknown>; result?: unknown }[]
+  toolCalls?: { toolName: string; toolCallId?: string; args: Record<string, unknown>; result?: unknown }[]
   timestamp: number
   hasImage?: boolean
 }

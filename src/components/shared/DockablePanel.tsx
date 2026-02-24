@@ -280,7 +280,7 @@ export function DockablePanel({
               title={title}
               icon={icon}
               titleTrailing={titleTrailing}
-              middle={bodyCollapsed ? collapsedHeaderContent : undefined}
+              middle={bodyCollapsed ? collapsedHeaderContent : headerMiddle}
               actions={
                 <>
                   {showCollapseButton && (
@@ -321,9 +321,6 @@ export function DockablePanel({
               }
             />
           </div>
-        )}
-        {!bodyCollapsed && headerMiddle && (
-          <div className={styles.headerMiddleRow}>{headerMiddle}</div>
         )}
         <div className={`${styles.panelContent} ${bodyCollapsed && (!collapsedShowsMinimalContent || collapsedHeaderContent) ? styles.panelContentCollapsed : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimal : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimalHeight : ''} ${contentFills && !(bodyCollapsed && collapsedShowsMinimalContent) ? styles.panelContentFills : ''}`}>
           {children}

@@ -246,6 +246,11 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
               range: e.shiftKey,
             })
           }
+          onDoubleClick={() => {
+            useEditorStore.getState().setSkipPillInsertion(true)
+            selectObject(objectId)
+            useEditorStore.getState().setRequestFocusSelection(true)
+          }}
           onContextMenu={contextMenu.openContextMenu}
           onMouseDown={(e) => {
             // Handle control+click as context menu (for Mac)

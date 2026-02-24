@@ -57,6 +57,14 @@ function TaskItem({ task }: { task: BackgroundTask }) {
       >
         {task.status === 'running' ? (
           <Loader2 size={12} className={styles.spinner} />
+        ) : task.status === 'error' ? (
+          <img
+            src="/prompts/stop.svg"
+            alt="Failed"
+            className={styles.taskStatusStopIcon}
+            width={12}
+            height={12}
+          />
         ) : (
           <span className={`${styles.statusDot} ${statusClass[task.status]}`} />
         )}
