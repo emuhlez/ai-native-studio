@@ -1,6 +1,7 @@
 import { useRef, useEffect, useLayoutEffect, memo } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { useEditorStore } from '../../store/editorStore'
 import {
   THREE_SPACE_ASSETS,
@@ -28,7 +29,15 @@ const MIN_PHI = 0.05
 const MAX_PHI = Math.PI - 0.05
 const DRAG_THRESHOLD_PX = 4
 const PAN_SPEED = 0.35
+const CREATION_PARTICLE_COUNT = 140
+const CREATION_EFFECT_DURATION_MS = 1800
+const CREATION_BURST_SPEED = 5
 const PAN_KEYS = new Set(['w', 'a', 's', 'd', 'q', 'e', 'r', 'f'])
+const FP_MOVE_SPEED = 8
+const FP_MOUSE_SENSITIVITY = 0.002
+const FP_EYE_HEIGHT = 1.6
+const FP_CAMERA_DISTANCE = 6
+const FP_CAMERA_HEIGHT = 2
 const INITIAL_TARGET = new THREE.Vector3(0, 0, 0)
 const INITIAL_RADIUS = Math.sqrt(40 * 40 + 35 * 35 + 40 * 40)
 const INITIAL_THETA = Math.atan2(40, 40)
@@ -46,6 +55,25 @@ function findRootWithAssetName(obj: THREE.Object3D, modelsGroup: THREE.Group): T
     current = current.parent
   }
   return null
+}
+
+const AVATAR_TARGET_HEIGHT = 1.6
+
+function createAvatarPlaceholder(): THREE.Group {
+  const group = new THREE.Group()
+  const bodyGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.9, 8)
+  const headGeo = new THREE.SphereGeometry(0.32, 12, 12)
+  const material = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, metalness: 0.1 })
+  const body = new THREE.Mesh(bodyGeo, material)
+  body.position.y = 0.45
+  body.castShadow = body.receiveShadow = true
+  group.add(body)
+  const head = new THREE.Mesh(headGeo, material)
+  head.position.y = 1.1
+  head.castShadow = head.receiveShadow = true
+  group.add(head)
+  group.userData.isAvatar = true
+  return group
 }
 
 function setHighlight(root: THREE.Object3D, on: boolean) {
@@ -91,13 +119,29 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const modelsGroupRef = useRef<THREE.Group | null>(null)
+  const avatarRef = useRef<THREE.Group | null>(null)
+  const avatarModelRef = useRef<THREE.Group | null>(null)
   const frameRef = useRef<number>(0)
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const resetViewRef = useRef(false)
   const focusSelectedRef = useRef(false)
   const needsRenderRef = useRef(false)
+  const isPlayingRef = useRef(false)
+  const wasPlayingRef = useRef(false)
+  const fpInitializedRef = useRef(false)
+  const mouseDeltaXRef = useRef(0)
+  const mouseDeltaYRef = useRef(0)
+  const lastPointerXRef = useRef(0)
+  const lastPointerYRef = useRef(0)
   const initializedRef = useRef(false)
+  const creationEffectRef = useRef<{
+    position: { x: number; y: number; z: number }
+    startTime: number
+    points: THREE.Points | null
+    geometry: THREE.BufferGeometry | null
+    velocities: Float32Array
+  } | null>(null)
   const resizeTimeoutRef = useRef<number | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -114,21 +158,40 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     onResize?: () => void
     wheelOpts?: AddEventListenerOptions
   }>({})
+  const transformControlsRef = useRef<InstanceType<typeof TransformControls> | null>(null)
+  const transformControlsDraggingRef = useRef(false)
   
   // Store function refs to keep stable references
   const setViewportSelectedAssetRef = useRef(useEditorStore.getState().setViewportSelectedAsset)
   const addWorkspaceModelRef = useRef(useEditorStore.getState().addWorkspaceModel)
   const updateGameObjectRef = useRef(useEditorStore.getState().updateGameObject)
-  
+  const setAIInputAnchorPositionRef = useRef(useEditorStore.getState().setAIInputAnchorPosition)
+  const setAreaSelectionCircleRef = useRef(useEditorStore.getState().setAreaSelectionCircle)
+
   useEffect(() => {
     setViewportSelectedAssetRef.current = useEditorStore.getState().setViewportSelectedAsset
     addWorkspaceModelRef.current = useEditorStore.getState().addWorkspaceModel
     updateGameObjectRef.current = useEditorStore.getState().updateGameObject
+    setAIInputAnchorPositionRef.current = useEditorStore.getState().setAIInputAnchorPosition
+    setAreaSelectionCircleRef.current = useEditorStore.getState().setAreaSelectionCircle
   })
 
   const viewportSelectedAssetNames = useEditorStore((s) => s.viewportSelectedAssetNames)
+  const selectedObjectIds = useEditorStore((s) => s.selectedObjectIds)
+  const activeTool = useEditorStore((s) => s.activeTool)
   const gameObjects = useEditorStore((s) => s.gameObjects)
   const rootObjectIds = useEditorStore((s) => s.rootObjectIds)
+  const isPlaying = useEditorStore((s) => s.isPlaying)
+
+  useEffect(() => {
+    const wasPlaying = isPlayingRef.current
+    isPlayingRef.current = isPlaying
+    if (!isPlaying) {
+      document.exitPointerLock()
+      fpInitializedRef.current = false
+      wasPlayingRef.current = wasPlaying
+    }
+  }, [isPlaying])
   const loadedMeshUrlsRef = useRef<Record<string, string>>({})
 
   useLayoutEffect(() => {
@@ -284,6 +347,8 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     canvas.className = styles.viewport3dCanvas
     canvas.style.pointerEvents = 'auto'
     canvas.setAttribute('tabindex', '0')
+    canvas.setAttribute('title', 'Viewport — F: focus on selected object, R: reset view')
+    canvas.setAttribute('data-viewport-canvas', '1')
 
     const keysPressed = new Set<string>()
     let lastPanTime = performance.now()
@@ -303,6 +368,90 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     enforceCanvasLock()
 
     rendererRef.current = renderer
+
+    // Register viewport screenshot capture for pen tool compositing
+    useEditorStore.getState().setCaptureViewportScreenshot(() => {
+      if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return null
+      rendererRef.current.render(sceneRef.current, cameraRef.current)
+      return rendererRef.current.domElement.toDataURL('image/png')
+    })
+
+    // Register screen-to-world raycast for spatial positioning
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+    useEditorStore.getState().setScreenToWorld((screenX: number, screenY: number) => {
+      const cam = cameraRef.current
+      const group = modelsGroupRef.current
+      const cont = containerRef.current
+      if (!cam || !cont) return null
+
+      const rect = cont.getBoundingClientRect()
+      const ndcX = (screenX / rect.width) * 2 - 1
+      const ndcY = -(screenY / rect.height) * 2 + 1
+
+      const rc = raycasterRef.current
+      rc.setFromCamera(new THREE.Vector2(ndcX, ndcY), cam)
+
+      // Try intersecting scene objects first
+      if (group) {
+        const hits = rc.intersectObjects(group.children, true)
+        if (hits.length > 0) {
+          const p = hits[0].point
+          return { x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100, z: Math.round(p.z * 100) / 100 }
+        }
+      }
+
+      // Fall back to ground plane at y=0
+      const intersection = new THREE.Vector3()
+      const hit = rc.ray.intersectPlane(groundPlane, intersection)
+      if (hit) {
+        return { x: Math.round(intersection.x * 100) / 100, y: Math.round(intersection.y * 100) / 100, z: Math.round(intersection.z * 100) / 100 }
+      }
+
+      return null
+    })
+
+    // Register camera info getter for AI spatial context
+    useEditorStore.getState().setGetCameraInfo(() => {
+      const cam = cameraRef.current
+      if (!cam) return null
+      const r = (v: number) => Math.round(v * 100) / 100
+      return {
+        position: { x: r(cam.position.x), y: r(cam.position.y), z: r(cam.position.z) },
+        target: { x: r(target.x), y: r(target.y), z: r(target.z) },
+        fov: cam.fov,
+      }
+    })
+
+    // Transform controls (move / rotate / scale) for selected objects
+    const RAD2DEG = 180 / Math.PI
+    const transformControls = new TransformControls(camera, canvas)
+    transformControls.addEventListener('objectChange', () => {
+      const obj = transformControls.object as THREE.Object3D | undefined
+      if (!obj) return
+      const objectId = obj.userData.objectId as string | undefined
+      if (!objectId) return
+      const baseScale = (obj.userData.baseScale as number) ?? 1
+      const position = { x: obj.position.x, y: obj.position.y, z: obj.position.z }
+      const rotation = {
+        x: obj.rotation.x * RAD2DEG,
+        y: obj.rotation.y * RAD2DEG,
+        z: obj.rotation.z * RAD2DEG,
+      }
+      const scale = {
+        x: obj.scale.x / baseScale,
+        y: obj.scale.y / baseScale,
+        z: obj.scale.z / baseScale,
+      }
+      updateGameObjectRef.current(objectId, { transform: { position, rotation, scale } })
+    })
+    transformControls.addEventListener('mouseDown', () => {
+      transformControlsDraggingRef.current = true
+    })
+    transformControls.addEventListener('mouseUp', () => {
+      transformControlsDraggingRef.current = false
+    })
+    scene.add(transformControls.getHelper())
+    transformControlsRef.current = transformControls
 
     // Lights – brighter setup so assets are well lit
     const ambient = new THREE.AmbientLight(0xa0a0b8, 0.95)
@@ -346,6 +495,31 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     floor.position.y = 0
     floor.receiveShadow = true
     scene.add(floor)
+
+    // Area selection circle — 3D disc on the ground plane
+    const areaCircleGroup = new THREE.Group()
+    areaCircleGroup.visible = false
+    areaCircleGroup.position.y = 0.02
+    areaCircleGroup.rotation.x = -Math.PI / 2
+    const areaFillGeo = new THREE.CircleGeometry(1, 64)
+    const areaFillMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.12,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    })
+    areaCircleGroup.add(new THREE.Mesh(areaFillGeo, areaFillMat))
+    const areaRingGeo = new THREE.RingGeometry(0.96, 1, 64)
+    const areaRingMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    })
+    areaCircleGroup.add(new THREE.Mesh(areaRingGeo, areaRingMat))
+    scene.add(areaCircleGroup)
 
     const loader = new GLTFLoader()
     const modelsGroup = new THREE.Group()
@@ -438,13 +612,69 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       loadNextModel(i)
     }
 
+    loader.load('/avatars/curious-george.gltf', (gltf: { scene: THREE.Group }) => {
+      try {
+        const root = gltf.scene
+        root.traverse((node: THREE.Object3D) => {
+          if ((node as THREE.Mesh).isMesh) {
+            (node as THREE.Mesh).castShadow = true
+            ;(node as THREE.Mesh).receiveShadow = true
+          }
+        })
+        root.updateMatrixWorld(true)
+        const box = new THREE.Box3().setFromObject(root)
+        const size = box.getSize(new THREE.Vector3())
+        const height = Math.abs(size.y) || 1
+        const scale = Math.min(2, Math.max(0.1, AVATAR_TARGET_HEIGHT / height))
+        root.scale.setScalar(scale)
+        root.updateMatrixWorld(true)
+      const box2 = new THREE.Box3().setFromObject(root)
+      const minY = box2.min.y
+        if (Number.isFinite(minY)) {
+          root.position.y = -AVATAR_TARGET_HEIGHT - minY
+        }
+        const auraGeo = new THREE.SphereGeometry(1.2, 16, 16)
+        const auraMat = new THREE.MeshBasicMaterial({
+          color: 0x3498db,
+          transparent: true,
+          opacity: 0.15,
+          depthWrite: false,
+        })
+        const aura = new THREE.Mesh(auraGeo, auraMat)
+        // Center aura on character torso (avatar origin is at eye height; offset down to torso)
+        aura.position.y = -AVATAR_TARGET_HEIGHT * 0.5
+        aura.scale.set(1, 1.2, 1)
+        root.add(aura)
+        root.userData.isAvatar = true
+        avatarModelRef.current = root
+        needsRender = true
+      } catch (e) {
+        console.warn('[Viewport3D] Error processing avatar:', e)
+      }
+    }, undefined, (err) => {
+      console.warn('[Viewport3D] Failed to load avatar:', err)
+    })
+
     const raycaster = raycasterRef.current
     const mouse = mouseRef.current
+    const projectVec = new THREE.Vector3()
+    const projectBox = new THREE.Box3()
+    let lastAnchorX = -Infinity
+    let lastAnchorY = -Infinity
+    let hadAnchor = false
+
+    const fpPos = new THREE.Vector3()
+    let fpYaw = 0
+    let fpPitch = 0
 
     let isOrbiting = false
     let dragStartX = 0
     let dragStartY = 0
     let pointerSessionStartedOnCanvas = false
+    let shiftCircleDragging = false
+    let shiftCircleCenterX = 0
+    let shiftCircleCenterY = 0
+    const DEFAULT_CIRCLE_RADIUS = 60
 
     const performPick = (clientX: number, clientY: number, additive: boolean) => {
       const rect = canvas.getBoundingClientRect()
@@ -452,13 +682,66 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(mouse, camera)
       const hits = raycaster.intersectObjects(modelsGroup.children, true)
+      const state = useEditorStore.getState()
+      const currentNames = state.viewportSelectedAssetNames
+
       if (hits.length > 0) {
         const root = findRootWithAssetName(hits[0].object, modelsGroup)
         const name = root?.userData.assetName as string | undefined
-        if (name) setViewportSelectedAssetRef.current({ name }, { additive })
+        if (name) {
+          const isOnlySelection = currentNames.length === 1 && currentNames[0] === name
+          if (isOnlySelection && !additive) {
+            setViewportSelectedAssetRef.current(null)
+          } else {
+            setViewportSelectedAssetRef.current({ name }, { additive })
+          }
+        }
       } else if (!additive) {
         setViewportSelectedAssetRef.current(null)
       }
+    }
+
+    const selectObjectsInCircle = (cx: number, cy: number, r: number) => {
+      const cont = containerRef.current
+      if (!cont || !cameraRef.current || !modelsGroupRef.current) return
+      const rect = cont.getBoundingClientRect()
+      const w = rect.width
+      const h = rect.height
+      const cam = cameraRef.current
+      const group = modelsGroupRef.current
+      const center = new THREE.Vector3()
+      const box = new THREE.Box3()
+      const matchedNames: string[] = []
+      const matchedIds: string[] = []
+      const state = useEditorStore.getState()
+      const workspaceId = state.rootObjectIds[0]
+      const workspace = state.gameObjects[workspaceId]
+      if (!workspace) return
+
+      group.children.forEach((child) => {
+        const name = child.userData.assetName as string | undefined
+        const objId = child.userData.objectId as string | undefined
+        if (!name || !objId) return
+        box.makeEmpty()
+        box.setFromObject(child)
+        box.getCenter(center)
+        center.project(cam)
+        if (center.z > 1) return // behind camera
+        const screenX = ((center.x + 1) / 2) * w
+        const screenY = ((1 - center.y) / 2) * h
+        const dx = screenX - cx
+        const dy = screenY - cy
+        if (Math.sqrt(dx * dx + dy * dy) <= r) {
+          matchedNames.push(name)
+          matchedIds.push(objId)
+        }
+      })
+
+      // Batch-set selection
+      useEditorStore.setState({
+        viewportSelectedAssetNames: matchedNames,
+        selectedObjectIds: matchedIds,
+      })
     }
 
     const onPointerDown = (e: MouseEvent) => {
@@ -468,9 +751,50 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       dragStartX = e.clientX
       dragStartY = e.clientY
       isOrbiting = false
+
+      if (e.shiftKey && !isPlayingRef.current) {
+        const cont = containerRef.current
+        if (cont) {
+          const rect = cont.getBoundingClientRect()
+          shiftCircleCenterX = e.clientX - rect.left
+          shiftCircleCenterY = e.clientY - rect.top
+          shiftCircleDragging = true
+          setAreaSelectionCircleRef.current({ centerX: shiftCircleCenterX, centerY: shiftCircleCenterY, radius: 0 })
+        }
+        return
+      }
+
+      // Non-shift click clears existing area selection circle
+      if (useEditorStore.getState().areaSelectionCircle) {
+        setAreaSelectionCircleRef.current(null)
+      }
     }
 
     const onPointerMove = (e: MouseEvent) => {
+      if (shiftCircleDragging) {
+        const cont = containerRef.current
+        if (cont) {
+          const rect = cont.getBoundingClientRect()
+          const mx = e.clientX - rect.left
+          const my = e.clientY - rect.top
+          const dx = mx - shiftCircleCenterX
+          const dy = my - shiftCircleCenterY
+          const r = Math.sqrt(dx * dx + dy * dy)
+          setAreaSelectionCircleRef.current({ centerX: shiftCircleCenterX, centerY: shiftCircleCenterY, radius: r })
+          selectObjectsInCircle(shiftCircleCenterX, shiftCircleCenterY, r)
+        }
+        return
+      }
+      if (transformControlsDraggingRef.current) return
+      if (isPlayingRef.current) {
+        if (lastPointerXRef.current !== 0 || lastPointerYRef.current !== 0) {
+          mouseDeltaXRef.current += e.clientX - lastPointerXRef.current
+          mouseDeltaYRef.current += e.clientY - lastPointerYRef.current
+        }
+        lastPointerXRef.current = e.clientX
+        lastPointerYRef.current = e.clientY
+        return
+      }
       if (e.buttons !== 1) return
       if (!pointerSessionStartedOnCanvas) return
       const dx = e.clientX - dragStartX
@@ -492,8 +816,27 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
 
     const onPointerUp = (e: MouseEvent) => {
       if (e.button !== 0) return
+      if (shiftCircleDragging) {
+        shiftCircleDragging = false
+        const circle = useEditorStore.getState().areaSelectionCircle
+        if (circle && circle.radius < DRAG_THRESHOLD_PX) {
+          // Click without meaningful drag — use default radius
+          setAreaSelectionCircleRef.current({ centerX: shiftCircleCenterX, centerY: shiftCircleCenterY, radius: DEFAULT_CIRCLE_RADIUS })
+          selectObjectsInCircle(shiftCircleCenterX, shiftCircleCenterY, DEFAULT_CIRCLE_RADIUS)
+        }
+        pointerSessionStartedOnCanvas = false
+        canvas.style.cursor = 'grab'
+        return
+      }
+      if (transformControlsDraggingRef.current) {
+        pointerSessionStartedOnCanvas = false
+        return
+      }
       if (pointerSessionStartedOnCanvas && !isOrbiting) {
-        performPick(e.clientX, e.clientY, e.ctrlKey || e.metaKey || e.shiftKey)
+        const tool = useEditorStore.getState().activeTool
+        if (tool === 'select') {
+          performPick(e.clientX, e.clientY, e.ctrlKey || e.metaKey)
+        }
       }
       pointerSessionStartedOnCanvas = false
       isOrbiting = false
@@ -512,7 +855,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     const onWheel = (e: Event) => {
       const ev = e as WheelEvent
       ev.preventDefault()
-      const factor = 1 - ev.deltaY * ZOOM_SENSITIVITY
+      const factor = 1 + ev.deltaY * ZOOM_SENSITIVITY
       radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius * factor))
       updateCameraFromOrbit()
       needsRender = true // Force render on zoom
@@ -543,7 +886,35 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
 
     const onKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase()
-      if (PAN_KEYS.has(key) && document.activeElement === canvas) {
+      const viewportFocused =
+        document.activeElement === canvas ||
+        (container.contains(document.activeElement as Node) && document.activeElement !== document.body)
+      const inInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable
+
+      if (isPlayingRef.current) {
+        if (key === 'escape') {
+          useEditorStore.getState().stop()
+          e.preventDefault()
+          return
+        }
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+          keysPressed.add(key)
+          e.preventDefault()
+        }
+        return
+      }
+
+      // P key is handled globally in App.tsx to avoid duplicate toggle
+      if (key === 'f' && !inInput) {
+        const state = useEditorStore.getState()
+        const hasSelection = state.viewportSelectedAssetNames.length > 0 || state.selectedObjectIds.length > 0
+        if (hasSelection) {
+          focusSelectedRef.current = true
+          if (!viewportFocused && canvas) (canvas as HTMLCanvasElement).focus()
+          e.preventDefault()
+        }
+      }
+      if (PAN_KEYS.has(key) && viewportFocused) {
         if (key === 'r') {
           resetViewRef.current = true
         } else if (key === 'f') {
@@ -649,6 +1020,24 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
 
       let cameraChanged = false
 
+      if (wasPlayingRef.current && !isPlayingRef.current && cameraRef.current && sceneRef.current) {
+        wasPlayingRef.current = false
+        lastPointerXRef.current = 0
+        lastPointerYRef.current = 0
+        if (avatarRef.current && sceneRef.current) {
+          sceneRef.current.remove(avatarRef.current)
+        }
+        const cam = cameraRef.current
+        const dir = new THREE.Vector3()
+        cam.getWorldDirection(dir)
+        radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, 30))
+        target.copy(cam.position).addScaledVector(dir, radius)
+        theta = Math.atan2(-dir.x, -dir.z)
+        phi = Math.acos(Math.max(-1, Math.min(1, -dir.y)))
+        updateCameraFromOrbit()
+        cameraChanged = true
+      }
+
       if (resetViewRef.current && cameraRef.current) {
         resetViewRef.current = false
         target.copy(INITIAL_TARGET)
@@ -660,19 +1049,103 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         isAnimating = false
       }
 
+      // Honor request from store (e.g. after AI creates an object)
+      const storeState = useEditorStore.getState()
+      if (storeState.requestFocusSelection) {
+        storeState.setRequestFocusSelection(false)
+        focusSelectedRef.current = true
+      }
+
+      // Creation particle burst (when AI creates an object)
+      const effectPos = storeState.creationEffectPosition
+      if (effectPos && sceneRef.current) {
+        storeState.setCreationEffectPosition(null)
+        const velocities = new Float32Array(CREATION_PARTICLE_COUNT * 3)
+        for (let i = 0; i < CREATION_PARTICLE_COUNT; i++) {
+          const theta = Math.random() * Math.PI * 2
+          const phi = Math.acos(2 * Math.random() - 1) * 0.6 + Math.PI * 0.2
+          const s = CREATION_BURST_SPEED * (0.6 + Math.random() * 0.4)
+          velocities[i * 3] = Math.sin(phi) * Math.cos(theta) * s
+          velocities[i * 3 + 1] = Math.cos(phi) * s + 0.8
+          velocities[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * s
+        }
+        creationEffectRef.current = {
+          position: { ...effectPos },
+          startTime: now,
+          points: null,
+          geometry: null,
+          velocities,
+        }
+      }
+
+      const effect = creationEffectRef.current
+      if (effect && sceneRef.current) {
+        const elapsed = (now - effect.startTime) / 1000
+        if (effect.points === null) {
+          const positions = new Float32Array(CREATION_PARTICLE_COUNT * 3)
+          for (let i = 0; i < CREATION_PARTICLE_COUNT; i++) {
+            positions[i * 3] = effect.position.x
+            positions[i * 3 + 1] = effect.position.y
+            positions[i * 3 + 2] = effect.position.z
+          }
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+          const material = new THREE.PointsMaterial({
+            size: 0.35,
+            color: 0x88ccff,
+            transparent: true,
+            opacity: 0.9,
+            sizeAttenuation: true,
+          })
+          const points = new THREE.Points(geometry, material)
+          points.frustumCulled = false
+          sceneRef.current.add(points)
+          effect.points = points
+          effect.geometry = geometry
+        } else {
+          const posAttr = effect.geometry!.getAttribute('position') as THREE.BufferAttribute
+          const pos = posAttr.array as Float32Array
+          for (let i = 0; i < CREATION_PARTICLE_COUNT; i++) {
+            pos[i * 3] += effect.velocities[i * 3] * delta
+            pos[i * 3 + 1] += effect.velocities[i * 3 + 1] * delta
+            pos[i * 3 + 2] += effect.velocities[i * 3 + 2] * delta
+          }
+          posAttr.needsUpdate = true
+          const mat = effect.points!.material as THREE.PointsMaterial
+          const fade = Math.max(0, 1 - elapsed / (CREATION_EFFECT_DURATION_MS / 1000))
+          mat.opacity = 0.9 * fade
+          mat.size = 0.35 * fade
+          if (elapsed * 1000 >= CREATION_EFFECT_DURATION_MS) {
+            sceneRef.current.remove(effect.points!)
+            effect.geometry!.dispose()
+            mat.dispose()
+            creationEffectRef.current = null
+          }
+        }
+        cameraChanged = true
+      }
+
       if (focusSelectedRef.current && cameraRef.current && modelsGroupRef.current) {
         focusSelectedRef.current = false
         const group = modelsGroupRef.current
-        const selectedNames = new Set(viewportSelectedAssetNames)
-        
-        if (selectedNames.size > 0) {
-          // Find the selected object(s)
-          const selectedObjects = group.children.filter((child) => {
-            const name = child.userData.assetName as string | undefined
-            return name && selectedNames.has(name)
+        const state = useEditorStore.getState()
+        const currentNames = state.viewportSelectedAssetNames
+        const selectedIds = new Set(state.selectedObjectIds)
+        const selectedNames = new Set(currentNames)
+
+        // Find selected object(s) by name or by id (for AI-created objects)
+        let selectedObjects = group.children.filter((child) => {
+          const name = child.userData.assetName as string | undefined
+          return name && selectedNames.has(name)
+        })
+        if (selectedObjects.length === 0 && selectedIds.size > 0) {
+          selectedObjects = group.children.filter((child) => {
+            const id = child.userData.objectId as string | undefined
+            return id && selectedIds.has(id)
           })
-          
-          if (selectedObjects.length > 0) {
+        }
+
+        if (selectedObjects.length > 0) {
             // Calculate bounding box for all selected objects
             const box = new THREE.Box3()
             selectedObjects.forEach((obj) => box.expandByObject(obj))
@@ -694,10 +1167,59 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
             cameraChanged = true
             isAnimating = false
           }
-        }
+
       }
 
-      if (keysPressed.size > 0 && cameraRef.current) {
+      if (isPlayingRef.current && cameraRef.current && sceneRef.current) {
+        const camera = cameraRef.current
+        const scene = sceneRef.current
+
+        if (!avatarRef.current) {
+          if (avatarModelRef.current) {
+            avatarRef.current = avatarModelRef.current.clone(true)
+          } else {
+            avatarRef.current = createAvatarPlaceholder()
+          }
+        }
+        const avatar = avatarRef.current
+        if (!avatar.parent) {
+          scene.add(avatar)
+        }
+
+        if (!fpInitializedRef.current) {
+          fpPos.set(0, FP_EYE_HEIGHT, 0)
+          fpYaw = 0
+          fpPitch = 0
+          fpInitializedRef.current = true
+        }
+        fpYaw -= mouseDeltaXRef.current * FP_MOUSE_SENSITIVITY
+        fpPitch += mouseDeltaYRef.current * FP_MOUSE_SENSITIVITY
+        fpPitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, fpPitch))
+        mouseDeltaXRef.current = 0
+        mouseDeltaYRef.current = 0
+        const speed = FP_MOVE_SPEED * delta
+        const forward = new THREE.Vector3(-Math.sin(fpYaw), 0, -Math.cos(fpYaw))
+        const right = new THREE.Vector3(Math.cos(fpYaw), 0, -Math.sin(fpYaw))
+        if (keysPressed.has('arrowup')) fpPos.addScaledVector(forward, speed)
+        if (keysPressed.has('arrowdown')) fpPos.addScaledVector(forward, -speed)
+        if (keysPressed.has('arrowleft')) fpPos.addScaledVector(right, -speed)
+        if (keysPressed.has('arrowright')) fpPos.addScaledVector(right, speed)
+        fpPos.y = FP_EYE_HEIGHT
+
+        avatar.position.copy(fpPos)
+        avatar.rotation.y = fpYaw
+
+        const camDist = FP_CAMERA_DISTANCE * Math.cos(fpPitch)
+        camera.position.set(
+          fpPos.x + Math.sin(fpYaw) * camDist,
+          fpPos.y + FP_CAMERA_HEIGHT + FP_CAMERA_DISTANCE * Math.sin(fpPitch),
+          fpPos.z + Math.cos(fpYaw) * camDist
+        )
+        // Look at avatar (eye height) so the character is centered at viewport center
+        const lookHeight = FP_EYE_HEIGHT + 0.2
+        camera.lookAt(fpPos.x, lookHeight, fpPos.z)
+        cameraChanged = true
+      } else if (keysPressed.size > 0 && cameraRef.current) {
         const speed = PAN_SPEED * (delta * 60)
         const forward = new THREE.Vector3()
           .subVectors(camera.position, target)
@@ -739,10 +1261,115 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         framesSinceLastCheck = 0
       }
 
+      // Sync area selection circle to 3D ground plane
+      {
+        const areaCircle = useEditorStore.getState().areaSelectionCircle
+        if (areaCircle && areaCircle.radius > 0 && containerRef.current && cameraRef.current) {
+          const cont = containerRef.current
+          const rect = cont.getBoundingClientRect()
+          const w = rect.width
+          const h = rect.height
+          const rc = raycasterRef.current
+          const hitPt = new THREE.Vector3()
+
+          // Project center to ground
+          const cNdcX = (areaCircle.centerX / w) * 2 - 1
+          const cNdcY = -(areaCircle.centerY / h) * 2 + 1
+          rc.setFromCamera(new THREE.Vector2(cNdcX, cNdcY), camera)
+          const centerHit = rc.ray.intersectPlane(groundPlane, hitPt)
+          if (centerHit) {
+            const cx = hitPt.x
+            const cz = hitPt.z
+
+            // Project edge point to ground for world radius
+            const eNdcX = ((areaCircle.centerX + areaCircle.radius) / w) * 2 - 1
+            rc.setFromCamera(new THREE.Vector2(eNdcX, cNdcY), camera)
+            const edgePt = new THREE.Vector3()
+            const edgeHit = rc.ray.intersectPlane(groundPlane, edgePt)
+            if (edgeHit) {
+              const worldRadius = Math.sqrt((edgePt.x - cx) ** 2 + (edgePt.z - cz) ** 2)
+              areaCircleGroup.position.x = cx
+              areaCircleGroup.position.z = cz
+              areaCircleGroup.scale.setScalar(Math.max(worldRadius, 0.1))
+              areaCircleGroup.visible = true
+              needsRender = true
+            }
+          }
+        } else if (areaCircleGroup.visible) {
+          areaCircleGroup.visible = false
+          needsRender = true
+        }
+      }
+
       // Check if external trigger requested render
       if (needsRenderRef.current) {
         needsRender = true
         needsRenderRef.current = false
+      }
+
+      // Update AI input anchor position for contextual placement
+      const containerEl = containerRef.current
+      if (cameraRef.current && modelsGroupRef.current && containerEl) {
+        const state = useEditorStore.getState()
+        const selectedIds = new Set(state.selectedObjectIds)
+        if (selectedIds.size > 0) {
+          const group = modelsGroupRef.current
+          const selectedObjects = group.children.filter(
+            (c) => (c.userData.objectId as string) && selectedIds.has(c.userData.objectId as string)
+          )
+          if (selectedObjects.length > 0) {
+            projectBox.makeEmpty()
+            selectedObjects.forEach((obj) => projectBox.expandByObject(obj))
+            projectBox.getCenter(projectVec)
+            projectVec.project(cameraRef.current)
+            const rect = containerEl.getBoundingClientRect()
+            const width = rect.width
+            const height = rect.height
+            const pixelX = ((projectVec.x + 1) / 2) * width
+            const pixelY = ((1 - projectVec.y) / 2) * height
+            if (projectVec.z <= 1) {
+              const inputWidth = 400
+              const inputHeight = 48
+              const offsetY = 24
+              const left = Math.max(0, Math.min(width - inputWidth, pixelX - inputWidth / 2))
+              const top = Math.max(0, Math.min(height - inputHeight - offsetY, pixelY + offsetY))
+              if (Math.abs(left - lastAnchorX) > 2 || Math.abs(top - lastAnchorY) > 2) {
+                lastAnchorX = left
+                lastAnchorY = top
+                hadAnchor = true
+                setAIInputAnchorPositionRef.current({ x: left, y: top })
+              }
+            } else {
+              if (hadAnchor) {
+                hadAnchor = false
+                lastAnchorX = -Infinity
+                lastAnchorY = -Infinity
+                setAIInputAnchorPositionRef.current(null)
+              }
+            }
+          } else {
+            if (hadAnchor) {
+              hadAnchor = false
+              lastAnchorX = -Infinity
+              lastAnchorY = -Infinity
+              setAIInputAnchorPositionRef.current(null)
+            }
+          }
+        } else {
+          if (hadAnchor) {
+            hadAnchor = false
+            lastAnchorX = -Infinity
+            lastAnchorY = -Infinity
+            setAIInputAnchorPositionRef.current(null)
+          }
+        }
+      } else {
+        if (hadAnchor) {
+          hadAnchor = false
+          lastAnchorX = -Infinity
+          lastAnchorY = -Infinity
+          setAIInputAnchorPositionRef.current(null)
+        }
       }
 
       // Only render when needed
@@ -837,7 +1464,18 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       if (containerRef.current && wrapper && wrapper.parentNode === containerRef.current) {
         containerRef.current.removeChild(wrapper)
       }
-      
+
+      useEditorStore.getState().setCaptureViewportScreenshot(null)
+      useEditorStore.getState().setScreenToWorld(null)
+      useEditorStore.getState().setGetCameraInfo(null)
+      const scene = sceneRef.current
+      const tcon = transformControlsRef.current
+      if (tcon && scene) {
+        tcon.detach()
+        scene.remove(tcon.getHelper())
+        if (typeof tcon.dispose === 'function') tcon.dispose()
+        transformControlsRef.current = null
+      }
       rendererRef.current?.dispose()
       rendererRef.current = null
       sceneRef.current = null
@@ -853,6 +1491,37 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Attach/detach transform controls based on active tool and selection
+  useEffect(() => {
+    const controls = transformControlsRef.current
+    const group = modelsGroupRef.current
+    const camera = cameraRef.current
+    if (!controls || !group || !camera) return
+
+    const transformTools = new Set(['move', 'rotate', 'scale', 'transform'])
+    const singleId = selectedObjectIds.length === 1 ? selectedObjectIds[0] : null
+
+    if (!singleId || !activeTool || !transformTools.has(activeTool)) {
+      controls.detach()
+      return
+    }
+
+    const root = group.children.find(
+      (c) => (c.userData.objectId as string) === singleId
+    ) as THREE.Object3D | undefined
+    if (!root) {
+      controls.detach()
+      return
+    }
+
+    if (activeTool === 'move') controls.setMode('translate')
+    else if (activeTool === 'rotate') controls.setMode('rotate')
+    else if (activeTool === 'scale') controls.setMode('scale')
+    else controls.setMode('translate') // transform -> translate
+    controls.camera = camera
+    controls.attach(root)
+  }, [activeTool, selectedObjectIds])
+
   // Highlight selected assets
   useEffect(() => {
     const group = modelsGroupRef.current
@@ -865,6 +1534,162 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     // Force a render to show the highlight changes
     needsRenderRef.current = true
   }, [viewportSelectedAssetNames])
+
+  // Sync color/material for all objects (GLB models + primitives) when gameObject.color changes
+  useEffect(() => {
+    const group = modelsGroupRef.current
+    if (!group || rootObjectIds.length === 0) return
+
+    const workspaceId = rootObjectIds[0]
+    const workspace = gameObjects[workspaceId]
+    if (!workspace?.children) return
+
+    workspace.children.forEach((objId) => {
+      const obj = gameObjects[objId]
+      if (!obj?.color) return
+
+      const root = group.children.find(
+        (c) => (c.userData.objectId as string) === objId
+      ) as THREE.Object3D | undefined
+      if (!root) return
+
+      root.traverse((node: THREE.Object3D) => {
+        if ((node as THREE.Mesh).isMesh) {
+          const mat = (node as THREE.Mesh).material as THREE.MeshStandardMaterial
+          if (mat?.color) {
+            const newColor = new THREE.Color(obj.color!)
+            if (!mat.color.equals(newColor)) {
+              mat.color.copy(newColor)
+              mat.needsUpdate = true
+              needsRenderRef.current = true
+            }
+          }
+        }
+      })
+    })
+  }, [gameObjects, rootObjectIds])
+
+  // Create/update/remove primitive meshes for AI-created objects (box, sphere, cylinder, etc.)
+  useEffect(() => {
+    const group = modelsGroupRef.current
+    if (!group || rootObjectIds.length === 0) return
+
+    const workspaceId = rootObjectIds[0]
+    const workspace = gameObjects[workspaceId]
+    if (!workspace?.children) return
+
+    const childSet = new Set(workspace.children)
+    const DEG2RAD = Math.PI / 180
+
+    // Remove Three.js objects for deleted game objects (primitives only)
+    const toRemove: THREE.Object3D[] = []
+    group.children.forEach((child) => {
+      const objId = child.userData.objectId as string | undefined
+      if (objId && !childSet.has(objId)) {
+        // Check if this was a primitive (has isPrimitive flag)
+        if (child.userData.isPrimitive) {
+          toRemove.push(child)
+        }
+      }
+    })
+    toRemove.forEach((child) => {
+      group.remove(child)
+      child.traverse((node: THREE.Object3D) => {
+        if ((node as THREE.Mesh).isMesh) {
+          const mesh = node as THREE.Mesh
+          mesh.geometry?.dispose()
+          if (Array.isArray(mesh.material)) mesh.material.forEach((m) => m.dispose())
+          else mesh.material?.dispose()
+        }
+      })
+      needsRenderRef.current = true
+    })
+
+    workspace.children.forEach((objId) => {
+      const obj = gameObjects[objId]
+      if (!obj?.primitiveType) return
+
+      // If a Three.js object already exists, sync its material properties
+      const existing = group.children.find(
+        (c) => (c.userData.objectId as string) === objId
+      )
+      if (existing) {
+        // Update color/material on existing primitives
+        existing.traverse((node: THREE.Object3D) => {
+          if ((node as THREE.Mesh).isMesh) {
+            const mat = (node as THREE.Mesh).material as THREE.MeshStandardMaterial
+            if (mat?.color && obj.color) {
+              const newColor = new THREE.Color(obj.color)
+              if (!mat.color.equals(newColor)) {
+                mat.color.copy(newColor)
+                mat.needsUpdate = true
+                needsRenderRef.current = true
+              }
+            }
+          }
+        })
+        return
+      }
+
+      // Create the appropriate geometry
+      let geometry: THREE.BufferGeometry
+      switch (obj.primitiveType) {
+        case 'sphere':
+          geometry = new THREE.SphereGeometry(0.5, 32, 32)
+          break
+        case 'cylinder':
+          geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32)
+          break
+        case 'cone':
+          geometry = new THREE.ConeGeometry(0.5, 1, 32)
+          break
+        case 'torus':
+          geometry = new THREE.TorusGeometry(0.4, 0.15, 16, 32)
+          break
+        case 'plane':
+          geometry = new THREE.PlaneGeometry(1, 1)
+          break
+        case 'box':
+        default:
+          geometry = new THREE.BoxGeometry(1, 1, 1)
+          break
+      }
+
+      const color = obj.color || '#888888'
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(color),
+        roughness: 0.6,
+        metalness: obj.reflectance ?? 0.1,
+        transparent: (obj.transparency ?? 0) > 0,
+        opacity: 1 - (obj.transparency ?? 0),
+      })
+
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+
+      // Wrap in a group so the structure matches GLB-loaded models
+      const root = new THREE.Group()
+      root.add(mesh)
+      root.userData.assetName = obj.name
+      root.userData.objectId = objId
+      root.userData.baseScale = 1
+      root.userData.isPrimitive = true
+
+      // Apply transform
+      const { position, rotation, scale } = obj.transform
+      root.position.set(position.x, position.y, position.z)
+      root.rotation.set(
+        rotation.x * DEG2RAD,
+        rotation.y * DEG2RAD,
+        rotation.z * DEG2RAD
+      )
+      root.scale.set(scale.x, scale.y, scale.z)
+
+      group.add(root)
+      needsRenderRef.current = true
+    })
+  }, [gameObjects, rootObjectIds])
 
   // Replace meshes when meshUrl is set (user-selected file)
   useEffect(() => {

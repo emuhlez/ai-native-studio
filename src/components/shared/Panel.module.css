@@ -41,6 +41,25 @@
   color: var(--content-default);
 }
 
+.titleTrailing {
+  display: flex;
+  align-items: center;
+  color: var(--content-muted);
+}
+
+.titleTrailing svg {
+  width: 14px;
+  height: 14px;
+}
+
+.headerMiddle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  margin: 0 8px;
+}
+
 .actions {
   display: flex;
   align-items: center;

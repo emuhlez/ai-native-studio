@@ -67,7 +67,7 @@
 
 .actionIconContainer:active,
 .actionIconContainer.pressed {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(208, 217, 251, 0.12);
 }
 
 .menuDropdown {
@@ -171,6 +171,7 @@
   border: none;
   justify-content: center;
   box-sizing: content-box;
+  position: relative;
 }
 
 .avatar {
@@ -327,6 +328,14 @@
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
   cursor: pointer;
+  outline: none;
+}
+
+.testPlayButton:focus,
+.testPauseButton:focus,
+.testStopButton:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .testPlayButton {
@@ -348,10 +357,21 @@
 }
 
 .testStopButton {
-  color: var(--content-default);
+  color: var(--color-error, #e74c3c);
 }
 
-.testStopButton:hover {
+.testStopButton:disabled {
+  color: var(--content-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.testStopButton:disabled:hover {
+  background: transparent;
+  color: var(--content-muted);
+}
+
+.testStopButton:not(:disabled):hover {
   background: var(--content-hover);
   color: var(--content-emphasis);
 }
@@ -516,13 +536,110 @@
   color: var(--content-muted);
 }
 
-/* Group wrapper divs for icon containers */
-.group > div {
+/* Active toolbar icon (e.g., AI Assistant toggle) */
+.activeToolbarIcon {
+  background: rgba(208, 217, 251, 0.16);
+  border-radius: var(--radius-sm);
+}
+
+/* Wrapper for AI settings button + dropdown so menu anchors under the button */
+.aiSettingsWrap {
+  position: relative;
+}
+
+.group > div.aiSettingsWrap.pressed,
+.aiSettingsButtonPressed {
+  background: rgba(208, 217, 251, 0.12);
+  border-radius: var(--radius-sm);
+}
+
+.aiSettingsWrap > button {
+  height: 16px;
+}
+
+.aiSettingsMenu {
+  left: auto;
+  right: 0;
+}
+
+.aiSettingsDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  background: var(--bg-surface200);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+  z-index: 1000;
+}
+
+.aiSettingsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 200px;
+}
+
+.aiSettingsSectionHeader {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--content-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aiSettingsRadioRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 12px;
+  min-height: 24px;
+  font-size: 13px;
+  color: var(--content-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.aiSettingsRadioRow:hover {
+  background: rgba(208, 217, 251, 0.12);
+  color: var(--content-emphasis);
+}
+
+.aiSettingsRadioRow input {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+/* Group wrapper divs and icon buttons */
+.group > div,
+.group > button {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 28px;
   height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+}
+
+.group > button:hover {
+  background: rgba(208, 217, 251, 0.12);
 }
 
 /* Images within group */
@@ -539,5 +656,79 @@
   width: 24px;
   height: 24px;
   padding: 0;
+}
+
+/* AI Omnisearch styles */
+.aiIndicator {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent-primary);
+  background: rgba(208, 217, 251, 0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.aiResponse {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aiResponseStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--content-muted);
+}
+
+.aiStatusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  animation: aiPulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes aiPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.aiResponseText {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--content-default);
+}
+
+.aiResponseHint {
+  font-size: 11px;
+  color: var(--content-muted);
+  text-align: center;
+  padding: 4px 0;
+}
+
+.continueLink {
+  display: block;
+  width: 100%;
+  padding: 6px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.continueLink:hover {
+  color: var(--content-link);
 }
 

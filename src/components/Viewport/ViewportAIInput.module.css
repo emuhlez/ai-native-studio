@@ -1,0 +1,107 @@
+.overlay {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 400px;
+  min-width: 280px;
+  pointer-events: auto;
+  transition: left 0.2s ease, top 0.2s ease, bottom 0.2s ease, transform 0.2s ease;
+}
+
+/* Viewport input row; collapsed assistant row uses actual design: prompts/Message-Field.svg */
+.inputRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 400px;
+  min-width: 280px;
+  min-height: 48px;
+  padding: 8px 12px 8px 0;
+  box-sizing: border-box;
+  background: rgba(25, 26, 31, 0.92);
+  border: 1px solid rgba(208, 217, 251, 0.4);
+  border-radius: 24px;
+  box-shadow:
+    0 2px 2px rgba(4, 4, 8, 0.25),
+    0 10px 10px rgba(4, 4, 8, 0.25),
+    0 16px 16px rgba(4, 4, 8, 0.25);
+  overflow: visible;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.inputRow:focus-within {
+  outline: none;
+  border-color: rgba(208, 217, 251, 0.6);
+  box-shadow:
+    0 2px 2px rgba(4, 4, 8, 0.25),
+    0 10px 10px rgba(4, 4, 8, 0.25),
+    0 16px 16px rgba(4, 4, 8, 0.25);
+}
+
+/* Override global :focus-visible so the input row doesn't get a blue outline */
+.inputRow :focus-visible {
+  outline: none;
+}
+
+.inputIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  color: #f7f7f8;
+}
+
+.inputIconImg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Flex-wrap container for pills + textarea */
+.pillsAndInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 24px;
+  padding: 0 8px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 24px;
+  max-height: 120px;
+  padding: 4px 44px 4px 12px; /* right padding so text doesn't go under mic */
+  background: transparent;
+  border: none;
+  color: var(--content-emphasis, #f7f7f8);
+  font-size: 12px;
+  line-height: 20px;
+  outline: none;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+}
+
+.shortcutHint {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(188, 190, 200, 0.8);
+  padding: 0 12px;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  font-family: inherit;
+}
+

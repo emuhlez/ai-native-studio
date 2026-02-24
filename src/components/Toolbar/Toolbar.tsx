@@ -1,20 +1,20 @@
-import { 
-  Play, 
-  Square, 
-  X
+import {
+  Play,
+  Square,
+  X,
+  Settings,
 } from 'lucide-react'
 import { ExpandDownIcon } from '../shared/ExpandIcons'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useEditorStore } from '../../store/editorStore'
+import { useDockingStore } from '../../store/dockingStore'
 import { MenuDropdown, MenuItem } from '../shared/MenuDropdown'
+import { useAgentChat } from '../../ai/use-agent-chat'
+import { isAIIntent } from '../../ai/detect-ai-intent'
+import { parseResponse } from '../../ai/parse-response'
 import styles from './Toolbar.module.css'
 import searchIconImg from '../../../images/search.png'
-import annotationIcon from '../../../images/Annotation Icon.png'
 import aiAssistantIcon from '../../../images/AI Assistant.png'
-import notificationIcon from '../../../images/Small_Notification.png'
-import avatar1 from '../../../images/Avatar-1.png'
-import avatar2 from '../../../images/Avatar-2.png'
-import avatar3 from '../../../images/Avatar-3.png'
 import partBlockIcon from '../../../images/Part_Block.png'
 
 export function Toolbar() {
@@ -24,9 +24,37 @@ export function Toolbar() {
   const [selectedTestMode, setSelectedTestMode] = useState('Test')
   const [searchQuery, setSearchQuery] = useState('')
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const [aiResponseText, setAiResponseText] = useState<string | null>(null)
+  const [aiSubmitted, setAiSubmitted] = useState(false)
+  const [showAiSettingsDropdown, setShowAiSettingsDropdown] = useState(false)
+  const [aiAssistantMode, setAiAssistantMode] = useState<'Omnisearch' | 'Chat' | 'Off'>('Omnisearch')
+  const chatbotUIMode = useDockingStore((s) => s.chatbotUIMode)
+  const setChatbotUIMode = useDockingStore((s) => s.setChatbotUIMode)
+  const aiDismissTimer = useRef<ReturnType<typeof setTimeout>>()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const aiSettingsRef = useRef<HTMLDivElement>(null)
+  const aiSettingsDropdownRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Keep AI settings dropdown within viewport
+  const [aiSettingsDropdownPosition, setAiSettingsDropdownPosition] = useState<{ left: number; top: number } | null>(null)
+  useLayoutEffect(() => {
+    if (!showAiSettingsDropdown || !aiSettingsRef.current || !aiSettingsDropdownRef.current) {
+      setAiSettingsDropdownPosition(null)
+      return
+    }
+    const triggerRect = aiSettingsRef.current.getBoundingClientRect()
+    const dropdownEl = aiSettingsDropdownRef.current
+    const width = dropdownEl.offsetWidth || 200
+    const margin = 8
+    const top = triggerRect.bottom + 4
+    let left = triggerRect.right - width
+    if (left < margin) left = margin
+    if (left + width > window.innerWidth - margin) left = window.innerWidth - width - margin
+    setAiSettingsDropdownPosition({ left, top })
+  }, [showAiSettingsDropdown])
 
   // Test dropdown menu items
   const testMenuItems: MenuItem[] = [
@@ -35,8 +63,6 @@ export function Toolbar() {
     { label: 'Run', onClick: () => setSelectedTestMode('Run') },
     { label: 'Server & Clients', onClick: () => setSelectedTestMode('Server & Clients') },
   ]
-  
-  // Menu items without dividers for this variant
   const menuItems: MenuItem[] = [
     { 
       label: 'File',
@@ -195,7 +221,97 @@ export function Toolbar() {
     play,
     pause,
     stop,
+    isPlaying,
   } = useEditorStore()
+
+  const { widgets, dockWidget, undockWidget } = useDockingStore()
+  const aiPanelVisible = !!widgets['ai-assistant']
+
+  const toggleAIPanel = () => {
+    if (aiPanelVisible) {
+      undockWidget('ai-assistant')
+    } else {
+      dockWidget('ai-assistant', 'right-top')
+    }
+  }
+
+  // AI chat integration for omnisearch
+  const { messages, sendMessage, status: aiStatus } = useAgentChat()
+  const aiIsLoading = aiStatus === 'streaming' || aiStatus === 'submitted'
+  const aiMode = isAIIntent(searchQuery)
+
+  // Count pending tool calls for AI status
+  const aiPendingToolCount = messages
+    .filter((m) => m.role === 'assistant')
+    .flatMap((m) => m.parts ?? [])
+    .filter((part) => {
+      if (part.type === 'text') return false
+      if ('state' in part) {
+        return part.state === 'input-streaming' || part.state === 'input-available'
+      }
+      return false
+    }).length
+
+  // Watch for AI status transition to 'ready' after submitting
+  const prevAiStatusRef = useRef(aiStatus)
+  useEffect(() => {
+    const wasLoading = prevAiStatusRef.current === 'streaming' || prevAiStatusRef.current === 'submitted'
+    prevAiStatusRef.current = aiStatus
+
+    if (!aiSubmitted) return
+    if (!wasLoading || aiStatus !== 'ready') return
+
+    // Status just went from loading → ready; read the final response
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
+    if (!lastAssistant) return
+
+    const text = lastAssistant.parts
+      ?.filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
+      .map((p) => p.text)
+      .join('') || ''
+
+    if (!text) {
+      setAiSubmitted(false)
+      return
+    }
+
+    const parsed = parseResponse(text)
+    setAiSubmitted(false)
+
+    if (parsed.shouldOpenAssistant) {
+      dockWidget('ai-assistant', 'right-top')
+      setShowSearchResults(false)
+      setSearchQuery('')
+      setAiResponseText(null)
+      return
+    }
+
+    const display = parsed.text.length > 150
+      ? parsed.text.slice(0, 150) + '...'
+      : parsed.text
+    setAiResponseText(display)
+
+    clearTimeout(aiDismissTimer.current)
+    aiDismissTimer.current = setTimeout(() => {
+      setAiResponseText(null)
+      setShowSearchResults(false)
+      setSearchQuery('')
+    }, 4000)
+  }, [aiStatus, messages, aiSubmitted, dockWidget])
+
+  // Cleanup AI dismiss timer
+  useEffect(() => {
+    return () => clearTimeout(aiDismissTimer.current)
+  }, [])
+
+  // Handle AI search submit
+  const handleAISubmit = useCallback(() => {
+    if (!searchQuery.trim() || aiIsLoading) return
+    sendMessage({ text: searchQuery })
+    setAiSubmitted(true)
+    setAiResponseText(null)
+    setShowSearchResults(true)
+  }, [searchQuery, aiIsLoading, sendMessage])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -210,25 +326,50 @@ export function Toolbar() {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSearchResults(false)
       }
+      if (aiSettingsRef.current && !aiSettingsRef.current.contains(event.target as Node)) {
+        setShowAiSettingsDropdown(false)
+      }
     }
 
-    if (showTestDropdown || showMenuDropdown || showSearchResults) {
+    if (showTestDropdown || showMenuDropdown || showSearchResults || showAiSettingsDropdown) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showTestDropdown, showMenuDropdown, showSearchResults])
+  }, [showTestDropdown, showMenuDropdown, showSearchResults, showAiSettingsDropdown])
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchQuery(value)
+    setAiResponseText(null)
+    setAiSubmitted(false)
+    clearTimeout(aiDismissTimer.current)
     setShowSearchResults(value.length > 0)
+  }
+
+  // Handle search keydown (Enter for AI submit, Escape to close)
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && aiMode) {
+      e.preventDefault()
+      handleAISubmit()
+    }
+    if (e.key === 'Escape') {
+      setSearchQuery('')
+      setShowSearchResults(false)
+      setAiResponseText(null)
+      setAiSubmitted(false)
+      clearTimeout(aiDismissTimer.current)
+      searchInputRef.current?.blur()
+    }
   }
 
   // Clear search
   const handleClearSearch = () => {
     setSearchQuery('')
     setShowSearchResults(false)
+    setAiResponseText(null)
+    setAiSubmitted(false)
+    clearTimeout(aiDismissTimer.current)
   }
 
   // Mock search results - replace with actual search logic
@@ -291,13 +432,22 @@ export function Toolbar() {
             isOpen={showTestDropdown}
             onClose={() => setShowTestDropdown(false)}
           />
-          <button className={styles.testPlayButton} onClick={play} title="Play Test">
-            <Play size={16} fill="currentColor" />
+          <button
+            className={isPlaying ? styles.testStopButton : styles.testPlayButton}
+            onClick={isPlaying ? stop : play}
+            title={isPlaying ? 'Stop — Exit game mode' : 'Play — Enter game mode'}
+          >
+            {isPlaying ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
           </button>
           <button className={styles.testPauseButton} onClick={pause} title="Pause Test">
             <img src="/pause-split-toggle.png" alt="Pause" width={16} height={16} />
           </button>
-          <button className={styles.testStopButton} onClick={stop} title="Stop Test">
+          <button
+            className={styles.testStopButton}
+            onClick={stop}
+            title="Stop — Exit game mode"
+            disabled={!isPlaying}
+          >
             <Square size={16} fill="currentColor" />
           </button>
         </div>
@@ -306,17 +456,20 @@ export function Toolbar() {
       <div className={styles.searchWrapper} ref={searchRef}>
         <div className={styles.searchContainer}>
           <img src={searchIconImg} alt="Search" className={styles.searchIcon} width={16} height={16} />
-          <input 
-            type="text" 
-            placeholder="Search Project" 
+          {aiMode && <span className={styles.aiIndicator}>AI</span>}
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search Project"
             className={styles.searchInput}
             aria-label="Search Project"
             value={searchQuery}
             onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
             onFocus={() => searchQuery.length > 0 && setShowSearchResults(true)}
           />
           {searchQuery && (
-            <button 
+            <button
               className={styles.clearButton}
               onClick={handleClearSearch}
               aria-label="Clear search"
@@ -327,9 +480,37 @@ export function Toolbar() {
         </div>
         {showSearchResults && (
           <div className={styles.searchResultsMenu}>
-            {searchResults.length > 0 ? (
+            {aiMode || aiSubmitted ? (
+              <div className={styles.aiResponse}>
+                {aiIsLoading && (
+                  <div className={styles.aiResponseStatus}>
+                    <span className={styles.aiStatusDot} />
+                    <span>
+                      {aiPendingToolCount > 0
+                        ? `Executing ${aiPendingToolCount} tool${aiPendingToolCount > 1 ? 's' : ''}...`
+                        : 'Thinking...'}
+                    </span>
+                  </div>
+                )}
+                {aiResponseText && (
+                  <div className={styles.aiResponseText}>{aiResponseText}</div>
+                )}
+                {!aiIsLoading && !aiResponseText && !aiSubmitted && (
+                  <div className={styles.aiResponseHint}>Press Enter to ask AI</div>
+                )}
+                <button
+                  className={styles.continueLink}
+                  onClick={() => {
+                    dockWidget('ai-assistant', 'right-top')
+                    setShowSearchResults(false)
+                  }}
+                >
+                  Continue in Assistant →
+                </button>
+              </div>
+            ) : searchResults.length > 0 ? (
               searchResults.map((result, index) => (
-                <button 
+                <button
                   key={index}
                   className={styles.searchResultItem}
                   onClick={() => {
@@ -346,7 +527,7 @@ export function Toolbar() {
               ))
             ) : (
               <div className={styles.noResults}>
-                No results found for "{searchQuery}"
+                No results found for &quot;{searchQuery}&quot;
               </div>
             )}
           </div>
@@ -355,20 +536,67 @@ export function Toolbar() {
 
       <div className={styles.section}>
         <div className={styles.group}>
-          <div>
-            <img src={annotationIcon} alt="Annotation" width={16} height={16} />
-          </div>
-          <div>
+          <div
+            className={aiPanelVisible ? styles.activeToolbarIcon : ''}
+            onClick={toggleAIPanel}
+            style={{ cursor: 'pointer' }}
+          >
             <img src={aiAssistantIcon} alt="AI Assistant" width={16} height={16} />
           </div>
-          <div>
-            <img src={notificationIcon} alt="Notifications" width={16} height={16} />
+          <div
+              className={`${styles.aiSettingsWrap} ${showAiSettingsDropdown ? styles.pressed : ''}`}
+              ref={aiSettingsRef}
+            >
+            <button
+              type="button"
+              onClick={() => setShowAiSettingsDropdown((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={showAiSettingsDropdown}
+              title={`AI Assistant settings (${aiAssistantMode})`}
+              className={showAiSettingsDropdown ? styles.aiSettingsButtonPressed : undefined}
+            >
+              <Settings size={16} />
+            </button>
+            {showAiSettingsDropdown && (
+              <div
+                ref={aiSettingsDropdownRef}
+                className={`${styles.aiSettingsDropdown} ${styles.aiSettingsMenu}`}
+                style={
+                  aiSettingsDropdownPosition
+                    ? {
+                        position: 'fixed',
+                        left: aiSettingsDropdownPosition.left,
+                        top: aiSettingsDropdownPosition.top,
+                        right: 'auto',
+                      }
+                    : undefined
+                }
+              >
+                <div className={styles.aiSettingsPanel}>
+                  <div className={styles.aiSettingsSectionHeader}>CHATBOT</div>
+                  {/* Tabs: keep this option — conversation switcher shows tabs */}
+                  <label className={styles.aiSettingsRadioRow}>
+                    <input
+                      type="radio"
+                      name="chatbot-ui"
+                      checked={chatbotUIMode === 'tabs'}
+                      onChange={() => setChatbotUIMode('tabs')}
+                    />
+                    Tabs
+                  </label>
+                  <label className={styles.aiSettingsRadioRow}>
+                    <input
+                      type="radio"
+                      name="chatbot-ui"
+                      checked={chatbotUIMode === 'dropdown'}
+                      onChange={() => setChatbotUIMode('dropdown')}
+                    />
+                    Dropdown task list
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        <div className={styles.group}>
-          <img src={avatar1} alt="Avatar 1" width={24} height={24} className={styles.avatar} />
-          <img src={avatar2} alt="Avatar 2" width={24} height={24} className={styles.avatar} />
-          <img src={avatar3} alt="Avatar 3" width={24} height={24} className={styles.avatar} />
         </div>
         <button className={styles.testDropdownButton}>
           <img src={partBlockIcon} alt="Part Block" width={16} height={16} />

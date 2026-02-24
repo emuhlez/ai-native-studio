@@ -2,6 +2,13 @@
   background: var(--bg-surface200) !important;
 }
 
+/* Gives panel content a height so collapse transition can animate from 70vh to 0 */
+.collapsePlaceholder {
+  min-height: 70vh;
+  width: 100%;
+  pointer-events: none;
+}
+
 .empty {
   display: flex;
   align-items: center;
@@ -377,7 +384,8 @@
   position: relative;
 }
 
-.transformLabel::after {
+/* Only show fade when label text is actually truncated */
+.transformLabel.overflowing::after {
   content: '';
   position: absolute;
   top: 0;

@@ -288,7 +288,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   width: 100%;
   min-width: 0;
   height: 42px;
@@ -328,7 +328,6 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-right: 16px;
 }
 
 .queueLeftActions button {
@@ -414,6 +413,7 @@
   align-items: center;
   gap: 2px;
   margin-right: auto;
+  flex-shrink: 0;
 }
 
 .importButton {
@@ -439,6 +439,8 @@
 
 .contentScroll {
   flex: 1;
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
@@ -450,9 +452,9 @@
 }
 
 .contentTableWrap {
+  display: block;
   width: 100%;
-  max-width: 100%;
-  min-width: 0;
+  min-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   background: var(--bg-surface100);
@@ -461,13 +463,23 @@
 }
 
 .contentTable {
+  display: table;
   width: 100%;
-  min-width: 0;
-  max-width: 100%;
+  min-width: 100%;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
-  table-layout: fixed;
+  box-sizing: border-box;
+}
+
+/* Import queue: 5 columns fill width, Status 72px fixed on the right */
+.contentTableColFill {
+  width: calc((100% - 72px) / 5);
+}
+
+.contentTableColStatus {
+  width: 72px;
 }
 
 .contentTable thead {
@@ -514,9 +526,24 @@
   color: #F7F7F8;
 }
 
+/* Import queue: 5 columns fill width, Status 72px on the right */
+.contentTableThCheckbox {
+  width: calc((100% - 72px) / 5);
+  min-width: 32px;
+}
+
 .contentTableThQueue {
+  width: calc((100% - 72px) / 5);
   color: #BCBEC8 !important;
   font-weight: 400;
+}
+
+.contentTableThQueue ~ .contentTableTh:not(.contentTableThStatus):not(.contentTableThFilePath) {
+  width: calc((100% - 72px) / 5);
+}
+
+.contentTableThFilePath {
+  width: calc((100% - 72px) / 5);
 }
 
 .contentTableThDivider {
@@ -534,6 +561,38 @@
   display: none;
 }
 
+/* Resizable column divider – right edge of each th (except Status); drag to resize */
+.contentTableThResizeHandle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 1;
+  user-select: none;
+}
+
+.contentTableThResizeHandle:hover::after {
+  background: rgba(240, 240, 240, 0.25);
+}
+
+.contentTableThResizeHandle::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: rgba(240, 240, 240, 0.1);
+  border-radius: 0.5px;
+}
+
+.contentTableTh:last-child .contentTableThResizeHandle {
+  display: none;
+}
+
 .contentTableThDropdown {
   display: inline-flex;
   align-items: center;
@@ -546,18 +605,24 @@
   color: #A1A2A5;
 }
 
+/* Status column: narrowest column in the table */
 .contentTableThStatus {
-  min-width: 0;
-  width: 15%;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
 }
 
 .contentTableTdStatus {
-  min-width: 0;
-  width: 15%;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
 }
 
 .contentTableTdFilePath {
   color: #528BFF !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .contentTableRow {

@@ -42,6 +42,8 @@ export interface GameObject {
   renderFidelity?: 'Automatic' | 'Low' | 'Medium' | 'High'
   /** Render both sides of mesh faces */
   doubleSided?: boolean
+  /** Primitive geometry type for AI-created objects */
+  primitiveType?: 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane'
   /** Tint color (hex, e.g. #ffffff) */
   color?: string
   /** Material name (e.g. Plastic) */
@@ -119,14 +121,72 @@ export interface EditorState {
   selectedAssetIds: string[]
   selectedAssetAnchor: string | null
   viewportSelectedAssetNames: string[]
+  /** Screen position for contextual AI input placement (relative to viewport) */
+  aiInputAnchorPosition: { x: number; y: number } | null
   isPlaying: boolean
   isPaused: boolean
-  activeTool: 'select' | 'move' | 'rotate' | 'scale'
+  activeTool: 'select' | 'move' | 'rotate' | 'scale' | 'transform' | 'pen' | null
   viewMode: '2d' | '3d'
   showGrid: boolean
   snapToGrid: boolean
   gridSize: number
 }
+
+// --- Conversation types ---
+
+export type ConversationMode = 'default' | 'sketch' | 'voice'
+
+export interface PersistedMessage {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  textContent: string
+  toolCalls?: { toolName: string; args: Record<string, unknown>; result?: unknown }[]
+  timestamp: number
+  hasImage?: boolean
+}
+
+export interface ConversationContext {
+  mode: ConversationMode
+  selectedObjectIds?: string[]
+}
+
+export interface Conversation {
+  id: string
+  title: string
+  createdAt: number
+  updatedAt: number
+  messages: PersistedMessage[]
+  context?: ConversationContext
+}
+
+// --- Prompt template types ---
+
+export interface PromptTemplate {
+  name: string
+  systemPrefix: string
+  suggestedMessages: string[]
+}
+
+export interface PromptContext {
+  sceneContext: string
+  mode?: ConversationMode
+  selectionContext?: string
+  template?: PromptTemplate
+  cameraContext?: string
+}
+
+// --- Plan types ---
+
+export interface PlanTodo {
+  label: string
+  category?: string
+}
+
+export interface PlanData {
+  todos: PlanTodo[]
+}
+
+export type PlanStatus = 'pending' | 'approved' | 'rejected' | 'executing' | 'done'
 
 export type DockZone = 'left' | 'center-top' | 'center-bottom' | 'right-top' | 'right-bottom'
 
@@ -134,6 +194,43 @@ export interface DockedWidget {
   id: string
   zone: DockZone
   order: number
+  /** Sticky position on viewport (px from top-left of viewport area). When set, widget is placed here instead of a zone. */
+  position?: { x: number; y: number }
+}
+
+// --- PillInput types ---
+
+export type InputSegment =
+  | { type: 'text'; text: string }
+  | { type: 'pill'; id: string; label: string }
+
+export interface PillInputHandle {
+  insertPillsAtCursor: (pills: Array<{ id: string; label: string }>) => void
+  focus: () => void
+  getTextContent: () => string
+}
+
+export type BackgroundTaskStatus = 'pending' | 'running' | 'done' | 'error'
+
+export interface BackgroundTask {
+  id: string
+  command: string
+  status: BackgroundTaskStatus
+  createdAt: number
+  completedAt?: number
+  error?: string
+  /** One-line summary for drawer display (extracted from AI response) */
+  summary?: string
+  /** Full AI response text for expanded view */
+  fullResponseText?: string
+  /** Tool calls executed during this task */
+  toolCalls?: { toolName: string; args: Record<string, unknown> }[]
+  /** Result of auto-classification */
+  classification?: 'task' | 'conversation'
+  /** Whether drawer row is expanded to show full response */
+  expanded?: boolean
+  /** Associated conversation message IDs (for hiding/un-hiding) */
+  messageIds?: string[]
 }
 
 export type ImportQueueStatus = 'pending' | 'importing' | 'success' | 'error'

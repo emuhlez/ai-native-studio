@@ -1,0 +1,183 @@
+.planCard {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface100);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--content-default);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.header:hover {
+  background: var(--bg-surface200);
+}
+
+.headerIcon {
+  flex-shrink: 0;
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.headerLabel {
+  flex: 1;
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  color: var(--content-muted);
+  transition: transform 0.15s;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.todoList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.todoItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--content-default);
+  cursor: pointer;
+  user-select: none;
+}
+
+.todoItem:hover {
+  background: var(--bg-surface200);
+}
+
+.todoItem + .todoItem {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--content-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  transition: all 0.15s;
+}
+
+.checkboxChecked {
+  border-color: var(--accent-primary, #3b82f6);
+  background: var(--accent-primary, #3b82f6);
+}
+
+.checkIcon {
+  color: white;
+}
+
+.todoLabel {
+  flex: 1;
+}
+
+.todoLabelChecked {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.category {
+  font-weight: 500;
+  color: var(--content-muted);
+}
+
+/* Action buttons row */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 0;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface200);
+  color: var(--content-default);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.actionButton:hover {
+  background: var(--bg-surface300);
+}
+
+.actionButtonPrimary {
+  background: var(--accent-primary, #3b82f6);
+  border-color: var(--accent-primary, #3b82f6);
+  color: white;
+}
+
+.actionButtonPrimary:hover {
+  opacity: 0.9;
+  background: var(--accent-primary, #3b82f6);
+}
+
+.actionButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.kbd {
+  font-size: 10px;
+  opacity: 0.6;
+  font-family: inherit;
+}
+
+/* Status badges for non-pending states */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-sm, 4px);
+  margin-top: 8px;
+}
+
+.statusExecuting {
+  color: var(--accent-primary, #3b82f6);
+}
+
+.statusDone {
+  color: #22c55e;
+}
+
+.statusRejected {
+  color: var(--content-muted);
+}

@@ -98,6 +98,14 @@ export function Assets() {
   const [isSideNavOpen, setIsSideNavOpen] = useState(true)
   const bodyRef = useRef<HTMLDivElement>(null)
   const [bodyWidth, setBodyWidth] = useState(0)
+  const queueTableRef = useRef<HTMLTableElement>(null)
+  const [importQueueColPcts, setImportQueueColPcts] = useState([20, 20, 20, 20, 20])
+  const [resizingQueueColIndex, setResizingQueueColIndex] = useState<number | null>(null)
+  const queueResizeStartRef = useRef<{ x: number; pcts: number[] }>({ x: 0, pcts: [] })
+  const assetListTableRef = useRef<HTMLTableElement>(null)
+  const [assetListColPcts, setAssetListColPcts] = useState([25, 25, 25, 25])
+  const [resizingAssetListColIndex, setResizingAssetListColIndex] = useState<number | null>(null)
+  const assetListResizeStartRef = useRef<{ x: number; pcts: number[] }>({ x: 0, pcts: [] })
 
   const topLevelFolders = assets.filter((a): a is Asset => a.type === 'folder')
   const isSpecialNavId = (id: string | null): id is string =>
@@ -234,6 +242,85 @@ export function Assets() {
     if (e.button !== 0) return
     ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
   }, [])
+
+  const onQueueColResizeStart = useCallback((index: number, e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    queueResizeStartRef.current = { x: e.clientX, pcts: importQueueColPcts }
+    setResizingQueueColIndex(index)
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }, [importQueueColPcts])
+
+  useEffect(() => {
+    if (resizingQueueColIndex === null) return
+    const i = resizingQueueColIndex
+    const handleMove = (e: PointerEvent) => {
+      const start = queueResizeStartRef.current
+      const table = queueTableRef.current
+      if (!table) return
+      const tableWidth = table.getBoundingClientRect().width
+      const fillWidth = tableWidth - 72
+      if (fillWidth <= 0) return
+      const deltaPct = ((e.clientX - start.x) / fillWidth) * 100
+      const total = start.pcts[i] + start.pcts[i + 1]
+      const newI = Math.max(5, Math.min(total - 5, start.pcts[i] + deltaPct))
+      setImportQueueColPcts((prev) => {
+        const next = [...prev]
+        next[i] = newI
+        next[i + 1] = total - newI
+        return next
+      })
+    }
+    const handleUp = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      setResizingQueueColIndex(null)
+    }
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+    return () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+  }, [resizingQueueColIndex])
+
+  const onAssetListColResizeStart = useCallback((index: number, e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    assetListResizeStartRef.current = { x: e.clientX, pcts: assetListColPcts }
+    setResizingAssetListColIndex(index)
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }, [assetListColPcts])
+
+  useEffect(() => {
+    if (resizingAssetListColIndex === null) return
+    const i = resizingAssetListColIndex
+    const handleMove = (e: PointerEvent) => {
+      const start = assetListResizeStartRef.current
+      const table = assetListTableRef.current
+      if (!table) return
+      const tableWidth = table.getBoundingClientRect().width
+      if (tableWidth <= 0) return
+      const deltaPct = ((e.clientX - start.x) / tableWidth) * 100
+      const total = start.pcts[i] + start.pcts[i + 1]
+      const newI = Math.max(5, Math.min(total - 5, start.pcts[i] + deltaPct))
+      setAssetListColPcts((prev) => {
+        const next = [...prev]
+        next[i] = newI
+        next[i + 1] = total - newI
+        return next
+      })
+    }
+    const handleUp = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      setResizingAssetListColIndex(null)
+    }
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+    return () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+  }, [resizingAssetListColIndex])
 
   const handleAssetContextMenu = useCallback((assetId: string, e: React.MouseEvent) => {
     e.preventDefault()
@@ -830,7 +917,6 @@ export function Assets() {
                     onClick={clearImportQueue}
                   />
                 </div>
-                <div className={styles.contentRowSpacer} aria-hidden />
                 <div className={styles.queueSearchContainer}>
                   <img src={searchIconImg} alt="Search" className={styles.queueSearchIcon} width={16} height={16} />
                   <input
@@ -852,7 +938,6 @@ export function Assets() {
                     </button>
                   )}
                 </div>
-                <div className={styles.contentRowSpacer} aria-hidden />
               </>
             ) : (
               <div className={styles.contentRowSpacer} aria-hidden />
@@ -920,25 +1005,60 @@ export function Assets() {
           <div className={styles.contentScroll}>
             {isImportQueueView ? (
               <div className={styles.contentTableWrap}>
-                <table className={styles.contentTable}>
+                <table ref={queueTableRef} className={styles.contentTable}>
+                  <colgroup>
+                    <col style={{ width: `calc((100% - 72px) * ${importQueueColPcts[0]} / 100)` }} />
+                    <col style={{ width: `calc((100% - 72px) * ${importQueueColPcts[1]} / 100)` }} />
+                    <col style={{ width: `calc((100% - 72px) * ${importQueueColPcts[2]} / 100)` }} />
+                    <col style={{ width: `calc((100% - 72px) * ${importQueueColPcts[3]} / 100)` }} />
+                    <col style={{ width: `calc((100% - 72px) * ${importQueueColPcts[4]} / 100)` }} />
+                    <col className={styles.contentTableColStatus} />
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th className={`${styles.contentTableTh} ${styles.contentTableThCheckbox}`} aria-hidden="true"></th>
+                      <th className={`${styles.contentTableTh} ${styles.contentTableThCheckbox}`} aria-hidden="true">
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onQueueColResizeStart(0, e)}
+                        />
+                      </th>
                       <th className={`${styles.contentTableTh} ${styles.contentTableThQueue}`}>
                         Asset
-                        <span className={styles.contentTableThDivider} aria-hidden />
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onQueueColResizeStart(1, e)}
+                        />
                       </th>
                       <th className={styles.contentTableTh}>
                         Creator
-                        <span className={styles.contentTableThDivider} aria-hidden />
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onQueueColResizeStart(2, e)}
+                        />
                       </th>
                       <th className={styles.contentTableTh}>
                         Import Preset
-                        <span className={styles.contentTableThDivider} aria-hidden />
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onQueueColResizeStart(3, e)}
+                        />
                       </th>
-                      <th className={styles.contentTableTh}>
+                      <th className={`${styles.contentTableTh} ${styles.contentTableThFilePath}`}>
                         File Path
-                        <span className={styles.contentTableThDivider} aria-hidden />
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onQueueColResizeStart(4, e)}
+                        />
                       </th>
                       <th className={`${styles.contentTableTh} ${styles.contentTableThStatus}`}>Status</th>
                     </tr>
@@ -1021,7 +1141,13 @@ export function Assets() {
               </div>
             ) : assetViewMode === 'list' ? (
               <div className={styles.contentTableWrap}>
-                <table className={styles.contentTable}>
+                <table ref={assetListTableRef} className={styles.contentTable}>
+                  <colgroup>
+                    <col style={{ width: `${assetListColPcts[0]}%` }} />
+                    <col style={{ width: `${assetListColPcts[1]}%` }} />
+                    <col style={{ width: `${assetListColPcts[2]}%` }} />
+                    <col style={{ width: `${assetListColPcts[3]}%` }} />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th className={styles.contentTableTh}>
@@ -1029,15 +1155,30 @@ export function Assets() {
                           Name
                           <ChevronDown size={12} className={styles.contentTableThDropdownIcon} />
                         </span>
-                        <span className={styles.contentTableThDivider} aria-hidden />
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onAssetListColResizeStart(0, e)}
+                        />
                       </th>
                       <th className={styles.contentTableTh}>
                         ID
-                        <span className={styles.contentTableThDivider} aria-hidden />
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onAssetListColResizeStart(1, e)}
+                        />
                       </th>
                       <th className={styles.contentTableTh}>
                         Type
-                        <span className={styles.contentTableThDivider} aria-hidden />
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          className={styles.contentTableThResizeHandle}
+                          onPointerDown={(e) => onAssetListColResizeStart(2, e)}
+                        />
                       </th>
                       <th className={styles.contentTableTh}>
                         Date Modified
@@ -1068,7 +1209,7 @@ export function Assets() {
                             key={asset.id}
                             className={`${styles.contentTableRow} ${isSelected ? styles.contentTableRowSelected : ''} ${isDragOver ? styles.dragOver : ''}`}
                             draggable={renamingAssetId !== asset.id}
-                            onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: e.metaKey || e.ctrlKey, visibleAssetIds })}
+                            onClick={(e) => selectAsset(asset.id, { range: e.shiftKey, additive: !e.shiftKey || e.metaKey || e.ctrlKey, visibleAssetIds })}
                             onDoubleClick={isFolder ? () => navigateToFolder(asset.id) : undefined}
                             onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
                             onMouseDown={(e) => {
@@ -1169,7 +1310,7 @@ export function Assets() {
                         previewImageUrl={previewImageUrl}
                         modelPath={modelPath}
                         isSelected={isSelected}
-                        onSelect={(e) => selectAsset(asset.id, { range: e?.shiftKey, additive: e?.metaKey || e?.ctrlKey, visibleAssetIds })}
+                        onSelect={(e) => selectAsset(asset.id, { range: e?.shiftKey, additive: !e?.shiftKey || e?.metaKey || e?.ctrlKey, visibleAssetIds })}
                         onDoubleClick={handleDoubleClick}
                         onContextMenu={(e) => handleAssetContextMenu(asset.id, e)}
                         isRenaming={renamingAssetId === asset.id}

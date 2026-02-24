@@ -1,0 +1,163 @@
+import { create } from 'zustand'
+import type { BackgroundTask } from '../types'
+
+interface ClassifyAndCompleteData {
+  classification: 'task' | 'conversation'
+  summary: string
+  fullResponseText: string
+  toolCalls: { toolName: string; args: Record<string, unknown> }[]
+  messageIds: string[]
+}
+
+interface BackgroundTaskStore {
+  tasks: BackgroundTask[]
+  /** Message IDs from background tasks that should be hidden from the main chat */
+  hiddenMessageIds: Set<string>
+  enqueueTask: (command: string) => string
+  /** Add a task already in 'running' state (display-only — the background task runner won't pick it up). */
+  addRunningTask: (command: string) => string
+  startTask: (id: string) => void
+  completeTask: (id: string) => void
+  /** Classify and complete a task with response data. No auto-remove timer. */
+  classifyAndComplete: (id: string, data: ClassifyAndCompleteData) => void
+  failTask: (id: string, error: string) => void
+  removeTask: (id: string) => void
+  getNextPending: () => BackgroundTask | undefined
+  addHiddenMessageIds: (ids: string[]) => void
+  /** Toggle the expanded flag on a task */
+  toggleTaskExpanded: (id: string) => void
+  /** Remove task from list and un-hide its message IDs */
+  dismissTask: (id: string) => void
+  /** Remove task from drawer, un-hide its messages so they appear in chat */
+  promoteToConversation: (id: string) => void
+}
+
+let taskCounter = 0
+
+export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => ({
+  tasks: [],
+  hiddenMessageIds: new Set<string>(),
+
+  enqueueTask: (command: string) => {
+    const id = `bg-task-${++taskCounter}-${Date.now()}`
+    const task: BackgroundTask = {
+      id,
+      command,
+      status: 'pending',
+      createdAt: Date.now(),
+    }
+    set((state) => ({ tasks: [...state.tasks, task] }))
+    return id
+  },
+
+  addRunningTask: (command: string) => {
+    const id = `bg-task-${++taskCounter}-${Date.now()}`
+    const task: BackgroundTask = {
+      id,
+      command,
+      status: 'running',
+      createdAt: Date.now(),
+    }
+    set((state) => ({ tasks: [...state.tasks, task] }))
+    return id
+  },
+
+  startTask: (id: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, status: 'running' as const } : t
+      ),
+    }))
+  },
+
+  completeTask: (id: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id
+          ? { ...t, status: 'done' as const, completedAt: Date.now() }
+          : t
+      ),
+    }))
+  },
+
+  classifyAndComplete: (id: string, data: ClassifyAndCompleteData) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status: 'done' as const,
+              completedAt: Date.now(),
+              classification: data.classification,
+              summary: data.summary,
+              fullResponseText: data.fullResponseText,
+              toolCalls: data.toolCalls,
+              messageIds: data.messageIds,
+            }
+          : t
+      ),
+    }))
+  },
+
+  failTask: (id: string, error: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, status: 'error' as const, error } : t
+      ),
+    }))
+  },
+
+  removeTask: (id: string) => {
+    set((state) => ({
+      tasks: state.tasks.filter((t) => t.id !== id),
+    }))
+  },
+
+  getNextPending: () => {
+    return get().tasks.find((t) => t.status === 'pending')
+  },
+
+  addHiddenMessageIds: (ids: string[]) => {
+    set((state) => {
+      const next = new Set(state.hiddenMessageIds)
+      ids.forEach((id) => next.add(id))
+      return { hiddenMessageIds: next }
+    })
+  },
+
+  toggleTaskExpanded: (id: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, expanded: !t.expanded } : t
+      ),
+    }))
+  },
+
+  dismissTask: (id: string) => {
+    const task = get().tasks.find((t) => t.id === id)
+    if (!task) return
+    set((state) => ({
+      tasks: state.tasks.filter((t) => t.id !== id),
+    }))
+  },
+
+  promoteToConversation: (id: string) => {
+    const task = get().tasks.find((t) => t.id === id)
+    if (!task) return
+    // Un-hide the message IDs so they appear in the chat panel
+    if (task.messageIds && task.messageIds.length > 0) {
+      set((state) => {
+        const next = new Set(state.hiddenMessageIds)
+        task.messageIds!.forEach((mid) => next.delete(mid))
+        return {
+          hiddenMessageIds: next,
+          tasks: state.tasks.filter((t) => t.id !== id),
+        }
+      })
+    } else {
+      set((state) => ({
+        tasks: state.tasks.filter((t) => t.id !== id),
+      }))
+    }
+  },
+}))

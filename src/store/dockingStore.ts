@@ -15,25 +15,58 @@ interface PanelSizes {
   rightBottomHeight: number
 }
 
+export const LEFT_COLLAPSED_WIDTH = 48
+
+export interface ViewportBounds {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 interface DockingStore {
   widgets: Record<string, DockedWidget>
   panelSizes: PanelSizes
+  centerBottomCollapsed: boolean
+  leftCollapsed: boolean
+  viewportBounds: ViewportBounds | null
 
   // Actions
+  toggleCenterBottomCollapsed: () => void
+  toggleLeftCollapsed: () => void
   dockWidget: (widgetId: string, zone: DockZone, order?: number) => void
   undockWidget: (widgetId: string) => void
   moveWidget: (widgetId: string, newZone: DockZone, newOrder: number) => void
   getWidgetsInZone: (zone: DockZone) => DockedWidget[]
   setPanelSize: (key: PanelSizeKey, value: number) => void
+  setWidgetPosition: (widgetId: string, x: number, y: number) => void
+  getStickyWidgets: () => DockedWidget[]
+  setViewportBounds: (bounds: ViewportBounds | null) => void
+  /** While dragging a sticky widget, the panel follows the cursor (no separate preview) */
+  draggingStickyWidgetId: string | null
+  stickyDragPosition: { x: number; y: number } | null
+  /** Offset from panel top-left to the point where the user started dragging (so panel doesn't jump) */
+  stickyDragOffset: { x: number; y: number } | null
+  setStickyDrag: (widgetId: string | null, position: { x: number; y: number } | null, offset?: { x: number; y: number } | null) => void
+  /** When true, Properties panel shows only header (no selection) */
+  inspectorBodyCollapsed: boolean
+  setInspectorBodyCollapsed: (collapsed: boolean) => void
+  /** When true, AI Assistant panel shows only header */
+  aiAssistantBodyCollapsed: boolean
+  setAiAssistantBodyCollapsed: (collapsed: boolean) => void
+  /** When true, viewport Cmd+K AI input overlay is open */
+  viewportAIInputOpen: boolean
+  setViewportAIInputOpen: (open: boolean) => void
+  /** Chatbot UI: 'tabs' = conversation tabs, 'dropdown' = Tasks header with dropdown list */
+  chatbotUIMode: 'tabs' | 'dropdown'
+  setChatbotUIMode: (mode: 'tabs' | 'dropdown') => void
 }
 
 export const useDockingStore = create<DockingStore>((set, get) => ({
   widgets: {
-    inspector: { id: 'inspector', zone: 'right-bottom', order: 0 },
+    inspector: { id: 'inspector', zone: 'right-top', order: 0, position: undefined },
+    'ai-assistant': { id: 'ai-assistant', zone: 'right-top', order: 1, position: undefined },
     viewport: { id: 'viewport', zone: 'center-top', order: 0 },
-    explorer: { id: 'explorer', zone: 'right-top', order: 0 },
-    assets: { id: 'assets', zone: 'center-bottom', order: 0 },
-    console: { id: 'console', zone: 'right-top', order: 1 },
   },
   panelSizes: {
     leftWidth: DEFAULT_LEFT_WIDTH,
@@ -41,18 +74,32 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
     centerBottomHeight: DEFAULT_CENTER_BOTTOM_HEIGHT,
     rightBottomHeight: DEFAULT_RIGHT_BOTTOM_HEIGHT,
   },
-  
+  centerBottomCollapsed: true,
+  leftCollapsed: false,
+  viewportBounds: null,
+
+  toggleCenterBottomCollapsed: () => {
+    set((state) => ({ centerBottomCollapsed: !state.centerBottomCollapsed }))
+  },
+
+  toggleLeftCollapsed: () => {
+    set((state) => ({ leftCollapsed: !state.leftCollapsed }))
+  },
+
   dockWidget: (widgetId, zone, order) => {
     set((state) => {
       const widgets = { ...state.widgets }
-      
+      const existing = widgets[widgetId]
+
       // If order not specified, add to end of zone
       if (order === undefined) {
         const zoneWidgets = get().getWidgetsInZone(zone)
         order = zoneWidgets.length
       }
-      
-      widgets[widgetId] = { id: widgetId, zone, order }
+
+      const position = existing?.position
+
+      widgets[widgetId] = { id: widgetId, zone, order, position }
       
       // Reorder widgets in the new zone
       const newZoneWidgets = Object.values(widgets)
@@ -121,5 +168,42 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
       panelSizes: { ...state.panelSizes, [key]: clamped },
     }))
   },
+
+  setWidgetPosition: (widgetId, x, y) => {
+    set((state) => {
+      const w = state.widgets[widgetId]
+      if (!w) return state
+      return {
+        widgets: { ...state.widgets, [widgetId]: { ...w, position: { x, y } } },
+      }
+    })
+  },
+
+  getStickyWidgets: () => {
+    return Object.values(get().widgets)
+      .filter((w) => w.zone === 'right-top')
+      .sort((a, b) => a.order - b.order)
+  },
+
+  setViewportBounds: (bounds) => set({ viewportBounds: bounds }),
+
+  draggingStickyWidgetId: null,
+  stickyDragPosition: null,
+  stickyDragOffset: null,
+  setStickyDrag: (widgetId, position, offset) =>
+    set((state) => ({
+      draggingStickyWidgetId: widgetId,
+      stickyDragPosition: position,
+      stickyDragOffset: offset !== undefined ? offset : (position === null ? null : state.stickyDragOffset),
+    })),
+
+  inspectorBodyCollapsed: false,
+  setInspectorBodyCollapsed: (collapsed) => set({ inspectorBodyCollapsed: collapsed }),
+  aiAssistantBodyCollapsed: true,
+  setAiAssistantBodyCollapsed: (collapsed) => set({ aiAssistantBodyCollapsed: collapsed }),
+  viewportAIInputOpen: false,
+  setViewportAIInputOpen: (open) => set({ viewportAIInputOpen: open }),
+  chatbotUIMode: 'tabs',
+  setChatbotUIMode: (mode) => set({ chatbotUIMode: mode }),
 }))
 

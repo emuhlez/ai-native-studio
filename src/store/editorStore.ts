@@ -27,9 +27,22 @@ interface EditorStore extends EditorState {
   selectObject: (id: string | null, options?: { additive?: boolean; range?: boolean }) => void
   selectAsset: (id: string | null, options?: { additive?: boolean; range?: boolean; visibleAssetIds?: string[] }) => void
   setViewportSelectedAsset: (asset: ViewportSelectedAsset | null, options?: { additive?: boolean }) => void
+  setAIInputAnchorPosition: (pos: { x: number; y: number } | null) => void
+  /** Last drawn point in pen tool (viewport-relative); used to anchor contextual input near recent drawing */
+  penToolLastDrawnPosition: { x: number; y: number } | null
+  setPenToolLastDrawnPosition: (pos: { x: number; y: number } | null) => void
+  /** Shift+click/drag area selection circle (viewport-relative CSS px) */
+  areaSelectionCircle: { centerX: number; centerY: number; radius: number } | null
+  setAreaSelectionCircle: (circle: { centerX: number; centerY: number; radius: number } | null) => void
+  /** When true, viewport will focus camera on selected object(s) on next frame */
+  requestFocusSelection: boolean
+  setRequestFocusSelection: (v: boolean) => void
+  /** When set, viewport plays a particle burst at this position (e.g. when AI creates an object) */
+  creationEffectPosition: { x: number; y: number; z: number } | null
+  setCreationEffectPosition: (p: { x: number; y: number; z: number } | null) => void
   
   // Actions - Scene
-  createGameObject: (type: GameObjectType, name?: string, parentId?: string | null) => string
+  createGameObject: (type: GameObjectType, name?: string, parentId?: string | null, options?: { select?: boolean }) => string
   addWorkspaceModel: (name: string) => string
   deleteGameObject: (id: string) => void
   updateGameObject: (id: string, updates: Partial<GameObject>) => void
@@ -63,6 +76,18 @@ interface EditorStore extends EditorState {
   createFolder: (name?: string) => string
   moveAssetToFolder: (assetId: string, targetFolderId: string) => void
   saveGameObjectAsAsset: (gameObjectId: string, name?: string) => string
+
+  // Viewport capture for pen tool compositing
+  captureViewportScreenshot: (() => string | null) | null
+  setCaptureViewportScreenshot: (fn: (() => string | null) | null) => void
+
+  // Screen-to-world raycast for spatial positioning
+  screenToWorld: ((screenX: number, screenY: number) => { x: number; y: number; z: number } | null) | null
+  setScreenToWorld: (fn: ((screenX: number, screenY: number) => { x: number; y: number; z: number } | null) | null) => void
+
+  // Camera info for spatial context in AI prompts
+  getCameraInfo: (() => { position: { x: number; y: number; z: number }; target: { x: number; y: number; z: number }; fov: number } | null) | null
+  setGetCameraInfo: (fn: (() => { position: { x: number; y: number; z: number }; target: { x: number; y: number; z: number }; fov: number } | null) | null) => void
 }
 
 const createDefaultTransform = () => ({
@@ -343,6 +368,10 @@ export const useEditorStore = create<EditorStore>((set, get) => {
   selectedAssetIds: [],
   selectedAssetAnchor: null as string | null,
   viewportSelectedAssetNames: [],
+  aiInputAnchorPosition: null as { x: number; y: number } | null,
+  penToolLastDrawnPosition: null as { x: number; y: number } | null,
+  requestFocusSelection: false,
+  creationEffectPosition: null,
   isPlaying: false,
   isPaused: false,
   activeTool: 'select',
@@ -412,8 +441,16 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       return
     }
 
+    const isOnlySelection = state.selectedObjectIds.length === 1 && state.selectedObjectIds[0] === id
+    if (isOnlySelection) {
+      set({ selectedObjectIds: [], viewportSelectedAssetNames: [] })
+      return
+    }
+
     set({ selectedObjectIds: [id], viewportSelectedAssetNames: idsToNames([id]) })
   },
+  setRequestFocusSelection: (v) => set({ requestFocusSelection: v }),
+  setCreationEffectPosition: (p) => set({ creationEffectPosition: p }),
   selectAsset: (id, options) => {
     if (id == null) {
       set({ selectedAssetIds: [], selectedAssetAnchor: null })
@@ -482,9 +519,13 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       selectedObjectIds: matchingId ? [matchingId] : [],
     })
   },
-  
+  setAIInputAnchorPosition: (pos) => set({ aiInputAnchorPosition: pos }),
+  setPenToolLastDrawnPosition: (pos) => set({ penToolLastDrawnPosition: pos }),
+  areaSelectionCircle: null,
+  setAreaSelectionCircle: (circle) => set({ areaSelectionCircle: circle }),
+
   // Scene manipulation
-  createGameObject: (type, name, parentId = null) => {
+  createGameObject: (type, name, parentId = null, options) => {
     const id = uuid()
     const gameObject: GameObject = {
       id,
@@ -515,9 +556,9 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         newRootIds = [...state.rootObjectIds, id]
       }
       
-      return { gameObjects: newObjects, rootObjectIds: newRootIds, selectedObjectIds: [id] }
+      return { gameObjects: newObjects, rootObjectIds: newRootIds, ...(options?.select !== false ? { selectedObjectIds: [id] } : {}) }
     })
-    
+
     get().log(`Created ${gameObject.name}`, 'info')
     return id
   },
@@ -529,7 +570,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     if (!workspace) return ''
     const existing = workspace.children.find((id) => state.gameObjects[id]?.name === name)
     if (existing) return existing
-    return get().createGameObject('mesh', name, workspaceId)
+    return get().createGameObject('mesh', name, workspaceId, { select: false })
   },
 
   deleteGameObject: (id) => {
@@ -979,6 +1020,18 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       get().log(`Moved "${asset.name}" to "${folder.name}"`, 'info')
     }
   },
+
+  // Viewport capture for pen tool compositing
+  captureViewportScreenshot: null,
+  setCaptureViewportScreenshot: (fn) => set({ captureViewportScreenshot: fn }),
+
+  // Screen-to-world raycast for spatial positioning
+  screenToWorld: null,
+  setScreenToWorld: (fn) => set({ screenToWorld: fn }),
+
+  // Camera info for spatial context
+  getCameraInfo: null,
+  setGetCameraInfo: (fn) => set({ getCameraInfo: fn }),
 
   saveGameObjectAsAsset: (gameObjectId, name) => {
     const state = get()

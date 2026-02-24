@@ -1,11 +1,16 @@
 import { useRef, useState, useEffect } from 'react'
+import { X } from 'lucide-react'
+import collapseIcon from '../../../icons/collapse.svg'
 import { PanelHeader } from './Panel'
 import { useDockingStore } from '../../store/dockingStore'
 import { useWidgetMetadataStore } from '../../store/widgetMetadataStore'
-import { DockingIndicator } from './DockingIndicator'
 import type { DockZone } from '../../types'
 import type { ReactNode } from 'react'
 import styles from './DockablePanel.module.css'
+
+const STICKY_PANEL_MIN_WIDTH = 280
+const STICKY_PANEL_MIN_HEIGHT = 160
+const STICKY_PANEL_WIDTH = 320
 
 interface DockablePanelProps {
   widgetId: string
@@ -13,7 +18,21 @@ interface DockablePanelProps {
   icon?: ReactNode
   children: ReactNode
   actions?: ReactNode
+  /** Optional element after the title (e.g. dropdown chevron) */
+  titleTrailing?: ReactNode
   className?: string
+  /** When true, the close (X) button is not shown (e.g. for viewport) */
+  hideCloseButton?: boolean
+  /** When true, only the header is shown (body hidden) */
+  bodyCollapsed?: boolean
+  /** When true and bodyCollapsed, keep content visible so child can show minimal UI (e.g. single input) */
+  collapsedShowsMinimalContent?: boolean
+  /** When bodyCollapsed, hide the header so only content (e.g. input) remains visible */
+  hideHeaderWhenCollapsed?: boolean
+  /** When bodyCollapsed, render this in the header row so header and content become one bar */
+  collapsedHeaderContent?: ReactNode
+  /** When true, content fills the panel (no max-height; use for viewport) */
+  contentFills?: boolean
 }
 
 export function DockablePanel({
@@ -22,7 +41,14 @@ export function DockablePanel({
   icon,
   children,
   actions,
+  titleTrailing,
   className,
+  hideCloseButton = false,
+  bodyCollapsed = false,
+  collapsedShowsMinimalContent = false,
+  hideHeaderWhenCollapsed = false,
+  collapsedHeaderContent,
+  contentFills = false,
 }: DockablePanelProps) {
   const headerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -31,8 +57,19 @@ export function DockablePanel({
   const [targetZone, setTargetZone] = useState<DockZone | null>(null)
   const [hoveredZone, setHoveredZone] = useState<DockZone | null>(null)
   const dockWidget = useDockingStore((state) => state.dockWidget)
+  const setWidgetPosition = useDockingStore((state) => state.setWidgetPosition)
+  const setStickyDrag = useDockingStore((state) => state.setStickyDrag)
+  const stickyDragOffset = useDockingStore((state) => state.stickyDragOffset)
+  const viewportBounds = useDockingStore((state) => state.viewportBounds)
   const widget = useDockingStore((state) => state.widgets[widgetId])
   const getWidgetsInZone = useDockingStore((state) => state.getWidgetsInZone)
+  const centerBottomCollapsed = useDockingStore((state) => state.centerBottomCollapsed)
+  const leftCollapsed = useDockingStore((state) => state.leftCollapsed)
+  const toggleCenterBottomCollapsed = useDockingStore((state) => state.toggleCenterBottomCollapsed)
+  const toggleLeftCollapsed = useDockingStore((state) => state.toggleLeftCollapsed)
+  const aiAssistantBodyCollapsed = useDockingStore((state) => state.aiAssistantBodyCollapsed)
+  const setAiAssistantBodyCollapsed = useDockingStore((state) => state.setAiAssistantBodyCollapsed)
+  const undockWidget = useDockingStore((state) => state.undockWidget)
   const registerWidget = useWidgetMetadataStore((state) => state.registerWidget)
   
   // Register widget metadata
@@ -40,167 +77,96 @@ export function DockablePanel({
     registerWidget(widgetId, { title, icon, actions })
   }, [widgetId, title, icon, actions, registerWidget])
   
-  // Check if this widget is in a tabbed panel (multiple widgets in zone)
+  // Check if this widget is in a tabbed panel (multiple widgets in zone).
+  // Sticky (right-top) widgets are rendered as separate panels, so always show their headers.
   const widgetsInZone = widget ? getWidgetsInZone(widget.zone) : []
-  const isInTabbedPanel = widgetsInZone.length > 1
+  const isInTabbedPanel = widgetsInZone.length > 1 && widget?.zone !== 'right-top'
+  const isSticky = widget?.zone === 'right-top'
   
+  const handleCollapseClick = () => {
+    if (widget?.zone === 'center-bottom') toggleCenterBottomCollapsed()
+    else if (widget?.zone === 'left') toggleLeftCollapsed()
+    else if (widget?.zone === 'right-top' && widgetId === 'ai-assistant')
+      setAiAssistantBodyCollapsed(!aiAssistantBodyCollapsed)
+  }
+
   useEffect(() => {
     if (!isDragging) {
       // Remove any drag over classes when not dragging
-      document.querySelectorAll('[data-zone]').forEach((el) => {
-        el.classList.remove('dragOver')
-      })
-      // Remove drag mode styles
+      document.querySelectorAll('[data-zone]').forEach((el) => el.classList.remove('dragOver'))
       document.body.classList.remove('dragging-widget')
       document.body.style.pointerEvents = ''
       document.body.style.cursor = ''
       return
     }
     
-    // Add class to body to disable interactions during drag
     document.body.classList.add('dragging-widget')
     document.body.style.pointerEvents = 'none'
     document.body.style.cursor = 'grabbing'
-    
-    // Re-enable pointer events for docking indicator
-    const enableIndicator = () => {
-      const indicator = document.querySelector('.dockingIndicator')
-      if (indicator) {
-        ;(indicator as HTMLElement).style.pointerEvents = 'auto'
-      }
-    }
-    
-    // Check for indicator after a brief delay to ensure it's rendered
-    setTimeout(enableIndicator, 0)
-    const indicatorCheck = setInterval(enableIndicator, 50)
-    
-    // Store interval ID for cleanup
-    let indicatorCheckInterval: number | undefined = indicatorCheck
-    
+
     let rafId: number | null = null
     const handleMouseMove = (e: MouseEvent) => {
-      // Use requestAnimationFrame to smooth position updates
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId)
-      }
-      
+      if (rafId !== null) cancelAnimationFrame(rafId)
       rafId = requestAnimationFrame(() => {
         setDragPosition({ x: e.clientX, y: e.clientY })
-      
-      // Show empty columns during drag
-      document.querySelectorAll('.emptyColumn').forEach((el) => {
-        const column = el as HTMLElement
-        if (column.classList.contains('leftColumn') || column.classList.contains('rightColumn')) {
-          column.style.width = '200px'
-          column.style.minWidth = '200px'
+        if (isSticky && viewportBounds) {
+          const vx = e.clientX - viewportBounds.left
+          const vy = e.clientY - viewportBounds.top
+          const x = stickyDragOffset ? vx - stickyDragOffset.x : vx
+          const y = stickyDragOffset ? vy - stickyDragOffset.y : vy
+          setStickyDrag(widgetId, { x, y })
+          return
         }
-        column.style.overflow = 'visible'
-        column.style.display = 'flex'
-      })
-      
-      // Find which zone we're over
-      const element = document.elementFromPoint(e.clientX, e.clientY)
-      if (element) {
-        const zoneElement = element.closest('[data-zone]')
-        if (zoneElement) {
-          const zone = zoneElement.getAttribute('data-zone') as DockZone
-          if (zone) {
-            // Show indicator for any zone, even if it's the current one (for visual feedback)
-            setTargetZone(zone)
-            // Remove drag over from all zones first
-            document.querySelectorAll('[data-zone]').forEach((el) => {
-              el.classList.remove('dragOver')
-            })
-            // Only add visual feedback if it's a different zone
-            if (zone !== widget?.zone) {
-              zoneElement.classList.add('dragOver')
-            }
-          } else {
-            setTargetZone(null)
-            // Remove visual feedback from all zones
-            document.querySelectorAll('[data-zone]').forEach((el) => {
-              el.classList.remove('dragOver')
-            })
-          }
-        } else {
-          // Check if we're over an empty column area
-          const leftColumn = document.querySelector('.leftColumn')
-          const rightColumn = document.querySelector('.rightColumn')
-          const centerColumn = document.querySelector('.centerColumn')
-          
-          if (leftColumn) {
-            const leftRect = leftColumn.getBoundingClientRect()
-            if (e.clientX >= leftRect.left && e.clientX <= leftRect.right) {
-              setTargetZone('left')
-            }
-          }
-          if (rightColumn) {
-            const rightRect = rightColumn.getBoundingClientRect()
-            if (e.clientX >= rightRect.left && e.clientX <= rightRect.right) {
-              const rightMid = rightRect.top + rightRect.height / 2
-              setTargetZone(e.clientY < rightMid ? 'right-top' : 'right-bottom')
-            }
-          }
-          if (centerColumn) {
-            const centerRect = centerColumn.getBoundingClientRect()
-            if (e.clientX >= centerRect.left && e.clientX <= centerRect.right) {
-              const centerTop = centerRect.top + (centerRect.height * 0.4)
-              if (e.clientY < centerTop) {
-                setTargetZone('center-top')
-              } else {
-                setTargetZone('center-bottom')
-              }
-            }
-          }
-          
-          if (!leftColumn && !rightColumn && !centerColumn) {
-            setTargetZone(null)
-          }
-          
-          // Remove visual feedback from all zones
-          document.querySelectorAll('[data-zone]').forEach((el) => {
-            el.classList.remove('dragOver')
-          })
-        }
-      }
-      })
-    }
-    
-    const handleMouseUp = (e: MouseEvent) => {
-      setIsDragging(false)
-      setTargetZone(null)
-      
-      // Hide empty columns again
-      document.querySelectorAll('.emptyColumn').forEach((el) => {
-        const column = el as HTMLElement
-        column.style.width = ''
-        column.style.minWidth = ''
-        column.style.overflow = ''
-      })
-      
-      // Remove visual feedback from all zones
-      document.querySelectorAll('[data-zone]').forEach((el) => {
-        el.classList.remove('dragOver')
-      })
-      
-      // Find drop zone - prefer hovered zone from indicator, otherwise check element
-      const dropZone = hoveredZone || (() => {
+        // Zone detection for non-sticky panels
         const element = document.elementFromPoint(e.clientX, e.clientY)
         if (element) {
           const zoneElement = element.closest('[data-zone]')
           if (zoneElement) {
-            return zoneElement.getAttribute('data-zone') as DockZone
+            const zone = zoneElement.getAttribute('data-zone') as DockZone
+            if (zone) {
+              setTargetZone(zone)
+              document.querySelectorAll('[data-zone]').forEach((el) => el.classList.remove('dragOver'))
+              if (zone !== widget?.zone) zoneElement.classList.add('dragOver')
+            } else {
+              setTargetZone(null)
+              document.querySelectorAll('[data-zone]').forEach((el) => el.classList.remove('dragOver'))
+            }
+          } else {
+            setTargetZone(null)
+            document.querySelectorAll('[data-zone]').forEach((el) => el.classList.remove('dragOver'))
           }
         }
-        return null
-      })()
-      
-      if (dropZone && dropZone !== widget?.zone) {
-        dockWidget(widgetId, dropZone)
+      })
+    }
+
+    const handleMouseUp = (e: MouseEvent) => {
+      setIsDragging(false)
+      setTargetZone(null)
+      setStickyDrag(null, null)
+      document.querySelectorAll('[data-zone]').forEach((el) => el.classList.remove('dragOver'))
+
+      if (isSticky && viewportBounds) {
+        const vx = e.clientX - viewportBounds.left
+        const vy = e.clientY - viewportBounds.top
+        const x = stickyDragOffset ? vx - stickyDragOffset.x : vx
+        const y = stickyDragOffset ? vy - stickyDragOffset.y : vy
+        const clampedX = Math.max(0, Math.min(viewportBounds.width - STICKY_PANEL_MIN_WIDTH, x))
+        const clampedY = Math.max(0, Math.min(viewportBounds.height - STICKY_PANEL_MIN_HEIGHT, y))
+        setWidgetPosition(widgetId, clampedX, clampedY)
+      } else if (!isSticky) {
+        const dropZone = hoveredZone || (() => {
+          const element = document.elementFromPoint(e.clientX, e.clientY)
+          const zoneElement = element?.closest('[data-zone]')
+          if (zoneElement) {
+            const zone = zoneElement.getAttribute('data-zone') as DockZone
+            if (zone && getWidgetsInZone(zone).length > 0) return zone
+          }
+          return null
+        })()
+        if (dropZone && dropZone !== widget?.zone) dockWidget(widgetId, dropZone)
       }
-      
+
       setHoveredZone(null)
-      
       document.body.style.cursor = ''
     }
     
@@ -229,34 +195,52 @@ export function DockablePanel({
       document.querySelectorAll('[data-zone]').forEach((el) => {
         el.classList.remove('dragOver')
       })
-      // Hide empty columns
-      document.querySelectorAll('.emptyColumn').forEach((el) => {
-        const column = el as HTMLElement
-        column.style.width = ''
-        column.style.minWidth = ''
-        column.style.overflow = ''
-      })
       // Remove drag mode styles
       document.body.classList.remove('dragging-widget')
       document.body.style.pointerEvents = ''
       document.body.style.cursor = ''
-      if (indicatorCheckInterval !== undefined) {
-        clearInterval(indicatorCheckInterval)
-      }
     }
-  }, [isDragging, widgetId, widget?.zone, dockWidget, hoveredZone])
+  }, [isDragging, widgetId, widget?.zone, dockWidget, hoveredZone, isSticky, viewportBounds, stickyDragOffset, setWidgetPosition, setStickyDrag, getWidgetsInZone])
   
+  const isCenterBottomCollapsed = widget?.zone === 'center-bottom' && centerBottomCollapsed
+  const isLeftCollapsed = widget?.zone === 'left' && leftCollapsed
+  const isCollapsed = isCenterBottomCollapsed || isLeftCollapsed
+  const showCollapseButton =
+    (widget?.zone === 'center-bottom' && !centerBottomCollapsed) ||
+    (widget?.zone === 'left' && !leftCollapsed) ||
+    (widget?.zone === 'right-top' && widgetId === 'ai-assistant')
+  const isAiAssistantCollapsed = widgetId === 'ai-assistant' && aiAssistantBodyCollapsed
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return // Only left mouse button
     if (isInTabbedPanel) return // Don't drag if in tabbed panel (TabbedPanel handles it)
-    
-    // Don't start drag if clicking on interactive elements
+
     const target = e.target as HTMLElement
-    const isInteractive = target.closest('button, input, a, [role="button"]') !== null
-    if (isInteractive) return
-    
+    const isCornerDragHandle = target.closest(`.${styles.cornerDragHandle}`) !== null
+
+    // When panel is collapsed, normal header click expands — but corner drag handle always starts drag
+    if (isCollapsed && !isCornerDragHandle) {
+      handleCollapseClick()
+      return
+    }
+
+    // Don't start drag if clicking on interactive elements (except corner handles)
+    if (!isCornerDragHandle) {
+      const isInteractive = target.closest('button, input, a, [role="button"]') !== null
+      if (isInteractive) return
+    }
+
     setIsDragging(true)
     document.body.style.cursor = 'grabbing'
+    if (isSticky && viewportBounds && panelRef.current) {
+      // Use the panel's actual DOM position so it doesn't jump (handles left/bottom, top/right defaults)
+      const rect = panelRef.current.getBoundingClientRect()
+      const panelLeft = rect.left - viewportBounds.left
+      const panelTop = rect.top - viewportBounds.top
+      const offsetX = e.clientX - rect.left
+      const offsetY = e.clientY - rect.top
+      setStickyDrag(widgetId, { x: panelLeft, y: panelTop }, { x: offsetX, y: offsetY })
+    }
     e.preventDefault()
     e.stopPropagation()
   }
@@ -267,61 +251,121 @@ export function DockablePanel({
       <div className={`${styles.dockablePanel} ${className || ''}`}>
         {!isInTabbedPanel && (
           <div className={styles.draggableHeader}>
-            <PanelHeader title={title} icon={icon} actions={actions} />
+            <PanelHeader title={title} icon={icon} titleTrailing={titleTrailing} actions={actions} />
           </div>
         )}
-        <div className={styles.panelContent}>
+        <div className={`${styles.panelContent} ${bodyCollapsed && (!collapsedShowsMinimalContent || collapsedHeaderContent) ? styles.panelContentCollapsed : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimal : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimalHeight : ''} ${contentFills && !(bodyCollapsed && collapsedShowsMinimalContent) ? styles.panelContentFills : ''}`}>
           {children}
         </div>
       </div>
     )
   }
-  
+
   return (
     <>
       <div 
         ref={panelRef}
-        className={`${styles.dockablePanel} ${className || ''} ${isDragging ? styles.dragging : ''} ${isInTabbedPanel ? styles.inTabbedPanel : ''}`}
+        className={`${styles.dockablePanel} ${className || ''} ${isDragging && !isSticky ? styles.dragging : ''} ${isInTabbedPanel ? styles.inTabbedPanel : ''} ${isCollapsed ? styles.collapsedAsTab : ''} ${bodyCollapsed && hideHeaderWhenCollapsed ? styles.dockablePanelCornerDrag : ''}`}
       >
         {!isInTabbedPanel && (
           <div
             ref={headerRef}
-            className={`${styles.draggableHeader} ${isDragging ? styles.dragging : ''}`}
+            className={`${styles.draggableHeader} ${isDragging && !isSticky ? styles.dragging : ''} ${isCollapsed && !collapsedHeaderContent ? styles.collapsedHeader : ''} ${isCollapsed && collapsedHeaderContent ? styles.headerWithInlineContent : ''} ${bodyCollapsed && hideHeaderWhenCollapsed ? styles.headerCollapsedToBar : ''}`}
             onMouseDown={handleMouseDown}
           >
-            <PanelHeader title={title} icon={icon} actions={actions} />
+            <PanelHeader
+              title={title}
+              icon={icon}
+              titleTrailing={titleTrailing}
+              middle={bodyCollapsed ? collapsedHeaderContent : undefined}
+              actions={
+                <>
+                  {showCollapseButton && (
+                    <button
+                      type="button"
+                      className={styles.collapseButton}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCollapseClick()
+                      }}
+                      aria-label={isAiAssistantCollapsed ? 'Expand panel' : 'Collapse panel'}
+                    >
+                      <img
+                        src={collapseIcon}
+                        alt=""
+                        width={16}
+                        height={16}
+                        className={isAiAssistantCollapsed ? styles.collapseIconExpand : undefined}
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                  {actions}
+                  {!hideCloseButton && (
+                    <button
+                      type="button"
+                      className={styles.collapseButton}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        undockWidget(widgetId)
+                      }}
+                      aria-label="Close"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </>
+              }
+            />
           </div>
         )}
-        <div className={styles.panelContent}>
+        <div className={`${styles.panelContent} ${bodyCollapsed && (!collapsedShowsMinimalContent || collapsedHeaderContent) ? styles.panelContentCollapsed : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimal : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimalHeight : ''} ${contentFills && !(bodyCollapsed && collapsedShowsMinimalContent) ? styles.panelContentFills : ''}`}>
           {children}
         </div>
+        {bodyCollapsed && hideHeaderWhenCollapsed && (
+          <>
+            <div
+              className={styles.cornerDragHandle}
+              data-corner="top-left"
+              onMouseDown={handleMouseDown}
+              title="Drag to move"
+              aria-label="Drag panel"
+            />
+            <div
+              className={styles.cornerDragHandle}
+              data-corner="top-right"
+              onMouseDown={handleMouseDown}
+              title="Drag to move"
+              aria-label="Drag panel"
+            />
+            <div
+              className={styles.cornerDragHandle}
+              data-corner="bottom-left"
+              onMouseDown={handleMouseDown}
+              title="Drag to move"
+              aria-label="Drag panel"
+            />
+            <div
+              className={styles.cornerDragHandle}
+              data-corner="bottom-right"
+              onMouseDown={handleMouseDown}
+              title="Drag to move"
+              aria-label="Drag panel"
+            />
+          </>
+        )}
       </div>
       
-      {isDragging && (
-        <>
-          <div
-            className={styles.dragPreview}
-            style={{
-              left: dragPosition.x,
-              top: dragPosition.y,
-            }}
-          >
-            <div className={styles.dragPreviewContent}>
-              <PanelHeader title={title} icon={icon} actions={actions} />
-              <div className={styles.dragPreviewBody}>
-                {children}
-              </div>
-            </div>
+      {isDragging && !isSticky && (
+        <div
+          className={styles.dragPreview}
+          style={{ left: dragPosition.x, top: dragPosition.y }}
+        >
+          <div className={styles.dragPreviewContent}>
+            <PanelHeader title={title} icon={icon} titleTrailing={titleTrailing} actions={actions} />
+            <div className={styles.dragPreviewBody}>{children}</div>
           </div>
-          {targetZone && (
-            <DockingIndicator
-              targetZone={targetZone}
-              hoveredZone={hoveredZone}
-              onZoneHover={setHoveredZone}
-              isVisible={true}
-            />
-          )}
-        </>
+        </div>
       )}
     </>
   )

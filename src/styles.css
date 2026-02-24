@@ -78,6 +78,7 @@
   --content-muted: #BCBEC8;
   --content-link: #528BFF;
   --content-hover: rgba(208, 217, 251, 0.08);
+  --content-pressed: rgba(208, 217, 251, 0.12);
   
   /* Semantic colors */
   --color-success: #39C582;

@@ -1,0 +1,101 @@
+.container {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.container.containerLarge {
+  right: 8px;
+  margin-left: 10px;
+}
+
+.container > * {
+  pointer-events: auto;
+}
+
+.micButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--content-default, #ccc);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.micButton.micButtonLarge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.micButton:hover {
+  background: var(--bg-surface200, rgba(37, 37, 64, 0.5));
+  color: var(--content-emphasis, #fff);
+}
+
+.micButton.listening {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+
+.micButton.sendButton {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.micButton.sendButton:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+.transcript {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: var(--bg-surface100, #1a1a2e);
+  border: 1px solid var(--border-subtle, #333);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 10px;
+  color: var(--content-muted, #888);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.error {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: #1a1a2e;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #ef4444;
+  white-space: nowrap;
+  z-index: 10;
+}

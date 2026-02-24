@@ -55,6 +55,14 @@
   pointer-events: none; /* Prevent interaction when empty */
 }
 
+.leftColumn.leftCollapsed {
+  overflow: hidden;
+}
+
+.leftColumn.leftCollapsed .dockZone {
+  align-items: flex-start;
+}
+
 .leftColumn.emptyColumn > * {
   pointer-events: auto; /* Re-enable for drop zones */
 }
@@ -95,6 +103,58 @@
   background: var(--bg-panel);
 }
 
+/* Sticky layer: widgets can be placed anywhere over the viewport */
+.stickyLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.stickyLayer > * {
+  pointer-events: auto;
+}
+
+.stickyPanel {
+  position: absolute;
+  width: 320px;
+  max-width: calc(100% - 32px);
+  height: 50vh;
+  min-height: 120px;
+  max-height: 50vh;
+  background: var(--bg-panel);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: max-height 0.65s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* Collapsed: smaller max-height so panel stays anchored and grows seamlessly on expand */
+.stickyPanel.stickyPanelCollapsed {
+  height: auto;
+  min-height: auto;
+  max-height: 22vh;
+}
+
+/* Right column as overlay on top of viewport – half height with spacing */
+.rightColumnOverlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  height: 50%;
+  max-height: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  z-index: 10;
+  background: var(--bg-panel);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 .rightTop {
   flex: 1;
   min-height: 0;
@@ -122,6 +182,14 @@
 
 .rightColumn.emptyColumn > * {
   pointer-events: auto; /* Re-enable for drop zones */
+}
+
+.centerColumnWrapper {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .centerColumn {
@@ -158,6 +226,17 @@
   overflow: hidden;
   flex-shrink: 0;
   border: none;
+}
+
+.centerBottom.centerBottomCollapsed {
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.centerBottom.centerBottomCollapsed .dockZone {
+  align-items: flex-start;
 }
 
 .dockZone {

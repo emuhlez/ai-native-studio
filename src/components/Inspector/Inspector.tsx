@@ -39,6 +39,7 @@ import { ModelPreview } from './ModelPreview'
 import { TexturePreview } from './TexturePreview'
 import { THREE_SPACE_ASSETS } from '../Viewport/threeSpaceAssets'
 import { useEditorStore } from '../../store/editorStore'
+import { useDockingStore } from '../../store/dockingStore'
 import styles from './Inspector.module.css'
 
 export function Inspector() {
@@ -102,6 +103,11 @@ export function Inspector() {
 
   const effectivePrimaryId = selectedObject?.id ?? primaryId ?? null
   const textureId = selectedObject ? toTextureId(selectedObject.id) : toTextureId('texture')
+  const setInspectorBodyCollapsed = useDockingStore((s) => s.setInspectorBodyCollapsed)
+
+  useEffect(() => {
+    setInspectorBodyCollapsed(!selectedObject && !primaryAssetName)
+  }, [selectedObject, primaryAssetName, setInspectorBodyCollapsed])
 
   useEffect(() => {
     if (selectedObject?.texturePath) {
@@ -138,10 +144,15 @@ export function Inspector() {
 
   if (!selectedObject && !primaryAssetName) {
     return (
-      <DockablePanel widgetId="inspector" title="Properties" icon={<Settings size={16} />} className={styles.propertiesPanel}>
-        <div className={styles.empty}>
-          <p>Select an object to inspect</p>
-        </div>
+      <DockablePanel
+        widgetId="inspector"
+        title="Properties"
+        icon={<Settings size={16} />}
+        className={styles.propertiesPanel}
+        bodyCollapsed
+      >
+        {/* Placeholder keeps content height in DOM so collapse transition can run */}
+        <div className={styles.collapsePlaceholder} aria-hidden />
       </DockablePanel>
     )
   }
@@ -965,10 +976,27 @@ interface TransformRowProps {
 function TransformRow({ label, values, onChange, unit = 'number' }: TransformRowProps) {
   const step = unit === 'degrees' ? '1' : '0.1'
   const inputWidth = (v: number) => Math.max(3, String(v).length + 1)
+  const labelRef = useRef<HTMLLabelElement>(null)
+  const [labelOverflows, setLabelOverflows] = useState(false)
+
+  useEffect(() => {
+    const el = labelRef.current
+    if (!el) return
+    const check = () => setLabelOverflows(el.scrollWidth > el.clientWidth)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [label])
 
   return (
     <div className={styles.transformRow}>
-      <label className={styles.transformLabel}>{label}</label>
+      <label
+        ref={labelRef}
+        className={`${styles.transformLabel} ${labelOverflows ? styles.overflowing : ''}`}
+      >
+        {label}
+      </label>
       <div className={styles.transformInputs}>
         <div className={styles.inputGroup} data-axis="x">
           <span className={styles.axisLine} aria-hidden />
