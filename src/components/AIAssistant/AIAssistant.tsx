@@ -9,6 +9,7 @@ import { usePlanExecutor } from '../../ai/use-plan-executor'
 import { usePlanStore } from '../../store/planStore'
 import { useConversationStore } from '../../store/conversationStore'
 import { TasksDropdown } from './TasksDropdown'
+import { ConversationSwitcher } from './ConversationSwitcher'
 import { MessageList } from './MessageList'
 import { BackgroundTaskDrawer } from './BackgroundTaskDrawer'
 import { useBackgroundTaskRunner } from '../../ai/use-background-task-runner'
@@ -21,6 +22,7 @@ export function AIAssistant() {
   const aiAssistantBodyCollapsed = useDockingStore((state) => state.aiAssistantBodyCollapsed)
   const setAiAssistantBodyCollapsed = useDockingStore((state) => state.setAiAssistantBodyCollapsed)
   const viewportAIInputOpen = useDockingStore((state) => state.viewportAIInputOpen)
+  const chatbotUIMode = useDockingStore((state) => state.chatbotUIMode)
   const selectedObjectIds = useEditorStore((s) => s.selectedObjectIds)
   const selectedAssetIds = useEditorStore((s) => s.selectedAssetIds)
   const gameObjects = useEditorStore((s) => s.gameObjects)
@@ -286,9 +288,10 @@ export function AIAssistant() {
   return (
     <DockablePanel
       widgetId="ai-assistant"
-      title="Tasks"
+      title={chatbotUIMode === 'tabs' ? 'Assistant' : 'Tasks'}
       icon={<Bot size={16} />}
-      titleTrailing={<TasksDropdown />}
+      titleTrailing={chatbotUIMode === 'dropdown' ? <TasksDropdown /> : undefined}
+      headerMiddle={chatbotUIMode === 'tabs' ? <ConversationSwitcher /> : undefined}
       bodyCollapsed={aiAssistantBodyCollapsed}
       collapsedShowsMinimalContent
       hideHeaderWhenCollapsed

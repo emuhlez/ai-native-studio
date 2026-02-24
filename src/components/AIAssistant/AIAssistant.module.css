@@ -665,7 +665,6 @@
   align-items: flex-start;
   padding: 0 12px 0 8px;
   margin-left: 0;
-  background: var(--bg-surface100);
   align-self: flex-start;
 }
 
@@ -680,7 +679,7 @@
   padding: 4px 8px;
   min-height: 24px;
   border-radius: var(--radius-sm, 4px);
-  background: var(--bg-surface100);
+  background: transparent;
   border: none;
   color: var(--content-muted);
   cursor: pointer;
@@ -689,7 +688,11 @@
 
 .tabNew:hover {
   color: var(--content-default);
-  background: var(--bg-surface200);
+  background: var(--content-hover);
+}
+
+.tabNew:active {
+  background: var(--content-pressed);
 }
 
 .chevronOpen {

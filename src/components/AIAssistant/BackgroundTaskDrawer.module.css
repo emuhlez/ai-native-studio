@@ -54,12 +54,12 @@
 
 .spinner {
   flex-shrink: 0;
-  color: var(--accent-primary);
+  color: var(--content-emphasis);
   animation: spin 0.6s linear infinite;
 }
 
 .statusDone {
-  background: #22c55e;
+  background: var(--accent-primary);
 }
 
 .statusError {

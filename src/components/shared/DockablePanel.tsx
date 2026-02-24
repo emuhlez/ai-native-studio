@@ -20,6 +20,8 @@ interface DockablePanelProps {
   actions?: ReactNode
   /** Optional element after the title (e.g. dropdown chevron) */
   titleTrailing?: ReactNode
+  /** Optional content in header middle (e.g. conversation tabs); used when not collapsed */
+  headerMiddle?: ReactNode
   className?: string
   /** When true, the close (X) button is not shown (e.g. for viewport) */
   hideCloseButton?: boolean
@@ -42,6 +44,7 @@ export function DockablePanel({
   children,
   actions,
   titleTrailing,
+  headerMiddle,
   className,
   hideCloseButton = false,
   bodyCollapsed = false,
@@ -318,6 +321,9 @@ export function DockablePanel({
               }
             />
           </div>
+        )}
+        {!bodyCollapsed && headerMiddle && (
+          <div className={styles.headerMiddleRow}>{headerMiddle}</div>
         )}
         <div className={`${styles.panelContent} ${bodyCollapsed && (!collapsedShowsMinimalContent || collapsedHeaderContent) ? styles.panelContentCollapsed : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimal : ''} ${bodyCollapsed && collapsedShowsMinimalContent ? styles.panelContentMinimalHeight : ''} ${contentFills && !(bodyCollapsed && collapsedShowsMinimalContent) ? styles.panelContentFills : ''}`}>
           {children}

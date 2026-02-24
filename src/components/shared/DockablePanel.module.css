@@ -55,6 +55,11 @@
   flex-shrink: 0;
 }
 
+.headerMiddleRow {
+  flex-shrink: 0;
+  background: var(--bg-surface200);
+}
+
 .dockablePanel.collapsedAsTab {
   flex: 0 0 auto;
   align-items: flex-start;

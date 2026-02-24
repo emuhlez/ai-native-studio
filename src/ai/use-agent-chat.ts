@@ -51,6 +51,10 @@ export function useAgentChat(options?: UseAgentChatOptions) {
   const chatId = options?.conversationId ?? activeConversationId ?? 'agent-chat'
   const isBackgroundTasks = chatId === '__background-tasks__'
 
+  // Tracks which conversation ID is currently streaming so onFinish/onError
+  // can clear the yellow indicator even if the user has switched tabs.
+  const streamingConvRef = useRef<string | null>(null)
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -98,11 +102,19 @@ export function useAgentChat(options?: UseAgentChatOptions) {
           toolCall.toolCallId
         )
         console.log('[useAgentChat] tool result:', toolCall.toolName, result)
+        return result
       } catch (err) {
         console.error('[useAgentChat] tool execution error:', toolCall.toolName, err)
+        return { error: String(err) }
       }
     },
     onFinish: ({ message }) => {
+      // Clear streaming indicator for the conversation that started this stream
+      if (streamingConvRef.current) {
+        useConversationStore.getState().markReady(streamingConvRef.current)
+        streamingConvRef.current = null
+      }
+
       if (isBackgroundTasks) return
       const convStore = useConversationStore.getState()
       const convId = options?.conversationId ?? convStore.activeConversationId
@@ -137,6 +149,11 @@ export function useAgentChat(options?: UseAgentChatOptions) {
       convStore.addMessage(convId, persisted)
     },
     onError: (error) => {
+      // Clear streaming indicator for the conversation that started this stream
+      if (streamingConvRef.current) {
+        useConversationStore.getState().markReady(streamingConvRef.current)
+        streamingConvRef.current = null
+      }
       console.error('[useAgentChat] onError:', error)
       useEditorStore.getState().log(
         `AI Error: ${error.message}`,
@@ -145,6 +162,24 @@ export function useAgentChat(options?: UseAgentChatOptions) {
       )
     },
   })
+
+  // Track per-conversation streaming state so non-active tabs can show
+  // a yellow "in-progress" indicator after the user switches away.
+  const convIdForStreaming = options?.conversationId ?? activeConversationId
+  useEffect(() => {
+    if (isBackgroundTasks || !convIdForStreaming) return
+    const convStore = useConversationStore.getState()
+    const isStreaming = chat.status === 'streaming' || chat.status === 'submitted'
+    if (isStreaming) {
+      streamingConvRef.current = convIdForStreaming
+      convStore.markStreaming(convIdForStreaming)
+    } else {
+      convStore.markReady(convIdForStreaming)
+      if (streamingConvRef.current === convIdForStreaming) {
+        streamingConvRef.current = null
+      }
+    }
+  }, [chat.status, convIdForStreaming, isBackgroundTasks])
 
   // Restore persisted messages when switching to a conversation that the
   // AI SDK has no in-memory cache for (e.g. tab switch, page reload).

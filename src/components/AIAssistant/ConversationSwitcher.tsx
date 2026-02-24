@@ -29,6 +29,7 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
   const templates = listTemplates()
   const { status: chatStatus } = useAgentChat()
   const activePlan = usePlanStore((s) => s.activePlan)
+  const streamingIds = useConversationStore((s) => s.streamingIds)
 
   const isChatLoading = chatStatus === 'streaming' || chatStatus === 'submitted'
   const isPlanPendingApproval = activePlan?.status === 'pending'
@@ -115,7 +116,8 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
               {(() => {
                 const isActive = conv.id === activeId
                 const showSpinner = isActive && isChatLoading
-                const showYellowDot = isActive && isPlanPendingApproval && !showSpinner
+                const isStreamingInBackground = !isActive && streamingIds.has(conv.id)
+                const showYellowDot = (isActive && isPlanPendingApproval && !showSpinner) || isStreamingInBackground
                 const showBlueDot = !showSpinner && !showYellowDot
                 return (
                   <>

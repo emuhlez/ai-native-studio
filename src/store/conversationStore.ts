@@ -9,6 +9,7 @@ interface ConversationStore {
   conversations: Record<string, Conversation>
   activeConversationId: string | null
   surfaceBindings: Record<string, string> // maps surface name -> conversationId
+  streamingIds: Set<string> // conversation IDs currently generating a response
 
   // Actions
   createConversation: (title?: string, mode?: ConversationMode) => string
@@ -22,6 +23,8 @@ interface ConversationStore {
   unbindSurface: (surface: string) => void
   getConversationForSurface: (surface: string) => string | null
   clearMessages: (conversationId: string) => void
+  markStreaming: (conversationId: string) => void
+  markReady: (conversationId: string) => void
 }
 
 const loadConversations = (): Record<string, Conversation> => {
@@ -51,6 +54,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => {
     conversations: saved,
     activeConversationId: savedIds[savedIds.length - 1],
     surfaceBindings: {},
+    streamingIds: new Set<string>(),
 
     createConversation: (title, mode) => {
       const id = nanoid()
@@ -172,6 +176,24 @@ export const useConversationStore = create<ConversationStore>((set, get) => {
         }
         persistConversations(conversations)
         return { conversations }
+      })
+    },
+
+    markStreaming: (conversationId) => {
+      set((state) => {
+        if (state.streamingIds.has(conversationId)) return state
+        const next = new Set(state.streamingIds)
+        next.add(conversationId)
+        return { streamingIds: next }
+      })
+    },
+
+    markReady: (conversationId) => {
+      set((state) => {
+        if (!state.streamingIds.has(conversationId)) return state
+        const next = new Set(state.streamingIds)
+        next.delete(conversationId)
+        return { streamingIds: next }
       })
     },
   }

@@ -16,6 +16,7 @@ export function TasksDropdown() {
   const createConversation = useConversationStore((s) => s.createConversation)
   const { status: chatStatus } = useAgentChat()
   const activePlan = usePlanStore((s) => s.activePlan)
+  const streamingIds = useConversationStore((s) => s.streamingIds)
 
   const isChatLoading = chatStatus === 'streaming' || chatStatus === 'submitted'
   const isPlanPendingApproval = activePlan?.status === 'pending'
@@ -108,7 +109,8 @@ export function TasksDropdown() {
             conversations.map((conv) => {
               const isActive = conv.id === activeId
               const showSpinner = isActive && isChatLoading
-              const showYellowDot = isActive && isPlanPendingApproval && !showSpinner
+              const isStreamingInBackground = !isActive && streamingIds.has(conv.id)
+              const showYellowDot = (isActive && isPlanPendingApproval && !showSpinner) || isStreamingInBackground
               const showBlueDot = !showSpinner && !showYellowDot
               return (
                 <button
