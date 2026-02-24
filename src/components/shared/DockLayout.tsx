@@ -214,15 +214,18 @@ export function DockLayout({ leftZone, centerTopZone, centerBottomZone, rightTop
                 w.id === 'ai-assistant'
                   ? { left: DEFAULT_AI_ASSISTANT_INSET.left, bottom: DEFAULT_AI_ASSISTANT_INSET.bottom, top: 'auto' as const }
                   : { top: DEFAULT_STICKY_INSET.top, right: DEFAULT_STICKY_INSET.right, left: 'auto' as const }
+              /* Collapsed AI assistant is always anchored to viewport corner (bottom-left); expanded uses saved position */
               const style = isDraggingThis
                 ? { left: stickyDragPosition.x, top: stickyDragPosition.y }
-                : w.id === 'ai-assistant'
-                  ? w.position
-                    ? { left: w.position.x, top: w.position.y }
-                    : defaultInset
-                  : w.position
-                    ? { left: w.position.x, top: w.position.y }
-                    : defaultInset
+                : w.id === 'ai-assistant' && collapsed
+                  ? defaultInset
+                  : w.id === 'ai-assistant'
+                    ? w.position
+                      ? { left: w.position.x, top: w.position.y }
+                      : defaultInset
+                    : w.position
+                      ? { left: w.position.x, top: w.position.y }
+                      : defaultInset
               return (
                 <div
                   key={w.id}

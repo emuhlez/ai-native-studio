@@ -147,12 +147,9 @@ export function TasksDropdown() {
                         <span className={styles.tasksDropdownItemStatusText}>{statusText}</span>
                       )}
                       {showPendingIcon && (
-                        <img
-                          src="/prompts/awaiting-approval.svg"
-                          alt="Awaiting approval"
-                          className={styles.tasksDropdownItemPendingIcon}
-                          height={14}
-                        />
+                        <span className={styles.tasksDropdownItemPill} aria-label="Awaiting approval">
+                          Awaiting approval
+                        </span>
                       )}
                       {showDoneIcon && (
                         <img

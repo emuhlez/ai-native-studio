@@ -181,18 +181,9 @@ export function AIAssistant() {
   const onExpandedSubmit = () => {
     const text = pillInputRef.current?.getTextContent()?.trim() ?? ''
     if (text && !isLoading) {
-      const hasSelection = useEditorStore.getState().selectedObjectIds.length > 0
-
-      if (hasSelection) {
-        // Contextual command with selected objects → route through task queue
-        // so it stays isolated from the conversation (drawer or promoted to its own tab)
-        useBackgroundTaskStore.getState().enqueueTask(text)
-      } else {
-        // No selection → direct conversation message in the active tab
-        sendMessage({ text })
-      }
-
-      // Clear selection first so pill-insertion effects don't re-populate the input after submit
+      // Assistant is open: always send straight to chat (no drawer routing)
+      sendMessage({ text })
+      // Clear selection so pill-insertion effects don't re-populate the input after submit
       useEditorStore.getState().selectObject(null)
       useEditorStore.getState().selectAsset(null)
       setSegments([])
