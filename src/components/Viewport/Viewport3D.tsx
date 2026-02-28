@@ -9,6 +9,7 @@ import {
   assetUrl,
 } from './threeSpaceAssets'
 import { createNoise2D, fbm2D } from '../../utils/perlin-noise'
+import { publicUrl } from '../../utils/assetUrl'
 import type { TerrainData } from '../../types'
 import styles from './Viewport.module.css'
 
@@ -653,26 +654,37 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     fillLight.position.set(-20, 15, 10)
     scene.add(fillLight)
 
-    // Floor grid with custom texture (XZ plane at y=0)
+    // Floor grid with custom texture (XZ plane at y=0). Fallback material if texture 404s.
     const gridSize = 72
-    const textureLoader = new THREE.TextureLoader()
-    const gridTexture = textureLoader.load(`/textures/grid-floor.png?v=${Date.now()}`)
-    gridTexture.wrapS = THREE.RepeatWrapping
-    gridTexture.wrapT = THREE.RepeatWrapping
-    gridTexture.repeat.set(18, 18) // Repeat the pattern to fill 72x72 grid
-    gridTexture.colorSpace = THREE.SRGBColorSpace
-    
     const floorGeometry = new THREE.PlaneGeometry(gridSize, gridSize)
-    const floorMaterial = new THREE.MeshStandardMaterial({ 
-      map: gridTexture,
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1b1e,
       roughness: 0.8,
-      metalness: 0.1
+      metalness: 0.1,
     })
     const floor = new THREE.Mesh(floorGeometry, floorMaterial)
-    floor.rotation.x = -Math.PI / 2 // Rotate to lie flat on XZ plane
+    floor.rotation.x = -Math.PI / 2
     floor.position.y = 0
     floor.receiveShadow = true
     scene.add(floor)
+
+    const textureLoader = new THREE.TextureLoader()
+    const gridTextureUrl = `${publicUrl('textures/grid-floor.png')}?v=${Date.now()}`
+    textureLoader.load(
+      gridTextureUrl,
+      (gridTexture) => {
+        gridTexture.wrapS = THREE.RepeatWrapping
+        gridTexture.wrapT = THREE.RepeatWrapping
+        gridTexture.repeat.set(18, 18)
+        gridTexture.colorSpace = THREE.SRGBColorSpace
+        floorMaterial.map = gridTexture
+        floorMaterial.needsUpdate = true
+      },
+      undefined,
+      () => {
+        // Texture failed (404 or missing); floor already has fallback color
+      }
+    )
 
     // Area selection circle — 3D disc on the ground plane
     const areaCircleGroup = new THREE.Group()

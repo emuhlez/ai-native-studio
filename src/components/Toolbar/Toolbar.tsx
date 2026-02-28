@@ -9,6 +9,8 @@ import {
   Clock,
   ChevronDown,
   ChevronRight,
+  Menu,
+  Pause,
 } from 'lucide-react'
 import { ExpandDownIcon } from '../shared/ExpandIcons'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
@@ -511,7 +513,7 @@ export function Toolbar() {
           }}
           ref={menuRef}
         >
-          <img src="/roblox_dropdown.png" alt="Menu" className={styles.actionIcon} />
+          <Menu size={24} className={styles.actionIcon} aria-hidden />
           <MenuDropdown
             items={menuItems}
             isOpen={showMenuDropdown}
@@ -552,7 +554,7 @@ export function Toolbar() {
             {isPlaying ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
           </button>
           <button className={styles.testPauseButton} onClick={pause} title="Pause Test">
-            <img src="/pause-split-toggle.png" alt="Pause" width={16} height={16} />
+            <Pause size={16} fill="currentColor" aria-hidden />
           </button>
           <button
             className={styles.testStopButton}
