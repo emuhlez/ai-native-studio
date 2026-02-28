@@ -299,7 +299,7 @@ export function AIAssistant() {
     const hasCurrentTask =
       chatbotUIMode === 'dropdown' &&
       activePlan &&
-      (activePlan.status === 'pending' || activePlan.status === 'executing' || activePlan.status === 'clarifying')
+      activePlan.status !== 'rejected'
     const placeholderText = hasCurrentTask ? 'Add a follow-up' : 'Build with Assistant'
     return (
     <div className={`${styles.collapsedInputOnly} ${inExpandedView ? styles.compactInputBarInExpanded : ''}`}>
@@ -447,8 +447,8 @@ export function AIAssistant() {
               isLoading={isLoading}
               pendingToolCount={pendingToolCount}
             />
-            {/* Standalone plan card when the plan isn't visible in any message (e.g. promoted from background task) */}
-            {activePlan && (activePlan.status === 'pending' || activePlan.status === 'executing' || activePlan.status === 'clarifying') && !visibleMessages.some((m) =>
+            {/* Standalone plan card — visible for all active statuses including 'done' so user can see completed todos */}
+            {activePlan && activePlan.status !== 'rejected' && !visibleMessages.some((m) =>
               m.parts?.some((p) => {
                 const part = p as { type: string; toolCallId?: string }
                 return part.type === 'tool-createPlan' && part.toolCallId === activePlan.id

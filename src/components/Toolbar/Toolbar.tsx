@@ -780,26 +780,39 @@ export function Toolbar() {
                   </button>
                 )}
                 {backgroundTasks.length === 0 ? (
-                  hasPlanPendingApproval && activeConversation && approvalSectionExpanded ? (
-                    <div id="tasks-menu-approval-content" className={styles.tasksMenuOpenChatRow}>
-                      <span className={styles.tasksMenuOpenChatTitle} title={activeConversation.title}>
-                        {activeConversation.title}
-                      </span>
-                      <button
-                        type="button"
-                        className={styles.tasksMenuOpenChatAction}
-                        onClick={() => {
-                          dockWidget('ai-assistant', 'right-top')
-                          setAiAssistantBodyCollapsed(false)
-                          setShowTasksMenu(false)
-                        }}
-                      >
-                        Respond
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={styles.tasksMenuEmpty}>No background tasks</div>
-                  )
+                  (() => {
+                    const activeCount = inProgressCount + (aiGenerating ? 1 : 0)
+                    const showSpinnerInMenu = activeCount > 0
+                    if (hasPlanPendingApproval && activeConversation && approvalSectionExpanded) {
+                      return (
+                        <div id="tasks-menu-approval-content" className={styles.tasksMenuOpenChatRow}>
+                          <span className={styles.tasksMenuOpenChatTitle} title={activeConversation.title}>
+                            {activeConversation.title}
+                          </span>
+                          <button
+                            type="button"
+                            className={styles.tasksMenuOpenChatAction}
+                            onClick={() => {
+                              dockWidget('ai-assistant', 'right-top')
+                              setAiAssistantBodyCollapsed(false)
+                              setShowTasksMenu(false)
+                            }}
+                          >
+                            Respond
+                          </button>
+                        </div>
+                      )
+                    }
+                    if (showSpinnerInMenu) {
+                      return (
+                        <div className={styles.tasksMenuEmpty} aria-busy="true">
+                          <Loader2 size={14} className={styles.tasksMenuEmptySpinner} />
+                          <span>Work in progress</span>
+                        </div>
+                      )
+                    }
+                    return <div className={styles.tasksMenuEmpty}>No background tasks</div>
+                  })()
                 ) : (
                   <ul className={styles.tasksMenuList} role="list">
                     {backgroundTasks.map((task) => (
