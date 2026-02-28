@@ -25,6 +25,7 @@ import { isAIIntent } from '../../ai/detect-ai-intent'
 import { parseResponse } from '../../ai/parse-response'
 import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import type { Asset } from '../../types'
+import { publicUrl } from '../../utils/assetUrl'
 import styles from './Toolbar.module.css'
 import drawerIcon from '../../../icons/drawer.svg'
 import aiAssistantIcon from '../../../icons/nebula.svg'
@@ -33,6 +34,7 @@ import partBlockIcon from '../../../images/Part_Block.png'
 export function Toolbar() {
   const [showTestDropdown, setShowTestDropdown] = useState(false)
   const [menuPressed, setMenuPressed] = useState(false)
+  const [menuIconFailed, setMenuIconFailed] = useState(false)
   const [showMenuDropdown, setShowMenuDropdown] = useState(false)
   const [selectedTestMode, setSelectedTestMode] = useState('Test')
   const [searchQuery, setSearchQuery] = useState('')
@@ -513,7 +515,16 @@ export function Toolbar() {
           }}
           ref={menuRef}
         >
-          <Menu size={24} className={styles.actionIcon} aria-hidden />
+          {menuIconFailed ? (
+            <Menu size={24} className={styles.actionIcon} aria-hidden />
+          ) : (
+            <img
+              src={publicUrl('roblox_dropdown.png')}
+              alt="Menu"
+              className={styles.actionIcon}
+              onError={() => setMenuIconFailed(true)}
+            />
+          )}
           <MenuDropdown
             items={menuItems}
             isOpen={showMenuDropdown}
