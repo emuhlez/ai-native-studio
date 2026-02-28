@@ -47,15 +47,7 @@ const SCRIPTING_ICONS: Record<string, typeof Box> = {
   'Variables': Variable,
 }
 
-/** Figma asset icons for scene object types */
-const FIGMA_OBJECT_ICONS: Record<string, string> = {
-  /** Figma AI-Native-Studio node 1187-39702 (Small Terrain) */
-  terrain: 'https://www.figma.com/api/mcp/asset/86b903ca-adc7-44c5-b51e-f55050eb1a3f',
-  /** Figma AI-Native-Studio node 1187-39700 (Camera) */
-  camera: 'https://www.figma.com/api/mcp/asset/86b903ca-adc7-44c5-b51e-f55050eb1a3f',
-}
-
-/** Lucide fallback icons per scene-object type / primitiveType */
+/** Lucide icons per scene-object type / primitiveType */
 const OBJECT_TYPE_ICONS: Record<string, typeof Box> = {
   camera: Camera,
   light: Lightbulb,
@@ -66,45 +58,21 @@ const OBJECT_TYPE_ICONS: Record<string, typeof Box> = {
   script: FileCode,
 }
 
-/** Figma Avatar variants (AI-Native-Studio) – different images per collaborator */
-const FIGMA_AVATAR_VARIANTS: Record<string, string> = {
-  robot: 'https://www.figma.com/api/mcp/asset/b2058951-c6b8-4ef4-b712-d2ce97dba0c6',
-  anton: 'https://www.figma.com/api/mcp/asset/1c3e2716-5369-4393-af04-538f9a622618',
-  leslie: 'https://www.figma.com/api/mcp/asset/1c3e2716-5369-4393-af04-538f9a622618',
-}
-const DEFAULT_AVATAR_VARIANT = 'leslie'
+/** Collaborator avatar colors (deterministic by name) */
+const AVATAR_COLORS = ['#7b8af9', '#f97b8a', '#8af97b', '#f9d67b', '#7bf9e0', '#d67bf9']
 
-/** Map collaborator name -> Figma avatar variant key (e.g. David -> robot, Jim -> anton) */
-const COLLABORATOR_AVATAR_VARIANT: Record<string, string> = {
-  david: 'robot',
-  jim: 'anton',
-  robot: 'robot',
-}
-
-function getAvatarVariantForLabel(label: string): string {
-  const key = label.trim().toLowerCase()
-  return COLLABORATOR_AVATAR_VARIANT[key] ?? DEFAULT_AVATAR_VARIANT
-}
-
-/** Small avatar for collaborators – Figma AI-Native-Studio Avatar: circular, variant image or initial fallback */
+/** Small avatar for collaborators — initial-based, no external network requests */
 function CollaboratorAvatar({ label }: { label: string }) {
-  const [imgFailed, setImgFailed] = useState(false)
-  const variant = getAvatarVariantForLabel(label)
-  const imageUrl = FIGMA_AVATAR_VARIANTS[variant] ?? FIGMA_AVATAR_VARIANTS[DEFAULT_AVATAR_VARIANT]
   const initial = (label || '?').charAt(0).toUpperCase()
+  const colorIdx = label.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % AVATAR_COLORS.length
   return (
-    <span className={styles.avatar} aria-hidden title={label}>
-      {!imgFailed && imageUrl && (
-        <img
-          src={imageUrl}
-          alt=""
-          className={styles.avatarImg}
-          onError={() => setImgFailed(true)}
-        />
-      )}
-      <span className={styles.avatarInitial} aria-hidden style={{ visibility: imgFailed || !imageUrl ? 'visible' : 'hidden' }}>
-        {initial}
-      </span>
+    <span
+      className={styles.avatar}
+      aria-hidden
+      title={label}
+      style={{ background: AVATAR_COLORS[colorIdx] }}
+    >
+      <span className={styles.avatarInitial}>{initial}</span>
     </span>
   )
 }
@@ -117,10 +85,6 @@ function ItemIcon({ item }: { item: MentionItem }) {
   if (item.category === 'object') {
     const ot = item.objectType
     if (ot) {
-      const figmaUrl = FIGMA_OBJECT_ICONS[ot]
-      if (figmaUrl) {
-        return <img src={figmaUrl} alt="" width={14} height={14} className={styles.submenuIconImg} />
-      }
       const Icon = OBJECT_TYPE_ICONS[ot]
       if (Icon) return <Icon size={14} />
     }

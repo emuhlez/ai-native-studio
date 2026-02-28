@@ -23,6 +23,7 @@ import { MoveDialog } from './MoveDialog'
 import { AssetSidebar } from './AssetSidebar'
 import { AssetToolbar } from './AssetToolbar'
 import { useDragAndDrop } from '../../hooks/useDragAndDrop'
+import { publicUrl } from '../../utils/assetUrl'
 import styles from './Assets.module.css'
 
 const assetIcons: Record<Asset['type'], React.ReactNode> = {
@@ -35,7 +36,7 @@ const assetIcons: Record<Asset['type'], React.ReactNode> = {
   material: <Layers size={14} />,
   prefab: <Box size={14} />,
   scene: <Film size={14} />,
-  animation: <img src="/icons/animation.svg" alt="Animation" width={14} height={14} />,
+  animation: <img src={publicUrl('icons/animation.svg')} alt="Animation" width={14} height={14} />,
 }
 
 /**
@@ -362,7 +363,7 @@ export function Assets() {
                     ) : (
                       displayAssets.map((asset) => {
                         const isFolder = asset.type === 'folder'
-                        const icon = isFolder ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
+                        const icon = isFolder ? <img src={publicUrl('icons/folder.svg')} alt="" width={16} height={16} /> : assetIcons[asset.type]
                         const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
                         return (
                           <tr key={asset.id} className={styles.contentTableRow}>
@@ -416,7 +417,7 @@ export function Assets() {
                       </tr>
                     ) : (
                       assetsForGrid.map((asset) => {
-                        const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
+                        const icon = asset.type === 'folder' ? <img src={publicUrl('icons/folder.svg')} alt="" width={16} height={16} /> : assetIcons[asset.type]
                         const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
                         const isFolder = asset.type === 'folder'
                         const previewImageUrl =
@@ -509,7 +510,7 @@ export function Assets() {
                   <div className={styles.contentTableEmpty}>No assets</div>
                 ) : (
                   assetsForGrid.map((asset) => {
-                    const icon = asset.type === 'folder' ? <img src="/icons/folder.svg" alt="" width={16} height={16} /> : assetIcons[asset.type]
+                    const icon = asset.type === 'folder' ? <img src={publicUrl('icons/folder.svg')} alt="" width={16} height={16} /> : assetIcons[asset.type]
                     const displayName = asset.name === 'Sprites' ? 'Interior Props' : asset.name
                     const previewImageUrl =
                       asset.type === 'texture' || asset.type === 'material'

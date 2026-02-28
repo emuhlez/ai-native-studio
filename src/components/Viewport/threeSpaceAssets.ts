@@ -1,5 +1,6 @@
 /**
- * GLB assets from /3d-space (served at /3d-space/ in public)
+ * GLB assets from /3d-space (served at /3d-space/ in public).
+ * Uses BASE_URL so paths resolve correctly on deployed subpaths.
  */
 export const THREE_SPACE_ASSETS = [
   'Bench A.glb',
@@ -31,7 +32,7 @@ export const THREE_SPACE_ASSETS = [
   'Tree.glb',
 ] as const
 
-export const THREE_SPACE_BASE = '/3d-space/'
+export const THREE_SPACE_BASE = `${import.meta.env.BASE_URL}3d-space/`
 
 export function assetUrl(filename: string): string {
   return `${THREE_SPACE_BASE}${encodeURIComponent(filename)}`
