@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import nebulaIcon from '../../../icons/nebula.svg'
 import { useEditorStore } from '../../store/editorStore'
 import { useDockingStore } from '../../store/dockingStore'
-import { useBackgroundTaskStore } from '../../store/backgroundTaskStore'
+import { useConversationStore } from '../../store/conversationStore'
+import { useCommentStore } from '../../store/commentStore'
 import { VoiceButton } from '../AIAssistant/VoiceButton'
 import { PillInput } from '../shared/PillInput'
-import type { InputSegment, PillInputHandle } from '../../types'
+import { MentionDropdown, type MentionItem } from '../shared/MentionDropdown'
+import { MENTION_TOOLS, MENTION_SCRIPTING } from './mentionItems'
+import type { InputSegment, PillInputHandle, MentionQuery } from '../../types'
 import styles from './ViewportAIInput.module.css'
 
 export function ViewportAIInput() {
@@ -13,22 +16,48 @@ export function ViewportAIInput() {
   const pillInputRef = useRef<PillInputHandle>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
 
+  const [mentionQuery, setMentionQuery] = useState<MentionQuery | null>(null)
   const visible = useDockingStore((s) => s.viewportAIInputOpen)
   const setVisible = useDockingStore((s) => s.setViewportAIInputOpen)
   const selectedObjectIds = useEditorStore((s) => s.selectedObjectIds)
-  const selectedAssetIds = useEditorStore((s) => s.selectedAssetIds)
   const gameObjects = useEditorStore((s) => s.gameObjects)
-  const assets = useEditorStore((s) => s.assets)
+  const collaborators = useEditorStore((s) => s.collaborators)
+  const rootObjectIds = useEditorStore((s) => s.rootObjectIds)
   const aiInputAnchorPosition = useEditorStore((s) => s.aiInputAnchorPosition)
 
-  const assetById = useRef<Map<string, { id: string; name: string }>>(new Map())
-  assetById.current = new Map(assets.map((a) => [a.id, { id: a.id, name: a.name }]))
+  const mentionItems: MentionItem[] = useMemo(() => {
+    const items: MentionItem[] = []
+    // Collaborators
+    for (const c of collaborators) {
+      items.push({ id: c.id, label: c.name, kind: 'collaborator', category: 'collaborator' })
+    }
+    // Scene objects
+    const workspaceId = rootObjectIds[0]
+    const workspace = workspaceId ? gameObjects[workspaceId] : null
+    if (workspace?.children) {
+      for (const childId of workspace.children) {
+        const obj = gameObjects[childId]
+        if (obj && obj.name !== 'Drops') {
+          items.push({
+            id: childId,
+            label: obj.name,
+            kind: 'object',
+            category: 'object',
+            objectType: obj.primitiveType === 'terrain' ? 'terrain' : obj.type !== 'mesh' && obj.type !== 'empty' ? obj.type : undefined,
+          })
+        }
+      }
+    }
+    // Tools
+    items.push(...MENTION_TOOLS)
+    // Scripting
+    items.push(...MENTION_SCRIPTING)
+    return items
+  }, [collaborators, gameObjects, rootObjectIds])
 
   const prevSelectionRef = useRef<Set<string>>(new Set())
-  const prevAssetSelectionRef = useRef<Set<string>>(new Set())
   useEffect(() => {
     prevSelectionRef.current = new Set(selectedObjectIds)
-    prevAssetSelectionRef.current = new Set(selectedAssetIds)
   }, [])
   useEffect(() => {
     if (!visible) return
@@ -37,32 +66,51 @@ export function ViewportAIInput() {
     const newIds = selectedObjectIds.filter(id => !prevIds.has(id))
     prevSelectionRef.current = currentIds
     if (newIds.length === 0) return
+    // Skip IDs that already have a pill in the input
+    const existingPillIds = new Set(
+      segments.filter(s => s.type === 'pill').map(s => s.id)
+    )
     const newPills = newIds
+      .filter(id => !existingPillIds.has(id))
       .map(id => ({ id, label: gameObjects[id]?.name ?? id }))
       .filter(p => p.label)
     if (newPills.length > 0) {
       pillInputRef.current?.insertPillsAtCursor(newPills)
     }
-  }, [selectedObjectIds, visible, gameObjects])
-  useEffect(() => {
-    if (!visible) return
-    const prevIds = prevAssetSelectionRef.current
-    const currentIds = new Set(selectedAssetIds)
-    const newIds = selectedAssetIds.filter(id => !prevIds.has(id))
-    prevAssetSelectionRef.current = currentIds
-    if (newIds.length === 0) return
-    const newPills = newIds
-      .map(id => assetById.current.get(id))
-      .filter((p): p is { id: string; name: string } => p != null && p.name != null)
-      .map(p => ({ id: p.id, label: p.name }))
-    if (newPills.length > 0) {
-      pillInputRef.current?.insertPillsAtCursor(newPills)
-    }
-  }, [selectedAssetIds, visible, assets])
+  }, [selectedObjectIds, visible, gameObjects, segments])
+  // Asset pill insertion removed — selecting assets in the panel
+  // should not auto-populate the chat input.
 
   const doSubmit = useCallback(() => {
     let text = pillInputRef.current?.getTextContent()?.trim() ?? ''
     if (!text) return
+
+    // Check if any collaborator pills are present → route to comments instead of AI
+    const collabPills = segments.filter(
+      (s) => s.type === 'pill' && s.kind === 'collaborator',
+    )
+    if (collabPills.length > 0) {
+      // Strip collaborator names from the text for the comment body
+      const commentText = segments
+        .map((s) => (s.type === 'text' ? s.text : s.kind === 'collaborator' ? '' : s.label))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      useCommentStore.getState().addComment({
+        author: 'You',
+        text: commentText,
+        taggedCollaboratorIds: collabPills.map((s) => s.type === 'pill' ? s.id : ''),
+        taggedCollaboratorNames: collabPills.map((s) => s.type === 'pill' ? s.label : ''),
+      })
+      // Open the comments panel so the user sees their comment
+      const dock = useDockingStore.getState()
+      if (!dock.widgets['comments']) {
+        dock.dockWidget('comments', 'right-top')
+      }
+      setSegments([])
+      setVisible(false)
+      return
+    }
 
     // When pen tool is active, prepend world-position context from last drawn position
     const editorState = useEditorStore.getState()
@@ -92,14 +140,20 @@ export function ViewportAIInput() {
       editorState.setAreaSelectionCircle(null)
     }
 
-    useBackgroundTaskStore.getState().enqueueTask(text)
+    const convStore = useConversationStore.getState()
+    convStore.createConversation()
+    convStore.setPendingViewportMessage(text)
+    // Signal generating state immediately so the toolbar spinner shows
+    useEditorStore.getState().setAiGenerating(true)
     setSegments([])
     setVisible(false)
     // Keep selection so Cmd+/ "remembers" what was selected for follow-up actions
-  }, [setVisible])
+  }, [setVisible, segments])
 
   const handleVoiceTranscript = useCallback((text: string) => {
-    useBackgroundTaskStore.getState().enqueueTask(text)
+    const convStore = useConversationStore.getState()
+    convStore.createConversation()
+    convStore.setPendingViewportMessage(text)
     setVisible(false)
   }, [setVisible])
 
@@ -121,8 +175,12 @@ export function ViewportAIInput() {
   useEffect(() => {
     if (!visible) return
     const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as Node
+      const target = e.target as HTMLElement
       if (overlayRef.current && !overlayRef.current.contains(target)) {
+        // Don't close when clicking the viewport canvas (user is selecting assets)
+        if (target.hasAttribute?.('data-viewport-canvas')) return
+        // Don't close when clicking the @ mention dropdown (portaled to body)
+        if (target.closest('[role="listbox"][aria-label="Mention"]')) return
         setVisible(false)
       }
     }
@@ -144,7 +202,7 @@ export function ViewportAIInput() {
     <div ref={overlayRef} className={styles.overlay} style={overlayStyle}>
       <div className={styles.inputRow} role="search">
         <span className={styles.inputIcon} aria-hidden>
-          <img src={nebulaIcon} alt="" width={24} height={24} className={styles.inputIconImg} />
+          <img src={nebulaIcon} alt="" width={16} height={16} className={styles.inputIconImg} />
         </span>
         <PillInput
           ref={pillInputRef}
@@ -155,6 +213,13 @@ export function ViewportAIInput() {
           autoFocus
           className={styles.pillsAndInput}
           ariaLabel="Describe what to do"
+          onMentionQuery={setMentionQuery}
+        />
+        <MentionDropdown
+          mention={mentionQuery}
+          items={mentionItems}
+          pillInputRef={pillInputRef}
+          onClose={() => setMentionQuery(null)}
         />
         <VoiceButton
           onTranscript={handleVoiceTranscript}

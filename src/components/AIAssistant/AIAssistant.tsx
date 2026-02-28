@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { Bot } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Bot, Paperclip, X } from 'lucide-react'
 import { DockablePanel } from '../shared/DockablePanel'
 import { useDockingStore } from '../../store/dockingStore'
 import { useEditorStore } from '../../store/editorStore'
@@ -14,9 +14,12 @@ import { MessageList } from './MessageList'
 import { BackgroundTaskDrawer } from './BackgroundTaskDrawer'
 import { useBackgroundTaskRunner } from '../../ai/use-background-task-runner'
 import { useBackgroundTaskStore } from '../../store/backgroundTaskStore'
+import { useCommentStore } from '../../store/commentStore'
 import { PlanCard } from './PlanCard'
 import { PillInput } from '../shared/PillInput'
-import type { InputSegment, PillInputHandle } from '../../types'
+import { MentionDropdown, type MentionItem } from '../shared/MentionDropdown'
+import { MENTION_TOOLS, MENTION_SCRIPTING } from '../Viewport/mentionItems'
+import type { InputSegment, PillInputHandle, MentionQuery } from '../../types'
 import styles from './AIAssistant.module.css'
 
 export function AIAssistant() {
@@ -28,34 +31,102 @@ export function AIAssistant() {
   const selectedAssetIds = useEditorStore((s) => s.selectedAssetIds)
   const gameObjects = useEditorStore((s) => s.gameObjects)
   const assets = useEditorStore((s) => s.assets)
-  const { messages, sendMessage, status } = useAgentChat()
+  const collaborators = useEditorStore((s) => s.collaborators)
+  const rootObjectIds = useEditorStore((s) => s.rootObjectIds)
+  const [mentionQuery, setMentionQuery] = useState<MentionQuery | null>(null)
+
+  const mentionItems: MentionItem[] = useMemo(() => {
+    const items: MentionItem[] = []
+    for (const c of collaborators) {
+      items.push({ id: c.id, label: c.name, kind: 'collaborator', category: 'collaborator' })
+    }
+    const workspaceId = rootObjectIds[0]
+    const workspace = workspaceId ? gameObjects[workspaceId] : null
+    if (workspace?.children) {
+      for (const childId of workspace.children) {
+        const obj = gameObjects[childId]
+        if (obj && obj.name !== 'Drops') {
+          items.push({
+            id: childId,
+            label: obj.name,
+            kind: 'object',
+            category: 'object',
+            objectType: obj.primitiveType === 'terrain' ? 'terrain' : obj.type !== 'mesh' && obj.type !== 'empty' ? obj.type : undefined,
+          })
+        }
+      }
+    }
+    items.push(...MENTION_TOOLS)
+    items.push(...MENTION_SCRIPTING)
+    return items
+  }, [collaborators, gameObjects, rootObjectIds])
+  const { messages, sendMessage, status, autoSendPendingRef, conversationId } = useAgentChat()
   const { isRunning: isBackgroundTaskRunning } = useBackgroundTaskRunner()
   const hiddenMessageIds = useBackgroundTaskStore((s) => s.hiddenMessageIds)
   const visibleMessages = messages.filter((m) => !hiddenMessageIds.has(m.id))
-  usePlanExecutor({ sendMessage, status })
+  usePlanExecutor({ sendMessage, status, messages, autoSendPendingRef })
+  const pendingViewportMessage = useConversationStore((s) => s.pendingViewportMessage)
   const activePlan = usePlanStore((s) => s.activePlan)
+
+  // Consume pending messages queued from the mini composer (ViewportAIInput).
+  // Read from the store directly to avoid React strict mode double-invoke
+  // sending the message twice (closure retains stale value across both runs).
+  useEffect(() => {
+    const pending = useConversationStore.getState().pendingViewportMessage
+    if (!pending) return
+    if (status === 'streaming' || status === 'submitted') return
+    useConversationStore.getState().setPendingViewportMessage(null)
+    sendMessage({ text: pending })
+  }, [pendingViewportMessage, status, sendMessage])
+
+  // Sync main chat loading state to shared store so Toolbar can show spinner
+  useEffect(() => {
+    const generating = status === 'streaming' || status === 'submitted'
+    useEditorStore.getState().setAiGenerating(generating)
+  }, [status])
   const [segments, setSegments] = useState<InputSegment[]>([])
   const [collapsedVoiceAccumulated, setCollapsedVoiceAccumulated] = useState('')
   const pillInputRef = useRef<PillInputHandle>(null)
 
+  // File upload state (Gap 1)
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; dataUrl: string }[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setPendingFiles((prev) => [...prev, { file, dataUrl: reader.result as string }])
+      }
+      reader.readAsDataURL(file)
+    })
+    // Reset so the same file can be re-selected
+    e.target.value = ''
+  }, [])
+
+  const removePendingFile = useCallback((index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
   // Per-conversation input drafts — save/restore when switching tabs
-  const activeConversationId = useConversationStore((s) => s.activeConversationId)
   const draftsRef = useRef<Map<string, InputSegment[]>>(new Map())
   const segmentsRef = useRef(segments)
   segmentsRef.current = segments
-  const prevConversationIdRef = useRef(activeConversationId)
+  const prevConversationIdRef = useRef<string | null>(conversationId)
 
   useEffect(() => {
     const prevId = prevConversationIdRef.current
-    if (prevId && prevId !== activeConversationId) {
+    if (prevId && prevId !== conversationId) {
       // Save current input as draft for the conversation we're leaving
       draftsRef.current.set(prevId, segmentsRef.current)
       // Restore draft for the conversation we're entering (or start empty)
-      const draft = activeConversationId ? draftsRef.current.get(activeConversationId) ?? [] : []
+      const draft = conversationId ? draftsRef.current.get(conversationId) ?? [] : []
       setSegments(draft)
     }
-    prevConversationIdRef.current = activeConversationId
-  }, [activeConversationId])
+    prevConversationIdRef.current = conversationId
+  }, [conversationId])
 
   const assetByIdRef = useRef<Map<string, { id: string; name: string }>>(new Map())
   assetByIdRef.current = new Map(assets.map((a) => [a.id, { id: a.id, name: a.name }]))
@@ -79,34 +150,20 @@ export function AIAssistant() {
       useEditorStore.getState().setSkipPillInsertion(false)
       return
     }
+    // Skip IDs that already have a pill in the input
+    const existingPillIds = new Set(
+      segments.filter(s => s.type === 'pill').map(s => s.id)
+    )
     const newPills = newIds
+      .filter(id => !existingPillIds.has(id))
       .map(id => ({ id, label: gameObjects[id]?.name ?? id }))
       .filter(p => p.label)
     if (newPills.length > 0) {
       pillInputRef.current?.insertPillsAtCursor(newPills)
     }
-  }, [selectedObjectIds, viewportAIInputOpen, gameObjects])
-  useEffect(() => {
-    if (viewportAIInputOpen) return
-    const prevIds = prevAssetSelectionRef.current
-    const currentIds = new Set(selectedAssetIds)
-    const newIds = selectedAssetIds.filter(id => !prevIds.has(id))
-    prevAssetSelectionRef.current = currentIds
-    if (newIds.length === 0) return
-    if (isLoadingRef.current) return
-    // Skip pill insertion on double-click (focus action)
-    if (useEditorStore.getState().skipPillInsertion) {
-      useEditorStore.getState().setSkipPillInsertion(false)
-      return
-    }
-    const newPills = newIds
-      .map(id => assetByIdRef.current.get(id))
-      .filter((p): p is { id: string; name: string } => p != null && p.name != null)
-      .map(p => ({ id: p.id, label: p.name }))
-    if (newPills.length > 0) {
-      pillInputRef.current?.insertPillsAtCursor(newPills)
-    }
-  }, [selectedAssetIds, viewportAIInputOpen, assets])
+  }, [selectedObjectIds, viewportAIInputOpen, gameObjects, segments])
+  // Asset pill insertion removed — selecting assets in the panel
+  // should not auto-populate the chat input.
 
   const {
     isListening: isCollapsedVoiceListening,
@@ -172,56 +229,91 @@ export function AIAssistant() {
       return false
     }).length
 
-  const onCollapsedSubmit = () => {
+  // Submit helper: files always go via sendMessage (with parts), text-only depends on mode (Gap 9 + Gap 1)
+  const doSubmit = (asBackground: boolean) => {
     const text = pillInputRef.current?.getTextContent()?.trim() ?? ''
-    if (text && !isLoading) {
-      // Clear selection first so pill-insertion effects don't re-populate the input after submit
-      useEditorStore.getState().selectObject(null)
-      useEditorStore.getState().selectAsset(null)
-      // Route through background task queue for auto-classification
+    if ((!text && pendingFiles.length === 0) || isLoading) return
+
+    // Check if any collaborator pills are present → route to comments thread
+    const collabPills = segments.filter(
+      (s) => s.type === 'pill' && s.kind === 'collaborator',
+    )
+    if (collabPills.length > 0 && pendingFiles.length === 0) {
+      const commentText = segments
+        .map((s) => (s.type === 'text' ? s.text : s.kind === 'collaborator' ? '' : s.label))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      useCommentStore.getState().addComment({
+        author: 'You',
+        text: commentText,
+        taggedCollaboratorIds: collabPills.map((s) => s.type === 'pill' ? s.id : ''),
+        taggedCollaboratorNames: collabPills.map((s) => s.type === 'pill' ? s.label : ''),
+      })
+      const dock = useDockingStore.getState()
+      if (!dock.widgets['comments']) {
+        dock.dockWidget('comments', 'right-top')
+      }
+      setSegments([])
+      if (conversationId) {
+        draftsRef.current.delete(conversationId)
+      }
+      return
+    }
+
+    // Clear selection first so pill-insertion effects don't re-populate the input after submit
+    useEditorStore.getState().selectObject(null)
+    useEditorStore.getState().selectAsset(null)
+
+    if (pendingFiles.length > 0) {
+      // Files attached: send directly via sendMessage with parts (background queue only accepts text)
+      const parts: Array<{ type: 'text'; text: string } | { type: 'file'; mediaType: string; data: string }> = []
+      if (text) parts.push({ type: 'text', text })
+      for (const pf of pendingFiles) {
+        // Extract base64 data and media type from data URL
+        const match = pf.dataUrl.match(/^data:(.*?);base64,(.*)$/)
+        if (match) {
+          parts.push({ type: 'file', mediaType: match[1], data: match[2] })
+        }
+      }
+      sendMessage({ parts } as Parameters<typeof sendMessage>[0])
+      setPendingFiles([])
+    } else if (asBackground) {
+      // Collapsed mode: route through background task queue for auto-classification
       useBackgroundTaskStore.getState().enqueueTask(text)
-      setSegments([])
-      // Clear the draft for this conversation since we submitted
-      if (activeConversationId) {
-        draftsRef.current.delete(activeConversationId)
-      }
-    }
-  }
-
-  const onExpandedSubmit = () => {
-    const text = pillInputRef.current?.getTextContent()?.trim() ?? ''
-    if (text && !isLoading) {
-      // Assistant is open: always send straight to chat (no drawer routing)
+    } else {
+      // Expanded mode: send directly to conversation (Sonnet, full context)
       sendMessage({ text })
-      // Clear selection so pill-insertion effects don't re-populate the input after submit
-      useEditorStore.getState().selectObject(null)
-      useEditorStore.getState().selectAsset(null)
-      setSegments([])
-      if (activeConversationId) {
-        draftsRef.current.delete(activeConversationId)
-      }
+    }
+
+    setSegments([])
+    if (conversationId) {
+      draftsRef.current.delete(conversationId)
     }
   }
 
-  const hasText = segments.some(s => (s.type === 'text' && s.text.trim()) || s.type === 'pill')
+  const hasText = segments.some(s => (s.type === 'text' && s.text.trim()) || s.type === 'pill') || pendingFiles.length > 0
 
   const compactInputBar = (inExpandedView: boolean) => {
-    const handleSubmit = inExpandedView ? onExpandedSubmit : onCollapsedSubmit
+    const handleSubmit = () => doSubmit(!inExpandedView)
     const hasCurrentTask =
       chatbotUIMode === 'dropdown' &&
       activePlan &&
-      (activePlan.status === 'pending' || activePlan.status === 'executing')
+      (activePlan.status === 'pending' || activePlan.status === 'executing' || activePlan.status === 'clarifying')
     const placeholderText = hasCurrentTask ? 'Add a follow-up' : 'Build with Assistant'
     return (
     <div className={`${styles.collapsedInputOnly} ${inExpandedView ? styles.compactInputBarInExpanded : ''}`}>
       <div className={styles.collapsedInputRowBottom}>
-        <div className={styles.collapsedRowIconWrap}>
-          <img src="/icons/Add.svg" alt="" width={24} height={24} className={`${styles.collapsedRowIcon} ${styles.collapsedRowIconLarge}`} aria-hidden />
-        </div>
-        <div className={styles.collapsedRowIconWrap}>
-          <img src="/icons/filters-ai.svg" alt="" width={16} height={16} className={`${styles.collapsedRowIcon} ${styles.collapsedRowIconSmall}`} aria-hidden />
-        </div>
         <div className={styles.collapsedInputRowBottomSpacer} aria-hidden />
+        <button
+          type="button"
+          className={styles.paperclipButton}
+          onClick={() => fileInputRef.current?.click()}
+          title="Attach file"
+          aria-label="Attach file"
+        >
+          <Paperclip size={14} />
+        </button>
         {isVoiceSupported && (
           <button
             type="button"
@@ -259,7 +351,38 @@ export function AIAssistant() {
           </button>
         )}
       </div>
+      {/* Hidden file input (Gap 1) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileSelect}
+      />
       <div className={styles.collapsedInputRowTop}>
+        {/* Pending file previews (Gap 1) */}
+        {pendingFiles.length > 0 && (
+          <div className={styles.pendingFiles}>
+            {pendingFiles.map((pf, i) => (
+              <div key={i} className={styles.pendingFile}>
+                {pf.file.type.startsWith('image/') ? (
+                  <img src={pf.dataUrl} alt={pf.file.name} className={styles.pendingFileThumb} />
+                ) : (
+                  <span className={styles.pendingFileName}>{pf.file.name}</span>
+                )}
+                <button
+                  type="button"
+                  className={styles.pendingFileRemove}
+                  onClick={() => removePendingFile(i)}
+                  aria-label={`Remove ${pf.file.name}`}
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className={styles.collapsedInputLine}>
           <div className={styles.collapsedInputLineRow}>
             <PillInput
@@ -271,6 +394,13 @@ export function AIAssistant() {
               disabled={isLoading}
               className={`${styles.input} ${styles.inputCollapsedTextarea}`}
               ariaLabel="Build with Assistant"
+              onMentionQuery={setMentionQuery}
+            />
+            <MentionDropdown
+              mention={mentionQuery}
+              items={mentionItems}
+              pillInputRef={pillInputRef}
+              onClose={() => setMentionQuery(null)}
             />
             {!inExpandedView && (
               <button
@@ -296,7 +426,7 @@ export function AIAssistant() {
       widgetId="ai-assistant"
       title={chatbotUIMode === 'tabs' ? 'Assistant' : 'Tasks'}
       icon={<Bot size={16} />}
-      titleTrailing={chatbotUIMode === 'dropdown' ? <TasksDropdown /> : undefined}
+      titleTrailing={chatbotUIMode === 'dropdown' || chatbotUIMode === 'queue' ? <TasksDropdown /> : undefined}
       headerMiddle={chatbotUIMode === 'tabs' ? <ConversationSwitcher /> : undefined}
       bodyCollapsed={aiAssistantBodyCollapsed}
       collapsedShowsMinimalContent
@@ -307,7 +437,7 @@ export function AIAssistant() {
       <div className={`${styles.content} ${aiAssistantBodyCollapsed ? styles.contentCollapsed : ''}`}>
         {aiAssistantBodyCollapsed ? (
           <div className={styles.collapsedDrawerStack}>
-            <BackgroundTaskDrawer />
+            {chatbotUIMode !== 'queue' && <BackgroundTaskDrawer />}
             {compactInputBar(false)}
           </div>
         ) : (
@@ -318,7 +448,7 @@ export function AIAssistant() {
               pendingToolCount={pendingToolCount}
             />
             {/* Standalone plan card when the plan isn't visible in any message (e.g. promoted from background task) */}
-            {activePlan && (activePlan.status === 'pending' || activePlan.status === 'executing') && !visibleMessages.some((m) =>
+            {activePlan && (activePlan.status === 'pending' || activePlan.status === 'executing' || activePlan.status === 'clarifying') && !visibleMessages.some((m) =>
               m.parts?.some((p) => {
                 const part = p as { type: string; toolCallId?: string }
                 return part.type === 'tool-createPlan' && part.toolCallId === activePlan.id
@@ -333,7 +463,7 @@ export function AIAssistant() {
                 }} />
               </div>
             )}
-            <BackgroundTaskDrawer />
+            {chatbotUIMode !== 'queue' && <BackgroundTaskDrawer />}
             {compactInputBar(true)}
           </>
         )}

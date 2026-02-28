@@ -39,17 +39,18 @@
   flex: 0 0 auto;
   min-width: 0;
   width: 100%;
+  height: 99px;
   display: flex;
   flex-direction: column-reverse;
   background: var(--bg-surface300);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   box-sizing: border-box;
   overflow: clip;
 }
 
 .collapsedDrawerStack .collapsedInputOnly {
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-radius: 0 0 12px 12px;
   border-top: none;
 }
 
@@ -268,7 +269,33 @@
   font-size: 12px;
   color: var(--content-muted);
   font-weight: 400;
+  min-height: 22px;
   padding: 4px 0;
+  margin-left: -12px;
+  padding-left: 10px;
+}
+
+.statusIconSlot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.statusText {
+  min-width: 20ch; /* Longest: "Executing 2 tools..."; text replaces in place */
+  background: linear-gradient(
+    90deg,
+    var(--content-muted) 0%,
+    var(--content-default) 45%,
+    var(--content-muted) 90%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: statusShimmer 1.8s ease-in-out infinite;
 }
 
 .statusDot {
@@ -279,14 +306,14 @@
   animation: pulse 2s ease-in-out infinite;
 }
 
-.statusToDosIcon {
-  flex-shrink: 0;
-  opacity: 0.9;
-}
-
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+@keyframes statusShimmer {
+  0%, 100% { background-position: 200% 0; }
+  50% { background-position: -200% 0; }
 }
 
 /* --- Message Bubbles --- */
@@ -363,6 +390,40 @@
   flex-direction: column;
   gap: 4px;
   margin-top: 6px;
+}
+
+.toolCallsSummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  width: 100%;
+  background: var(--bg-surface100);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--content-default);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.toolCallsSummary:hover {
+  background: var(--bg-surface200);
+}
+
+.toolCallsSummaryChevron {
+  display: flex;
+  align-items: center;
+  color: var(--content-muted);
+  flex-shrink: 0;
+}
+
+.toolCallsSummaryText {
+  flex: 1;
+  color: var(--content-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* --- Tool Call Card --- */
@@ -992,6 +1053,122 @@
 .input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* --- Pending Files (Gap 1) --- */
+
+.pendingFiles {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 0;
+  flex-wrap: wrap;
+}
+
+.pendingFile {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface200);
+  overflow: hidden;
+}
+
+.pendingFileThumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.pendingFileName {
+  font-size: 10px;
+  color: var(--content-default);
+  padding: 4px 8px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pendingFileRemove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.paperclipButton {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--content-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.paperclipButton:hover {
+  color: var(--content-default);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* --- Non-image file attachment in chat (Gap 7) --- */
+
+.attachmentFile {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface200);
+  font-size: 11px;
+  color: var(--content-default);
+  text-decoration: none;
+}
+
+.attachmentFile:hover {
+  background: var(--bg-surface300);
+}
+
+.attachmentFileIcon {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* --- Conversation summary subtitle (Gap 6) --- */
+
+.tasksDropdownItemContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tasksDropdownItemSummary {
+  font-size: 10px;
+  color: var(--content-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* --- Legacy (kept for backwards compat with other surfaces) --- */

@@ -11,6 +11,7 @@ interface ConversationStore {
   activeConversationId: string | null
   surfaceBindings: Record<string, string> // maps surface name -> conversationId
   streamingIds: Set<string> // conversation IDs currently generating a response
+  pendingViewportMessage: string | null // message queued from the mini composer
 
   // Actions
   createConversation: (title?: string, mode?: ConversationMode) => string
@@ -26,6 +27,8 @@ interface ConversationStore {
   clearMessages: (conversationId: string) => void
   markStreaming: (conversationId: string) => void
   markReady: (conversationId: string) => void
+  setSummary: (conversationId: string, summary: string) => void
+  setPendingViewportMessage: (text: string | null) => void
 }
 
 const loadConversations = (): Record<string, Conversation> => {
@@ -73,6 +76,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => {
     activeConversationId: savedIds[savedIds.length - 1],
     surfaceBindings: {},
     streamingIds: new Set<string>(),
+    pendingViewportMessage: null,
 
     createConversation: (title, mode) => {
       const id = nanoid()
@@ -213,6 +217,21 @@ export const useConversationStore = create<ConversationStore>((set, get) => {
         const next = new Set(state.streamingIds)
         next.delete(conversationId)
         return { streamingIds: next }
+      })
+    },
+
+    setPendingViewportMessage: (text) => set({ pendingViewportMessage: text }),
+
+    setSummary: (conversationId, summary) => {
+      set((state) => {
+        const conv = state.conversations[conversationId]
+        if (!conv) return state
+        const conversations = {
+          ...state.conversations,
+          [conversationId]: { ...conv, summary },
+        }
+        persistConversations(conversations)
+        return { conversations }
       })
     },
   }

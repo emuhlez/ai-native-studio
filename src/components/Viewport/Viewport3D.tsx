@@ -2,11 +2,14 @@ import { useRef, useEffect, useLayoutEffect, memo } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { useEditorStore } from '../../store/editorStore'
 import {
   THREE_SPACE_ASSETS,
   assetUrl,
 } from './threeSpaceAssets'
+import { createNoise2D, fbm2D } from '../../utils/perlin-noise'
+import type { TerrainData } from '../../types'
 import styles from './Viewport.module.css'
 
 const GRID_COLS = 6
@@ -114,13 +117,179 @@ function setHighlight(root: THREE.Object3D, on: boolean) {
   })
 }
 
+/** Orange emissive glow for AI-manipulated objects (Gap 3).
+ *  Uses separate userData keys to avoid conflicts with selection highlight. */
+function setWorkingHighlight(root: THREE.Object3D, on: boolean) {
+  root.traverse((node: THREE.Object3D) => {
+    if ((node as THREE.Mesh).isMesh) {
+      const mesh = node as THREE.Mesh
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+
+      materials.forEach((mat) => {
+        if (mat && (mat as THREE.MeshStandardMaterial).emissive !== undefined) {
+          const m = mat as THREE.MeshStandardMaterial
+          if (on) {
+            if (!mesh.userData.isWorkingHighlighted) {
+              mesh.userData.savedEmissive = m.emissive.getHex()
+              mesh.userData.savedEmissiveIntensity = m.emissiveIntensity
+              mesh.userData.isWorkingHighlighted = true
+            }
+            m.emissive.setHex(0xff8800)
+            m.emissiveIntensity = 0.7
+            m.needsUpdate = true
+          } else {
+            if (mesh.userData.isWorkingHighlighted) {
+              // If also selection-highlighted, restore to selection values instead
+              if (mesh.userData.isHighlighted) {
+                m.emissive.setHex(0x3498db)
+                m.emissiveIntensity = 0.6
+              } else {
+                m.emissive.setHex(mesh.userData.savedEmissive || 0x000000)
+                m.emissiveIntensity = mesh.userData.savedEmissiveIntensity || 0
+              }
+              m.needsUpdate = true
+              mesh.userData.isWorkingHighlighted = false
+              delete mesh.userData.savedEmissive
+              delete mesh.userData.savedEmissiveIntensity
+            }
+          }
+        }
+      })
+    }
+  })
+}
+
+// --- Terrain generation helpers ---
+
+/** Biome color palettes: array of [normalizedHeight, r, g, b] stops (0-1). */
+const BIOME_PALETTES: Record<string, [number, number, number, number][]> = {
+  grass: [
+    [0.0, 0.18, 0.32, 0.16],  // dark green (valleys)
+    [0.3, 0.24, 0.50, 0.18],  // medium green
+    [0.6, 0.45, 0.62, 0.25],  // light green (slopes)
+    [0.8, 0.55, 0.50, 0.30],  // brown-green (high slopes)
+    [1.0, 0.65, 0.60, 0.50],  // tan/rock (peaks)
+  ],
+  desert: [
+    [0.0, 0.76, 0.60, 0.38],  // dark sand (low)
+    [0.3, 0.85, 0.72, 0.48],  // medium sand
+    [0.6, 0.92, 0.80, 0.55],  // light sand
+    [0.8, 0.80, 0.65, 0.42],  // darker ridge
+    [1.0, 0.95, 0.88, 0.70],  // bright sand (peaks)
+  ],
+  snow: [
+    [0.0, 0.35, 0.45, 0.35],  // dark green-gray (valleys)
+    [0.25, 0.50, 0.55, 0.50], // gray-green
+    [0.5, 0.65, 0.65, 0.65],  // gray rock
+    [0.75, 0.85, 0.88, 0.90], // light snow
+    [1.0, 0.95, 0.97, 1.0],   // bright white (peaks)
+  ],
+  rocky: [
+    [0.0, 0.30, 0.28, 0.25],  // dark stone
+    [0.3, 0.42, 0.40, 0.38],  // medium gray
+    [0.6, 0.55, 0.52, 0.48],  // light gray
+    [0.8, 0.48, 0.45, 0.40],  // brown-gray
+    [1.0, 0.62, 0.58, 0.52],  // pale stone (peaks)
+  ],
+  volcanic: [
+    [0.0, 0.60, 0.20, 0.05],  // lava orange (low)
+    [0.15, 0.45, 0.10, 0.03], // dark red-orange
+    [0.35, 0.18, 0.14, 0.12], // dark basalt
+    [0.7, 0.25, 0.22, 0.20],  // medium basalt
+    [1.0, 0.15, 0.12, 0.10],  // dark peak
+  ],
+}
+
+function sampleBiomeColor(biome: string, t: number): [number, number, number] {
+  const palette = BIOME_PALETTES[biome] ?? BIOME_PALETTES.grass
+  if (t <= palette[0][0]) return [palette[0][1], palette[0][2], palette[0][3]]
+  for (let i = 1; i < palette.length; i++) {
+    if (t <= palette[i][0]) {
+      const prev = palette[i - 1]
+      const curr = palette[i]
+      const f = (t - prev[0]) / (curr[0] - prev[0])
+      return [
+        prev[1] + (curr[1] - prev[1]) * f,
+        prev[2] + (curr[2] - prev[2]) * f,
+        prev[3] + (curr[3] - prev[3]) * f,
+      ]
+    }
+  }
+  const last = palette[palette.length - 1]
+  return [last[1], last[2], last[3]]
+}
+
+function createTerrainGeometry(td: TerrainData): THREE.BufferGeometry {
+  const { width, depth, heightScale, segments, seed, octaves, biome } = td
+  const noise = createNoise2D(seed)
+
+  // Create a plane in XZ orientation directly
+  const geo = new THREE.PlaneGeometry(width, depth, segments, segments)
+  const posAttr = geo.getAttribute('position') as THREE.BufferAttribute
+  const vertexCount = posAttr.count
+
+  // PlaneGeometry is in XY by default — rotate vertices to XZ
+  // (swap Y and Z, then negate new Z to maintain winding order)
+  for (let i = 0; i < vertexCount; i++) {
+    const x = posAttr.getX(i)
+    const y = posAttr.getY(i)
+    posAttr.setXYZ(i, x, 0, -y)
+  }
+
+  // Displace vertices along Y with fBm noise
+  // Track min/max height for color normalization
+  let minH = Infinity
+  let maxH = -Infinity
+  const heights = new Float32Array(vertexCount)
+  const noiseScale = 0.15 // Controls how "zoomed in" the noise is
+
+  for (let i = 0; i < vertexCount; i++) {
+    const x = posAttr.getX(i)
+    const z = posAttr.getZ(i)
+    const h = fbm2D(noise, x * noiseScale, z * noiseScale, octaves) * heightScale
+    heights[i] = h
+    if (h < minH) minH = h
+    if (h > maxH) maxH = h
+  }
+
+  // Shift all vertices up so even the lowest dip is above the grid (y=0)
+  const lift = -minH + 0.15
+  for (let i = 0; i < vertexCount; i++) {
+    heights[i] += lift
+    posAttr.setY(i, heights[i])
+  }
+  maxH += lift
+  minH = 0.15
+
+  // Apply vertex colors based on normalized height
+  const range = maxH - minH || 1
+  const colors = new Float32Array(vertexCount * 3)
+  for (let i = 0; i < vertexCount; i++) {
+    const t = (heights[i] - minH) / range
+    const [r, g, b] = sampleBiomeColor(biome, t)
+    colors[i * 3] = r
+    colors[i * 3 + 1] = g
+    colors[i * 3 + 2] = b
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+
+  geo.computeVertexNormals()
+  return geo
+}
+
+/** Serialize terrainData to a simple comparison key for change detection.
+ *  Bump TERRAIN_GEO_VERSION when the geometry algorithm changes to force rebuild. */
+const TERRAIN_GEO_VERSION = 2
+function terrainDataKey(td: TerrainData): string {
+  return `v${TERRAIN_GEO_VERSION}_${td.width}_${td.depth}_${td.heightScale}_${td.segments}_${td.seed}_${td.octaves}_${td.biome}`
+}
+
 export const Viewport3D = memo(function Viewport3D({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const modelsGroupRef = useRef<THREE.Group | null>(null)
   const avatarRef = useRef<THREE.Group | null>(null)
-  const avatarModelRef = useRef<THREE.Group | null>(null)
   const frameRef = useRef<number>(0)
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
@@ -344,6 +513,14 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     renderer.toneMappingExposure = 1.15
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
+
+    // Environment map for realistic reflections on metallic/glossy materials
+    const pmremGenerator = new THREE.PMREMGenerator(renderer)
+    pmremGenerator.compileEquirectangularShader()
+    const envTexture = pmremGenerator.fromScene(new RoomEnvironment()).texture
+    scene.environment = envTexture
+    pmremGenerator.dispose()
+
     console.log('[Viewport3D] Renderer created ✓')
 
     const canvas = renderer.domElement
@@ -465,9 +642,8 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.4)
     dirLight.position.set(25, 45, 25)
     dirLight.castShadow = true
-    // Reduced shadow map size for better performance on Safari/Arc
-    dirLight.shadow.mapSize.width = 512
-    dirLight.shadow.mapSize.height = 512
+    dirLight.shadow.mapSize.width = 1024
+    dirLight.shadow.mapSize.height = 1024
     dirLight.shadow.camera.near = 0.5
     dirLight.shadow.camera.far = 200
     dirLight.shadow.camera.left = -50
@@ -570,6 +746,9 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
           const objId = addWorkspaceModelRef.current(displayName)
           root.userData.assetName = displayName
           root.userData.objectId = objId
+          root.userData.isLibraryModel = true
+          const storeObj = useEditorStore.getState().gameObjects[objId]
+          root.visible = storeObj?.visible !== false
           root.traverse((node: THREE.Object3D) => {
             if ((node as THREE.Mesh).isMesh) {
               (node as THREE.Mesh).castShadow = true
@@ -610,54 +789,9 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       )
     }
     
-    // Start loading first batch concurrently
-    const initialBatchSize = Math.min(MAX_CONCURRENT_LOADS, THREE_SPACE_ASSETS.length)
-    for (let i = 0; i < initialBatchSize; i++) {
-      loadNextModel(i)
-    }
-
-    loader.load('/avatars/curious-george.gltf', (gltf: { scene: THREE.Group }) => {
-      try {
-        const root = gltf.scene
-        root.traverse((node: THREE.Object3D) => {
-          if ((node as THREE.Mesh).isMesh) {
-            (node as THREE.Mesh).castShadow = true
-            ;(node as THREE.Mesh).receiveShadow = true
-          }
-        })
-        root.updateMatrixWorld(true)
-        const box = new THREE.Box3().setFromObject(root)
-        const size = box.getSize(new THREE.Vector3())
-        const height = Math.abs(size.y) || 1
-        const scale = Math.min(2, Math.max(0.1, AVATAR_TARGET_HEIGHT / height))
-        root.scale.setScalar(scale)
-        root.updateMatrixWorld(true)
-      const box2 = new THREE.Box3().setFromObject(root)
-      const minY = box2.min.y
-        if (Number.isFinite(minY)) {
-          root.position.y = -AVATAR_TARGET_HEIGHT - minY
-        }
-        const auraGeo = new THREE.SphereGeometry(1.2, 16, 16)
-        const auraMat = new THREE.MeshBasicMaterial({
-          color: 0x3498db,
-          transparent: true,
-          opacity: 0.15,
-          depthWrite: false,
-        })
-        const aura = new THREE.Mesh(auraGeo, auraMat)
-        // Center aura on character torso (avatar origin is at eye height; offset down to torso)
-        aura.position.y = -AVATAR_TARGET_HEIGHT * 0.5
-        aura.scale.set(1, 1.2, 1)
-        root.add(aura)
-        root.userData.isAvatar = true
-        avatarModelRef.current = root
-        needsRender = true
-      } catch (e) {
-        console.warn('[Viewport3D] Error processing avatar:', e)
-      }
-    }, undefined, (err) => {
-      console.warn('[Viewport3D] Failed to load avatar:', err)
-    })
+    // Default library GLBs disabled — scene starts empty of preloaded models
+    // const initialBatchSize = Math.min(MAX_CONCURRENT_LOADS, THREE_SPACE_ASSETS.length)
+    // for (let i = 0; i < initialBatchSize; i++) { loadNextModel(i) }
 
     const raycaster = raycasterRef.current
     const mouse = mouseRef.current
@@ -964,14 +1098,15 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       if (rootObjectIds.length === 0) return 0
       const workspace = gameObjects[rootObjectIds[0]]
       if (!workspace?.children) return 0
-      // Simple sum-based version - much faster than JSON.stringify
+      // Simple sum-based version - much faster than JSON.stringify (includes visibility so sync runs when toggling)
       return workspace.children.reduce((sum, id) => {
         const obj = gameObjects[id]
         if (!obj?.transform) return sum
         const t = obj.transform
-        return sum + t.position.x + t.position.y + t.position.z + 
+        const vis = obj.visible === true ? 1 : 0
+        return sum + t.position.x + t.position.y + t.position.z +
                t.rotation.x + t.rotation.y + t.rotation.z +
-               t.scale.x + t.scale.y + t.scale.z
+               t.scale.x + t.scale.y + t.scale.z + vis
       }, 0)
     }
 
@@ -999,6 +1134,11 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         if (!root) return
         
         root.userData.assetName = obj.name
+        const shouldBeVisible = obj.visible !== false
+        if (root.visible !== shouldBeVisible) {
+          root.visible = shouldBeVisible
+          changed = true
+        }
         const { position, rotation, scale } = obj.transform
         
         // Only update if values changed
@@ -1191,11 +1331,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         const scene = sceneRef.current
 
         if (!avatarRef.current) {
-          if (avatarModelRef.current) {
-            avatarRef.current = avatarModelRef.current.clone(true)
-          } else {
-            avatarRef.current = createAvatarPlaceholder()
-          }
+          avatarRef.current = createAvatarPlaceholder()
         }
         const avatar = avatarRef.current
         if (!avatar.parent) {
@@ -1552,6 +1688,24 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     needsRenderRef.current = true
   }, [viewportSelectedAssetNames])
 
+  // AI working object highlight (Gap 3)
+  const aiWorkingObjectIds = useEditorStore((s) => s.aiWorkingObjectIds)
+  useEffect(() => {
+    const group = modelsGroupRef.current
+    if (!group) return
+    group.children.forEach((root) => {
+      const objId = root.userData.objectId as string | undefined
+      if (!objId) return
+      const isWorking = aiWorkingObjectIds.has(objId)
+      const wasWorking = !!root.userData._aiWorking
+      if (isWorking !== wasWorking) {
+        setWorkingHighlight(root, isWorking)
+        root.userData._aiWorking = isWorking || undefined
+      }
+    })
+    needsRenderRef.current = true
+  }, [aiWorkingObjectIds])
+
   // Sync color/material for changed objects only (GLB models + primitives)
   useEffect(() => {
     const group = modelsGroupRef.current
@@ -1568,20 +1722,39 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       if (!obj?.color) return
       // Skip objects whose color hasn't changed
       const prevObj = prev[objId]
-      if (prevObj && prevObj.color === obj.color && prevObj.reflectance === obj.reflectance && prevObj.transparency === obj.transparency) return
+      if (prevObj && prevObj.color === obj.color && prevObj.reflectance === obj.reflectance && prevObj.roughness === obj.roughness && prevObj.transparency === obj.transparency) return
 
       const root = group.children.find(
         (c) => (c.userData.objectId as string) === objId
       ) as THREE.Object3D | undefined
       if (!root) return
 
+      const shouldBeVisible = obj.visible !== false
+      if (root.visible !== shouldBeVisible) {
+        root.visible = shouldBeVisible
+        needsRenderRef.current = true
+      }
       root.traverse((node: THREE.Object3D) => {
         if ((node as THREE.Mesh).isMesh) {
           const mat = (node as THREE.Mesh).material as THREE.MeshStandardMaterial
-          if (mat?.color) {
-            const newColor = new THREE.Color(obj.color!)
-            if (!mat.color.equals(newColor)) {
-              mat.color.copy(newColor)
+          if (mat) {
+            if (mat.color && obj.color) {
+              const newColor = new THREE.Color(obj.color!)
+              if (!mat.color.equals(newColor)) {
+                mat.color.copy(newColor)
+                mat.needsUpdate = true
+                needsRenderRef.current = true
+              }
+            }
+            const targetRoughness = obj.roughness ?? 0.6
+            if (mat.roughness !== targetRoughness) {
+              mat.roughness = targetRoughness
+              mat.needsUpdate = true
+              needsRenderRef.current = true
+            }
+            const targetMetalness = obj.reflectance ?? 0.1
+            if (mat.metalness !== targetMetalness) {
+              mat.metalness = targetMetalness
               mat.needsUpdate = true
               needsRenderRef.current = true
             }
@@ -1601,15 +1774,15 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     const workspace = gameObjects[workspaceId]
     if (!workspace?.children) return
 
-    const childSet = new Set(workspace.children)
+    const allObjectIds = new Set(Object.keys(gameObjects))
     const prev = prevGameObjectsRef.current
     const DEG2RAD = Math.PI / 180
 
-    // Remove Three.js objects for deleted game objects (primitives only)
+    // Remove Three.js objects for deleted game objects (GLBs and primitives)
     const toRemove: THREE.Object3D[] = []
     group.children.forEach((child) => {
       const objId = child.userData.objectId as string | undefined
-      if (objId && !childSet.has(objId) && child.userData.isPrimitive) {
+      if (objId && !allObjectIds.has(objId)) {
         toRemove.push(child)
       }
     })
@@ -1635,17 +1808,56 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       )
 
       if (existing) {
-        // Skip entirely if this object hasn't changed
+        // Sync visibility (e.g. after "Show all hidden")
+        const shouldBeVisible = obj.visible !== false
+        if (existing.visible !== shouldBeVisible) {
+          existing.visible = shouldBeVisible
+          needsRenderRef.current = true
+        }
+
+        // Terrain: rebuild geometry when parameters change OR key is missing (stale mesh)
+        if (obj.primitiveType === 'terrain' && obj.terrainData) {
+          const newKey = terrainDataKey(obj.terrainData)
+          if (existing.userData.terrainKey !== newKey) {
+            existing.userData.terrainKey = newKey
+            existing.traverse((node: THREE.Object3D) => {
+              if ((node as THREE.Mesh).isMesh) {
+                const m = node as THREE.Mesh
+                m.geometry?.dispose()
+                m.geometry = createTerrainGeometry(obj.terrainData!)
+              }
+            })
+            needsRenderRef.current = true
+          }
+          if (prev[objId] === obj) return
+          return
+        }
+
+        // Skip rest if this object hasn't changed
         if (prev[objId] === obj) return
 
         // Update color/material on existing primitives
         existing.traverse((node: THREE.Object3D) => {
           if ((node as THREE.Mesh).isMesh) {
             const mat = (node as THREE.Mesh).material as THREE.MeshStandardMaterial
-            if (mat?.color && obj.color) {
-              const newColor = new THREE.Color(obj.color)
-              if (!mat.color.equals(newColor)) {
-                mat.color.copy(newColor)
+            if (mat) {
+              if (mat.color && obj.color) {
+                const newColor = new THREE.Color(obj.color)
+                if (!mat.color.equals(newColor)) {
+                  mat.color.copy(newColor)
+                  mat.needsUpdate = true
+                  needsRenderRef.current = true
+                }
+              }
+              const targetRoughness = obj.roughness ?? 0.6
+              if (mat.roughness !== targetRoughness) {
+                mat.roughness = targetRoughness
+                mat.needsUpdate = true
+                needsRenderRef.current = true
+              }
+              const targetMetalness = obj.reflectance ?? 0.1
+              if (mat.metalness !== targetMetalness) {
+                mat.metalness = targetMetalness
                 mat.needsUpdate = true
                 needsRenderRef.current = true
               }
@@ -1657,6 +1869,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
 
       // New primitive — create geometry
       let geometry: THREE.BufferGeometry
+      let isTerrain = false
       switch (obj.primitiveType) {
         case 'sphere':
           geometry = new THREE.SphereGeometry(0.5, 32, 32)
@@ -1673,6 +1886,15 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
         case 'plane':
           geometry = new THREE.PlaneGeometry(1, 1)
           break
+        case 'terrain': {
+          if (!obj.terrainData) {
+            geometry = new THREE.BoxGeometry(1, 1, 1)
+            break
+          }
+          geometry = createTerrainGeometry(obj.terrainData)
+          isTerrain = true
+          break
+        }
         case 'box':
         default:
           geometry = new THREE.BoxGeometry(1, 1, 1)
@@ -1680,13 +1902,20 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       }
 
       const color = obj.color || '#888888'
-      const material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(color),
-        roughness: 0.6,
-        metalness: obj.reflectance ?? 0.1,
-        transparent: (obj.transparency ?? 0) > 0,
-        opacity: 1 - (obj.transparency ?? 0),
-      })
+      const material = isTerrain
+        ? new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            flatShading: true,
+            roughness: 0.85,
+            metalness: 0.05,
+          })
+        : new THREE.MeshStandardMaterial({
+            color: new THREE.Color(color),
+            roughness: obj.roughness ?? 0.6,
+            metalness: obj.reflectance ?? 0.1,
+            transparent: (obj.transparency ?? 0) > 0,
+            opacity: 1 - (obj.transparency ?? 0),
+          })
 
       const mesh = new THREE.Mesh(geometry, material)
       mesh.castShadow = true
@@ -1698,6 +1927,10 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       root.userData.objectId = objId
       root.userData.baseScale = 1
       root.userData.isPrimitive = true
+      if (isTerrain && obj.terrainData) {
+        root.userData.terrainKey = terrainDataKey(obj.terrainData)
+      }
+      root.visible = obj.visible !== false
 
       const { position, rotation, scale } = obj.transform
       root.position.set(position.x, position.y, position.z)
@@ -1766,6 +1999,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
           newRoot.userData.assetName = obj.name
           newRoot.userData.objectId = objId
           newRoot.userData.baseScale = baseScale
+          newRoot.visible = obj.visible !== false
           newRoot.traverse((node: THREE.Object3D) => {
             if ((node as THREE.Mesh).isMesh) {
               (node as THREE.Mesh).castShadow = true

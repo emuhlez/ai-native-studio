@@ -20,7 +20,8 @@ export function serializeSceneContext(
   gameObjects: Record<string, GameObject>,
   _rootObjectIds: string[]
 ): string {
-  const allObjects = Object.values(gameObjects)
+  // Only include visible objects — hidden objects should not be referenced by the AI
+  const allObjects = Object.values(gameObjects).filter((obj) => obj.visible !== false)
 
   if (allObjects.length === 0) {
     return 'The scene is currently empty.'
@@ -44,6 +45,10 @@ export function serializeSceneContext(
     }
     if (obj.primitiveType) {
       parts.push(`  primitive: ${obj.primitiveType}`)
+    }
+    if (obj.terrainData) {
+      const td = obj.terrainData
+      parts.push(`  terrain: ${td.width}×${td.depth}, height ${td.heightScale}, biome ${td.biome}, seed ${td.seed}`)
     }
 
     return parts.join('\n')

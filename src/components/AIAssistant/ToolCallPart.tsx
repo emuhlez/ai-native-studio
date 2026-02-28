@@ -19,6 +19,7 @@ const TOOL_LABELS: Record<string, string> = {
   removeObject: 'Remove Object',
   transformObject: 'Transform Object',
   setMaterial: 'Set Material',
+  createTerrain: 'Create Terrain',
 }
 
 export function ToolCallPart({ toolData }: ToolCallPartProps) {
@@ -50,7 +51,7 @@ export function ToolCallPart({ toolData }: ToolCallPartProps) {
         </span>
         <span className={styles.toolCardName}>{label}</span>
         <span className={styles.toolCardState}>
-          {isStreaming ? 'streaming...' : isExecuting ? 'executing...' : isComplete ? 'done' : ''}
+          {isStreaming ? 'streaming...' : isExecuting ? 'executing...' : ''}
         </span>
         <span className={styles.toolCardChevron}>
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}

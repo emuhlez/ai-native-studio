@@ -17,7 +17,7 @@ export const Viewport = memo(function Viewport() {
         {/* Toolbar in top-left corner – functioning widget */}
         <ViewportToolbar />
         {/* 3D workspace – assets from /3d-space */}
-        <div ref={canvas3DRef} className={styles.canvas3D} aria-hidden />
+        <div ref={canvas3DRef} className={styles.canvas3D} />
         <Viewport3D containerRef={canvas3DRef} />
 
         {/* Center crosshair — hidden in game mode */}

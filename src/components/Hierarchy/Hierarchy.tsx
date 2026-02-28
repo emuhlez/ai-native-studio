@@ -11,7 +11,7 @@ import {
   Sparkles,
   FileCode,
   Volume2,
-  Layers
+  Layers,
 } from 'lucide-react'
 import { DockablePanel } from '../shared/DockablePanel'
 import { ExpandDownIcon, ExpandRightIcon } from '../shared/ExpandIcons'
@@ -318,7 +318,10 @@ function TreeNode({ objectId, depth }: TreeNodeProps) {
 }
 
 export function Hierarchy() {
-  const { rootObjectIds, createGameObject } = useEditorStore()
+  const { rootObjectIds, createGameObject, showAllHiddenObjects } = useEditorStore()
+  const hiddenCount = useEditorStore((s) =>
+    Object.values(s.gameObjects).filter((o) => o.visible !== true).length
+  )
   const [showCreateMenu, setShowCreateMenu] = useState(false)
 
   const createOptions: { type: GameObjectType; label: string }[] = [
@@ -339,6 +342,13 @@ export function Hierarchy() {
       icon={<Layers size={16} />}
       actions={
         <div className={styles.createWrapper}>
+          <IconButton
+            icon={<Eye size={16} />}
+            tooltip={hiddenCount > 0 ? `Show all hidden objects (${hiddenCount})` : 'Show all hidden objects'}
+            onClick={() => showAllHiddenObjects()}
+            size="sm"
+            variant="ghost"
+          />
           <IconButton
             icon={<Plus size={16} />}
             tooltip="Create GameObject"

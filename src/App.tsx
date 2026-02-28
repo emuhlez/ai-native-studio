@@ -1,6 +1,8 @@
-import { useMemo, useEffect } from 'react'
+import { Component, useMemo, useEffect } from 'react'
+import type { ReactNode, ErrorInfo } from 'react'
 import { useEditorStore } from './store/editorStore'
 import { useDockingStore } from './store/dockingStore'
+import { useConversationStore } from './store/conversationStore'
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { Hierarchy } from './components/Hierarchy/Hierarchy'
 import { Viewport } from './components/Viewport/Viewport'
@@ -8,6 +10,7 @@ import { Inspector } from './components/Inspector/Inspector'
 import { Assets } from './components/Assets/Assets'
 import { Console } from './components/Console/Console'
 import { AIAssistant } from './components/AIAssistant/AIAssistant'
+import { Comments } from './components/Comments/Comments'
 import { ComponentGallery } from './components/ComponentGallery/ComponentGallery'
 import { DockLayout } from './components/shared/DockLayout'
 import { DockZoneRenderer } from './components/shared/DockZoneRenderer'
@@ -35,6 +38,30 @@ function App() {
           e.preventDefault()
           e.stopPropagation()
           editor.setAreaSelectionCircle(null)
+        }
+        return
+      }
+
+      // Cmd+N / Ctrl+N — new chat in the main composer
+      if ((e.metaKey || e.ctrlKey) && key === 'n') {
+        e.preventDefault()
+        e.stopPropagation()
+        const { createConversation } = useConversationStore.getState()
+        createConversation()
+        return
+      }
+
+      // Cmd+K / Ctrl+K — toggle main AI assistant panel
+      if ((e.metaKey || e.ctrlKey) && key === 'k') {
+        e.preventDefault()
+        e.stopPropagation()
+        const dock = useDockingStore.getState()
+        const isVisible = !!dock.widgets['ai-assistant']
+        if (isVisible) {
+          dock.undockWidget('ai-assistant')
+        } else {
+          dock.dockWidget('ai-assistant', 'right-top')
+          dock.setAiAssistantBodyCollapsed(false)
         }
         return
       }
@@ -102,6 +129,7 @@ function App() {
     assets: <Assets />,
     console: <Console />,
     'ai-assistant': <AIAssistant />,
+    comments: <Comments />,
     explorer: <Hierarchy />,
     componentGallery: <ComponentGallery />,
   }), [])
@@ -123,7 +151,41 @@ function App() {
   )
 }
 
-export default App
+class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[AppErrorBoundary]', error, info.componentStack)
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 32, color: '#ff6b6b', background: '#1a1a1e', minHeight: '100vh', fontFamily: 'monospace' }}>
+          <h2 style={{ margin: '0 0 12px' }}>Something crashed</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>{this.state.error.message}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, opacity: 0.7, marginTop: 8 }}>{this.state.error.stack}</pre>
+          <button
+            onClick={() => { this.setState({ error: null }); window.location.reload() }}
+            style={{ marginTop: 16, padding: '8px 16px', cursor: 'pointer' }}
+          >
+            Reload
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+function AppWithBoundary() {
+  return (
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
+  )
+}
+
+export default AppWithBoundary
 
 
 

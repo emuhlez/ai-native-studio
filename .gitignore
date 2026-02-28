@@ -1,6 +1,7 @@
 # Build output
 dist
 dist-ssr
+.vite
 
 # Dependencies
 node_modules

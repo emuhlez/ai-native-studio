@@ -10,7 +10,7 @@ export interface Transform {
   scale: Vector3
 }
 
-export type GameObjectType = 
+export type GameObjectType =
   | 'empty'
   | 'mesh'
   | 'light'
@@ -20,6 +20,18 @@ export type GameObjectType =
   | 'tilemap'
   | 'particle'
   | 'script'
+
+export type TerrainBiome = 'grass' | 'desert' | 'snow' | 'rocky' | 'volcanic'
+
+export interface TerrainData {
+  width: number
+  depth: number
+  heightScale: number
+  segments: number
+  seed: number
+  octaves: number
+  biome: TerrainBiome
+}
 
 export interface GameObject {
   id: string
@@ -43,13 +55,17 @@ export interface GameObject {
   /** Render both sides of mesh faces */
   doubleSided?: boolean
   /** Primitive geometry type for AI-created objects */
-  primitiveType?: 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane'
+  primitiveType?: 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'terrain'
+  /** Terrain generation parameters (only when primitiveType === 'terrain') */
+  terrainData?: TerrainData
   /** Tint color (hex, e.g. #ffffff) */
   color?: string
   /** Material name (e.g. Plastic) */
   material?: string
   /** Reflectance 0–1 */
   reflectance?: number
+  /** Roughness 0–1 (default 0.6) */
+  roughness?: number
   /** Transparency 0–1 */
   transparency?: number
   /** Cast shadow */
@@ -155,6 +171,7 @@ export interface ConversationContext {
 export interface Conversation {
   id: string
   title: string
+  summary?: string
   createdAt: number
   updatedAt: number
   messages: PersistedMessage[]
@@ -175,6 +192,7 @@ export interface PromptContext {
   selectionContext?: string
   template?: PromptTemplate
   cameraContext?: string
+  planModeHint?: 'questions' | 'todos' | null
 }
 
 // --- Plan types ---
@@ -184,11 +202,27 @@ export interface PlanTodo {
   category?: string
 }
 
-export interface PlanData {
-  todos: PlanTodo[]
+export interface PlanQuestionOption {
+  label: string
+  description: string
 }
 
-export type PlanStatus = 'pending' | 'approved' | 'rejected' | 'executing' | 'done'
+export interface PlanQuestion {
+  text: string
+  placeholder?: string
+  /** Category tab label: Scope, Mechanics, World, Style, Summary, etc. */
+  category?: string
+  /** Optional selectable option cards; user can also type their own answer. */
+  options?: PlanQuestionOption[]
+}
+
+export interface PlanData {
+  todos: PlanTodo[]
+  questions?: PlanQuestion[]
+  answers?: string[]
+}
+
+export type PlanStatus = 'pending' | 'approved' | 'rejected' | 'executing' | 'done' | 'clarifying' | 'answered'
 
 export type DockZone = 'left' | 'center-top' | 'center-bottom' | 'right-top' | 'right-bottom'
 
@@ -202,12 +236,23 @@ export interface DockedWidget {
 
 // --- PillInput types ---
 
+/** Kind of pill for flexible tagging: scene objects, assets, asset types, collaborators, etc. */
+export type PillKind = 'object' | 'asset' | 'assetType' | 'collaborator' | 'tool' | 'scripting'
+
 export type InputSegment =
   | { type: 'text'; text: string }
-  | { type: 'pill'; id: string; label: string }
+  | { type: 'pill'; kind: PillKind; id: string; label: string }
+
+export type PillPayload = { kind?: PillKind; id: string; label: string }
+
+export interface MentionQuery {
+  query: string
+  rect: DOMRect
+}
 
 export interface PillInputHandle {
-  insertPillsAtCursor: (pills: Array<{ id: string; label: string }>) => void
+  insertPillsAtCursor: (pills: PillPayload[]) => void
+  replaceMentionWithPill: (pill: PillPayload) => void
   focus: () => void
   getTextContent: () => string
 }

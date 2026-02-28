@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { streamText, convertToModelMessages } from 'ai'
+import { streamText, generateText, convertToModelMessages } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { buildSystemPrompt } from '../../src/ai/system-prompt'
 import { toolRegistry } from '../tools'
@@ -55,14 +55,70 @@ function shouldForcePlan(messages: Array<Record<string, unknown>>): boolean {
   text = text.replace(/^\[context:.*\]\s*/i, '').trim()
   if (!text) return false
 
-  // Pattern: "build/create/design/make" + something that isn't a single simple object
+  // Pattern: "build/create/design/make" + something that isn't a single simple object or terrain
   const creativeVerbs = /\b(build|create|design|make|help me build|help me create|help me make|help me design)\b/
   const simpleObjects = /^(a |an |the )?(red |blue |green |big |small )?(cube|box|sphere|ball|cylinder|cone|torus|plane)\s*$/
+  const terrainRequest = /\b(terrain|landscape|hills?|mountain|dunes?|ground|heightmap|grassy|snowy|volcanic|desert|rocky)\b/
   const cleaned = text.replace(creativeVerbs, '').trim()
 
-  const result = creativeVerbs.test(text) && !simpleObjects.test(cleaned)
-  console.log('[chat] shouldForcePlan result:', result)
-  return result
+  if (!creativeVerbs.test(text) || simpleObjects.test(cleaned) || terrainRequest.test(cleaned)) return false
+
+  console.log('[chat] shouldForcePlan result: true')
+  return true
+}
+
+/**
+ * Classify whether a creative request should produce questions or todos.
+ * Returns 'questions' when the request is vague/short, 'todos' when it has
+ * specific details, or null to let the model decide.
+ */
+function classifyPlanMode(messages: Array<Record<string, unknown>>): 'questions' | 'todos' | null {
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
+  if (!lastUserMsg) return null
+
+  let text = extractUserText(lastUserMsg).toLowerCase()
+  // Strip [Context: ...] brackets
+  text = text.replace(/^\[context:.*\]\s*/i, '').trim()
+  if (!text) return null
+
+  const words = text.split(/\s+/).filter(Boolean)
+  let score = 0
+
+  // Short requests are vague
+  if (words.length <= 4) score += 2
+  else if (words.length <= 6) score += 1
+
+  // Long detailed requests are specific
+  if (words.length >= 10) score -= 1
+  if (words.length >= 15) score -= 1
+
+  // "help me" prefix signals vagueness
+  if (/^help me\b/.test(text)) score += 1
+
+  // Generic nouns without qualifiers signal vagueness
+  const genericNouns = /\b(something|stuff|things?|game|world|level|obby|obstacle course|place|environment)\b/
+  if (genericNouns.test(text)) score += 1
+
+  // Presence of numbers/quantities signals specificity
+  if (/\b\d+\b/.test(text)) score -= 2
+
+  // Named specific objects signal specificity
+  const specificObjects = /\b(tree|pine|oak|lake|river|moat|drawbridge|bridge|tower|wall|fence|door|window|roof|stairs|ladder|platform|lava|water|mountain|hill|path|road)\b/g
+  const specificMatches = text.match(specificObjects)
+  if (specificMatches && specificMatches.length >= 2) score -= 2
+  else if (specificMatches && specificMatches.length === 1) score -= 1
+
+  // Dimensions / measurements signal specificity
+  if (/\b(\d+\s*x\s*\d+|\d+\s*(blocks?|studs?|units?|meters?|tiles?|wide|tall|long))\b/.test(text)) score -= 2
+
+  // Conjunctions listing multiple items signal specificity
+  if (/\b(and|with)\b/.test(text) && specificMatches && specificMatches.length >= 1) score -= 1
+
+  console.log('[chat] classifyPlanMode score:', score, 'words:', words.length, 'text:', JSON.stringify(text))
+
+  if (score >= 2) return 'questions'
+  if (score <= -2) return 'todos'
+  return null
 }
 
 chatRouter.post('/chat', async (req, res) => {
@@ -72,36 +128,67 @@ chatRouter.post('/chat', async (req, res) => {
   console.log(`[chat] Received request: ${msgCount} messages, mode=${mode}, body=${Math.round(bodySize / 1024)}KB`)
 
   try {
-    const { messages, sceneContext, selectionContext, cameraContext, background } = req.body
+    const { messages, sceneContext, selectionContext, cameraContext, background, forcePlanTodos, executingPlan } = req.body
+
+    // Detect [PLAN_FOLLOWUP:...] tags in the last user message as a reliable fallback
+    const lastUserMsg = [...messages].reverse().find((m: Record<string, unknown>) => m.role === 'user')
+    const lastUserText = lastUserMsg ? extractUserText(lastUserMsg) : ''
+    const followUpTag = lastUserText.match(/^\[PLAN_FOLLOWUP:(todos|execute)\]/)
+    const taggedTodos = forcePlanTodos || followUpTag?.[1] === 'todos'
+    // Detect resume intent: "resume build", "continue building", "keep going", etc.
+    const isResumeIntent = /\b(resume|continue|keep)\b.*\b(build|going|executing|task)\b/i.test(lastUserText)
+    const taggedExecute = executingPlan || followUpTag?.[1] === 'execute' || isResumeIntent
+
+    const modelMessages = await convertToModelMessages(messages, {
+      ignoreIncompleteToolCalls: true,
+    })
+    console.log('[chat] Converted', modelMessages.length, 'model messages, mode:', mode,
+      'forcePlanTodos:', taggedTodos, 'executingPlan:', taggedExecute,
+      'bodyFlag:', !!forcePlanTodos, 'textTag:', followUpTag?.[1] ?? 'none')
+
+    const forcePlan = shouldForcePlan(messages)
+    const shouldForceCreatePlan = forcePlan || taggedTodos
+    if (shouldForceCreatePlan) {
+      console.log('[chat] Forcing createPlan tool', forcePlan ? '(initial request)' : '(Q&A follow-up)')
+    }
+
+    // Classify whether this creative request needs questions or todos
+    // Force 'todos' for Q&A follow-ups since the user already answered questions
+    const planModeHint = shouldForceCreatePlan
+      ? (taggedTodos ? 'todos' : classifyPlanMode(messages))
+      : null
+    if (planModeHint) {
+      console.log('[chat] Plan mode hint:', planModeHint)
+    }
+    if (taggedExecute) {
+      console.log('[chat] Executing plan — higher token/step budget')
+    }
 
     const systemPrompt = buildSystemPrompt({
       sceneContext: sceneContext ?? 'The scene is currently empty.',
       selectionContext: selectionContext ?? undefined,
       mode: (mode as ConversationMode) ?? undefined,
       cameraContext: cameraContext ?? undefined,
+      planModeHint,
     })
-
-    const modelMessages = await convertToModelMessages(messages)
-    console.log('[chat] Converted', modelMessages.length, 'model messages, mode:', mode)
-
-    const forcePlan = shouldForcePlan(messages)
-    if (forcePlan) {
-      console.log('[chat] Forcing createPlan tool for complex request')
-    }
 
     // Use Haiku for background tasks (fast tool execution), Sonnet for conversations
     const model = background
-      ? anthropic('claude-3-5-haiku-20241022')
+      ? anthropic('claude-haiku-4-20250414')
       : anthropic('claude-sonnet-4-20250514')
+
+    const maxTokens = background ? 512 : shouldForceCreatePlan ? 4096 : taggedExecute ? 8192 : 2048
+    const maxSteps = shouldForceCreatePlan ? 1 : taggedExecute ? 25 : 5
+    const toolChoice = shouldForceCreatePlan ? { type: 'tool' as const, toolName: 'createPlan' } : undefined
 
     const result = streamText({
       model,
       system: systemPrompt,
       messages: modelMessages,
       tools: toolRegistry.getTools(),
-      maxSteps: 5,
-      maxTokens: background ? 512 : 1024,
-      toolChoice: forcePlan ? { type: 'tool', toolName: 'createPlan' } : undefined,
+      maxSteps,
+      maxTokens,
+      toolChoice,
     })
 
     result.pipeUIMessageStreamToResponse(res)
@@ -110,5 +197,34 @@ chatRouter.post('/chat', async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json({ error: String(error) })
     }
+  }
+})
+
+// Summarize endpoint (Gap 6): generates a one-sentence summary of a conversation
+chatRouter.post('/summarize', async (req, res) => {
+  try {
+    const { messages } = req.body
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'messages required' })
+    }
+
+    // Build a simple text transcript for summarization
+    const transcript = messages
+      .filter((m: { role: string; textContent?: string }) => m.role === 'user' || m.role === 'assistant')
+      .map((m: { role: string; textContent?: string }) => `${m.role}: ${m.textContent || ''}`)
+      .join('\n')
+      .slice(0, 2000) // cap input to keep costs low
+
+    const result = await generateText({
+      model: anthropic('claude-haiku-4-20250414'),
+      system: 'Summarize the following conversation in one sentence, max 80 characters. Be concise and specific. Return ONLY the summary, no quotes or punctuation wrapping.',
+      prompt: transcript,
+      maxTokens: 60,
+    })
+
+    res.json({ summary: result.text.trim().slice(0, 80) })
+  } catch (error) {
+    console.error('[summarize] Error:', error)
+    res.status(500).json({ error: String(error) })
   }
 })

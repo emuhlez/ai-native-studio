@@ -25,16 +25,10 @@ export function ChatInput({ onSend, isLoading, placeholder, extraButtons, showVo
   const segments = isControlled ? controlledSegments : internalSegments
 
   const selectedObjectIds = useEditorStore((s) => s.selectedObjectIds)
-  const selectedAssetIds = useEditorStore((s) => s.selectedAssetIds)
   const gameObjects = useEditorStore((s) => s.gameObjects)
-  const assets = useEditorStore((s) => s.assets)
-  const assetByIdRef = useRef<Map<string, { id: string; name: string }>>(new Map())
-  assetByIdRef.current = new Map(assets.map((a) => [a.id, { id: a.id, name: a.name }]))
   const prevSelectionRef = useRef<Set<string>>(new Set())
-  const prevAssetSelectionRef = useRef<Set<string>>(new Set())
   useEffect(() => {
     prevSelectionRef.current = new Set(selectedObjectIds)
-    prevAssetSelectionRef.current = new Set(selectedAssetIds)
   }, [])
   useEffect(() => {
     if (!isFocused) return
@@ -50,21 +44,8 @@ export function ChatInput({ onSend, isLoading, placeholder, extraButtons, showVo
       pillInputRef.current?.insertPillsAtCursor(newPills)
     }
   }, [selectedObjectIds, isFocused, gameObjects])
-  useEffect(() => {
-    if (!isFocused) return
-    const prevIds = prevAssetSelectionRef.current
-    const currentIds = new Set(selectedAssetIds)
-    const newIds = selectedAssetIds.filter(id => !prevIds.has(id))
-    prevAssetSelectionRef.current = currentIds
-    if (newIds.length === 0) return
-    const newPills = newIds
-      .map(id => assetByIdRef.current.get(id))
-      .filter((p): p is { id: string; name: string } => p != null && p.name != null)
-      .map(p => ({ id: p.id, label: p.name }))
-    if (newPills.length > 0) {
-      pillInputRef.current?.insertPillsAtCursor(newPills)
-    }
-  }, [selectedAssetIds, isFocused, assets])
+  // Asset pill insertion removed — selecting assets in the panel
+  // should not auto-populate the chat input.
 
   const handleSegmentsChange = (next: InputSegment[]) => {
     if (isControlled && onSegmentsChange) {

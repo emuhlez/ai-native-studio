@@ -18,6 +18,7 @@
   pointer-events: none;
 }
 
+/* Pills support kinds via data-pill-kind: object | asset | assetType | collaborator */
 .pill {
   display: inline-flex;
   align-items: center;

@@ -34,6 +34,7 @@ interface DockingStore {
   // Actions
   toggleCenterBottomCollapsed: () => void
   toggleLeftCollapsed: () => void
+  setLeftCollapsed: (collapsed: boolean) => void
   dockWidget: (widgetId: string, zone: DockZone, order?: number) => void
   undockWidget: (widgetId: string) => void
   moveWidget: (widgetId: string, newZone: DockZone, newOrder: number) => void
@@ -57,15 +58,18 @@ interface DockingStore {
   /** When true, viewport Cmd+K AI input overlay is open */
   viewportAIInputOpen: boolean
   setViewportAIInputOpen: (open: boolean) => void
-  /** Chatbot UI: 'tabs' = conversation tabs, 'dropdown' = Tasks header with dropdown list */
-  chatbotUIMode: 'tabs' | 'dropdown'
-  setChatbotUIMode: (mode: 'tabs' | 'dropdown') => void
+  /** Chatbot UI: 'tabs' = conversation tabs, 'dropdown' = Tasks header with dropdown list, 'queue' = queue view */
+  chatbotUIMode: 'tabs' | 'dropdown' | 'queue'
+  setChatbotUIMode: (mode: 'tabs' | 'dropdown' | 'queue') => void
   /** Dropdown task list status display: 'color' = colored indicators, 'status' = text status, 'none' = no status */
   dropdownTaskListStatusOption: 'color' | 'status' | 'none'
   setDropdownTaskListStatusOption: (option: 'color' | 'status' | 'none') => void
   /** Tabs status display: 'color' = dots, 'status' = checkmark icon, 'none' = only critical indicators */
   tabsStatusOption: 'color' | 'status' | 'none'
   setTabsStatusOption: (option: 'color' | 'status' | 'none') => void
+  /** When queue mode: if true, tasks are ephemeral (e.g. not persisted in task list) */
+  queueEphemeral: boolean
+  setQueueEphemeral: (value: boolean) => void
 }
 
 export const useDockingStore = create<DockingStore>((set, get) => ({
@@ -90,6 +94,9 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
 
   toggleLeftCollapsed: () => {
     set((state) => ({ leftCollapsed: !state.leftCollapsed }))
+  },
+  setLeftCollapsed: (collapsed) => {
+    set({ leftCollapsed: collapsed })
   },
 
   dockWidget: (widgetId, zone, order) => {
@@ -209,7 +216,7 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
   setAiAssistantBodyCollapsed: (collapsed) => set({ aiAssistantBodyCollapsed: collapsed }),
   viewportAIInputOpen: false,
   setViewportAIInputOpen: (open) => set({ viewportAIInputOpen: open }),
-  chatbotUIMode: 'tabs',
+  chatbotUIMode: 'queue',
   setChatbotUIMode: (mode) => set({ chatbotUIMode: mode }),
   dropdownTaskListStatusOption: 'color',
   setDropdownTaskListStatusOption: (option: 'color' | 'status' | 'none') =>
@@ -217,5 +224,7 @@ export const useDockingStore = create<DockingStore>((set, get) => ({
   tabsStatusOption: 'color',
   setTabsStatusOption: (option: 'color' | 'status' | 'none') =>
     set({ tabsStatusOption: option }),
+  queueEphemeral: false,
+  setQueueEphemeral: (value) => set({ queueEphemeral: value }),
 }))
 

@@ -1,4 +1,5 @@
-import { Loader2, X } from 'lucide-react'
+import { useState } from 'react'
+import { Loader2, X, Square, ChevronDown } from 'lucide-react'
 import { useBackgroundTaskStore } from '../../store/backgroundTaskStore'
 import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import type { BackgroundTask, BackgroundTaskStatus } from '../../types'
@@ -13,17 +14,19 @@ const statusClass: Record<BackgroundTaskStatus, string> = {
 
 function TaskItem({ task }: { task: BackgroundTask }) {
   const dismissTask = useBackgroundTaskStore((s) => s.dismissTask)
+  const cancelTask = useBackgroundTaskStore((s) => s.cancelTask)
 
   const isDone = task.status === 'done'
   const isError = task.status === 'error'
+  const isRunning = task.status === 'running'
   const isClassified = isDone && task.classification != null
-  const rawText = isClassified ? task.summary : task.command
+  const rawText = isClassified ? (task.summary ?? task.command) : task.command
   const displayText = stripLeadingBrackets(rawText)
 
   return (
     <div className={styles.taskItem}>
       <div className={styles.taskHeader}>
-        {task.status === 'running' ? (
+        {isRunning ? (
           <Loader2 size={12} className={styles.spinner} />
         ) : task.status === 'error' ? (
           <img
@@ -39,6 +42,18 @@ function TaskItem({ task }: { task: BackgroundTask }) {
         <span className={styles.commandText}>{displayText}</span>
         {isError && (
           <span className={`${styles.statusLabel} ${styles.statusLabelError}`}>Failed</span>
+        )}
+        {/* Cancel button for running tasks (Gap 2) */}
+        {isRunning && (
+          <button
+            type="button"
+            className={styles.cancelButton}
+            onClick={() => cancelTask(task.id)}
+            title="Cancel task"
+            aria-label="Cancel task"
+          >
+            <Square size={8} />
+          </button>
         )}
         {(isDone || isError) && (
           <button
@@ -56,10 +71,56 @@ function TaskItem({ task }: { task: BackgroundTask }) {
   )
 }
 
+function HistorySection() {
+  const [expanded, setExpanded] = useState(false)
+  const history = useBackgroundTaskStore((s) => s.taskHistory)
+  const clearHistory = useBackgroundTaskStore((s) => s.clearHistory)
+
+  if (history.length === 0) return null
+
+  return (
+    <div className={styles.historySection}>
+      <button
+        type="button"
+        className={styles.historyToggle}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <ChevronDown size={10} className={expanded ? styles.historyChevronOpen : ''} />
+        <span>History ({history.length})</span>
+        {expanded && (
+          <button
+            type="button"
+            className={styles.historyClear}
+            onClick={(e) => { e.stopPropagation(); clearHistory() }}
+            title="Clear history"
+          >
+            Clear
+          </button>
+        )}
+      </button>
+      {expanded && (
+        <div className={styles.historyList}>
+          {history.map((task) => {
+            const rawText = task.summary || task.command
+            const displayText = stripLeadingBrackets(rawText)
+            return (
+              <div key={task.id} className={styles.historyItem}>
+                <span className={`${styles.statusDot} ${task.status === 'error' ? styles.statusError : styles.statusDone}`} />
+                <span className={styles.commandText}>{displayText}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function BackgroundTaskDrawer() {
   const tasks = useBackgroundTaskStore((s) => s.tasks)
+  const hasHistory = useBackgroundTaskStore((s) => s.taskHistory.length > 0)
 
-  if (tasks.length === 0) return null
+  if (tasks.length === 0 && !hasHistory) return null
 
   return (
     <div className={styles.wrapper}>
@@ -67,6 +128,7 @@ export function BackgroundTaskDrawer() {
         {tasks.map((task) => (
           <TaskItem key={task.id} task={task} />
         ))}
+        <HistorySection />
       </div>
     </div>
   )

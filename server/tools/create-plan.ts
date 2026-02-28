@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 export const createPlanTool = tool({
   description:
-    'Create a structured plan with to-do items for a complex request. You MUST call this tool BEFORE any other tools when the user asks for something that requires multiple steps (e.g. "build an obby", "help me build a game", "design a level", "create a forest scene"). After calling this tool, STOP and wait for user approval — do NOT call addObject or any other scene tools.',
+    'Create a structured plan for a complex request. Use with `todos` (and empty `questions`) when the request is specific enough to produce actionable steps. Use with `questions` (and empty `todos`) when the request is vague and you need clarification first. After calling this tool, STOP and wait — do NOT call addObject or any other scene tools.',
   inputSchema: z.object({
     todos: z
       .array(
@@ -16,5 +16,30 @@ export const createPlanTool = tool({
         })
       )
       .describe('The list of to-do items in execution order'),
+    questions: z
+      .array(
+        z.object({
+          text: z.string().describe('The clarifying question to ask the user'),
+          placeholder: z
+            .string()
+            .optional()
+            .describe('Placeholder hint for the free-text input'),
+          category: z
+            .string()
+            .optional()
+            .describe('Category tab label (e.g. "Scope", "Mechanics", "World", "Style", "Summary")'),
+          options: z
+            .array(
+              z.object({
+                label: z.string().describe('Short option title (e.g. "Small (5-8 stages)")'),
+                description: z.string().describe('Brief explanation of what this option means'),
+              })
+            )
+            .optional()
+            .describe('Selectable option cards for the question'),
+        })
+      )
+      .optional()
+      .describe('Clarifying questions to ask when the request is too vague for concrete todos'),
   }),
 })

@@ -6,6 +6,8 @@ export interface AddObjectArgs {
   name: string
   primitive: string
   position?: [number, number, number]
+  rotation?: [number, number, number]
+  scale?: [number, number, number]
   color?: string
   metalness?: number
   roughness?: number
@@ -16,17 +18,23 @@ export function executeAddObject(args: AddObjectArgs): { id: string; name: strin
   const store = useEditorStore.getState()
   const workspaceId = store.rootObjectIds[0]
 
-  // Build all updates upfront
-  const updates: Partial<GameObject> = {
-    primitiveType: args.primitive,
+  if (!workspaceId) {
+    throw new Error('No workspace found — cannot add object to scene')
   }
 
-  if (args.position) {
-    updates.transform = {
-      position: { x: args.position[0], y: args.position[1], z: args.position[2] },
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
-    }
+  // Build all updates upfront
+  const updates: Partial<GameObject> = {
+    primitiveType: args.primitive as GameObject['primitiveType'],
+  }
+
+  const [px, py, pz] = args.position ?? [0, 0, 0]
+  const [rx, ry, rz] = args.rotation ?? [0, 0, 0]
+  const [sx, sy, sz] = args.scale ?? [1, 1, 1]
+
+  updates.transform = {
+    position: { x: px, y: py, z: pz },
+    rotation: { x: rx, y: ry, z: rz },
+    scale: { x: sx, y: sy, z: sz },
   }
 
   if (args.color) {
@@ -37,7 +45,9 @@ export function executeAddObject(args: AddObjectArgs): { id: string; name: strin
     updates.reflectance = args.metalness
   }
 
-  const [px, py, pz] = args.position ?? [0, 0, 0]
+  if (args.roughness !== undefined) {
+    updates.roughness = args.roughness
+  }
 
   // Single batched store update: create + configure + select + creation effect
   const id = store.createAndConfigureObject(
@@ -55,6 +65,10 @@ export function executeAddObject(args: AddObjectArgs): { id: string; name: strin
   }, 150)
 
   store.log(`AI: Created "${args.name}" (${args.primitive})`, 'info', 'AI Agent')
+
+  // Brief orange working highlight (Gap 3)
+  useEditorStore.getState().addAIWorkingObject(id)
+  setTimeout(() => useEditorStore.getState().removeAIWorkingObject(id), 2000)
 
   return { id, name: args.name }
 }

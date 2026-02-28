@@ -1,10 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Plus, X, ChevronDown, MessageSquare, Pencil, Palette, Image, Loader2 } from 'lucide-react'
+import { Plus, X, Loader2 } from 'lucide-react'
 import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import { useConversationStore } from '../../store/conversationStore'
 import { usePlanStore } from '../../store/planStore'
 import { useAgentChat } from '../../ai/use-agent-chat'
-import { listTemplates } from '../../ai/prompt-templates'
 import { useDockingStore } from '../../store/dockingStore'
 import styles from './AIAssistant.module.css'
 
@@ -12,30 +11,24 @@ interface ConversationSwitcherProps {
   onSwitch?: () => void
 }
 
-const TEMPLATE_ICONS: Record<string, typeof MessageSquare> = {
-  'scene-building': Pencil,
-  'material-editing': Palette,
-  'sketch-interpretation': Image,
-}
-
 export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
-  const [newMenuOpen, setNewMenuOpen] = useState(false)
-  const conversations = useConversationStore((s) => s.listConversations())
-  const activeId = useConversationStore((s) => s.activeConversationId)
-  const switchConversation = useConversationStore((s) => s.switchConversation)
-  const createConversation = useConversationStore((s) => s.createConversation)
-  const deleteConversation = useConversationStore((s) => s.deleteConversation)
+  const [conversations, setConversations] = useState(() =>
+    useConversationStore.getState().listConversations()
+  )
+  const [activeId, setActiveId] = useState(() =>
+    useConversationStore.getState().activeConversationId
+  )
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
-  const renameConversation = useConversationStore((s) => s.renameConversation)
-  const templates = listTemplates()
   const { status: chatStatus } = useAgentChat()
   const activePlan = usePlanStore((s) => s.activePlan)
-  const streamingIds = useConversationStore((s) => s.streamingIds)
+  const [streamingIds, setStreamingIds] = useState(
+    () => useConversationStore.getState().streamingIds
+  )
   const tabsStatusOption = useDockingStore((s) => s.tabsStatusOption)
 
   const isChatLoading = chatStatus === 'streaming' || chatStatus === 'submitted'
-  const isPlanPendingApproval = activePlan?.status === 'pending'
+  const isPlanPendingApproval = activePlan?.status === 'pending' || activePlan?.status === 'clarifying'
 
   // Custom 0.5px scroll indicator
   const tabListRef = useRef<HTMLDivElement>(null)
@@ -55,6 +48,17 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
     setScrollThumb({ left: `${thumbLeft}%`, width: `${thumbWidth}%` })
   }, [])
 
+  // Subscribe to conversation store changes without using the React hook API to avoid
+  // useSyncExternalStore crashes.
+  useEffect(() => {
+    const unsubscribe = useConversationStore.subscribe((state) => {
+      setConversations(state.listConversations())
+      setActiveId(state.activeConversationId)
+      setStreamingIds(state.streamingIds)
+    })
+    return unsubscribe
+  }, [])
+
   useEffect(() => {
     const el = tabListRef.current
     if (!el) return
@@ -68,21 +72,19 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
     }
   }, [updateScrollThumb, conversations.length])
 
-  const handleNew = (templateId?: string) => {
-    const template = templates.find((t) => t.id === templateId)
-    createConversation(template?.name || undefined)
-    setNewMenuOpen(false)
+  const handleNew = () => {
+    useConversationStore.getState().createConversation()
     onSwitch?.()
   }
 
   const handleSwitch = (id: string) => {
-    switchConversation(id)
+    useConversationStore.getState().switchConversation(id)
     onSwitch?.()
   }
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    deleteConversation(id)
+    useConversationStore.getState().deleteConversation(id)
   }
 
   const handleStartRename = (e: React.MouseEvent, id: string, currentTitle: string) => {
@@ -93,7 +95,7 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
 
   const handleFinishRename = () => {
     if (editingId && editTitle.trim()) {
-      renameConversation(editingId, editTitle.trim())
+      useConversationStore.getState().renameConversation(editingId, editTitle.trim())
     }
     setEditingId(null)
     setEditTitle('')
@@ -114,7 +116,7 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
               type="button"
               className={styles.tabButton}
               onClick={() => handleSwitch(conv.id)}
-              title={stripLeadingBrackets(conv.title)}
+              title={conv.summary || stripLeadingBrackets(conv.title)}
             >
               {(() => {
                 const isActive = conv.id === activeId
@@ -204,47 +206,11 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
           <button
             type="button"
             className={styles.tabNew}
-            onClick={() => setNewMenuOpen(!newMenuOpen)}
+            onClick={handleNew}
             title="New chat"
-            aria-expanded={newMenuOpen}
           >
             <Plus size={14} />
-            <ChevronDown size={10} className={newMenuOpen ? styles.chevronOpen : ''} />
           </button>
-          {newMenuOpen && (
-            <>
-              <div
-                className={styles.tabNewBackdrop}
-                onClick={() => setNewMenuOpen(false)}
-                aria-hidden
-              />
-              <div className={styles.tabNewMenu}>
-                {/* Maintain: New Chat (blank) + template items from prompt-templates */}
-                <button
-                  type="button"
-                  className={styles.tabNewMenuItem}
-                  onClick={() => handleNew()}
-                >
-                  <MessageSquare size={12} />
-                  New Chat
-                </button>
-                {templates.map((t) => {
-                  const Icon = TEMPLATE_ICONS[t.id] || MessageSquare
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={styles.tabNewMenuItem}
-                      onClick={() => handleNew(t.id)}
-                    >
-                      <Icon size={12} />
-                      {t.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>

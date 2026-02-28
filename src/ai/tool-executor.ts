@@ -2,11 +2,13 @@ import { executeAddObject, type AddObjectArgs } from './tools/add-object'
 import { executeRemoveObject, type RemoveObjectArgs } from './tools/remove-object'
 import { executeTransformObject, type TransformObjectArgs } from './tools/transform-object'
 import { executeSetMaterial, type SetMaterialArgs } from './tools/set-material'
+import { executeCreateTerrain, type CreateTerrainArgs } from './tools/create-terrain'
 import { usePlanStore } from '../store/planStore'
-import type { PlanTodo } from '../types'
+import type { PlanTodo, PlanQuestion } from '../types'
 
 interface CreatePlanArgs {
   todos: PlanTodo[]
+  questions?: PlanQuestion[]
 }
 
 export function executeTool(
@@ -23,10 +25,19 @@ export function executeTool(
       return executeTransformObject(args as unknown as TransformObjectArgs)
     case 'setMaterial':
       return executeSetMaterial(args as unknown as SetMaterialArgs)
+    case 'createTerrain':
+      return executeCreateTerrain(args as unknown as CreateTerrainArgs)
     case 'createPlan': {
       const planArgs = args as unknown as CreatePlanArgs
       const id = toolCallId || `plan-${Date.now()}`
-      usePlanStore.getState().setPlan(id, { todos: planArgs.todos })
+      const hasQuestions = (planArgs.questions?.length ?? 0) > 0
+      usePlanStore.getState().setPlan(id, {
+        todos: planArgs.todos,
+        questions: planArgs.questions,
+      })
+      if (hasQuestions) {
+        return { status: 'questions_asked', questionCount: planArgs.questions!.length }
+      }
       return { status: 'plan_created', todoCount: planArgs.todos.length }
     }
     default:

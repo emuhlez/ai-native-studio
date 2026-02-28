@@ -3,18 +3,29 @@ import {
   Square,
   X,
   Settings,
+  Loader2,
+  Check,
+  AlertCircle,
+  Clock,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 import { ExpandDownIcon } from '../shared/ExpandIcons'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useDockingStore } from '../../store/dockingStore'
+import { useBackgroundTaskStore } from '../../store/backgroundTaskStore'
+import { usePlanStore } from '../../store/planStore'
+import { useConversationStore } from '../../store/conversationStore'
 import { MenuDropdown, MenuItem } from '../shared/MenuDropdown'
 import { useAgentChat } from '../../ai/use-agent-chat'
 import { isAIIntent } from '../../ai/detect-ai-intent'
 import { parseResponse } from '../../ai/parse-response'
+import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import type { Asset } from '../../types'
 import styles from './Toolbar.module.css'
-import aiAssistantIcon from '../../../images/AI Assistant.png'
+import drawerIcon from '../../../icons/drawer.svg'
+import aiAssistantIcon from '../../../icons/nebula.svg'
 import partBlockIcon from '../../../images/Part_Block.png'
 
 export function Toolbar() {
@@ -27,6 +38,8 @@ export function Toolbar() {
   const [aiResponseText, setAiResponseText] = useState<string | null>(null)
   const [aiSubmitted, setAiSubmitted] = useState(false)
   const [showAiSettingsDropdown, setShowAiSettingsDropdown] = useState(false)
+  const [showTasksMenu, setShowTasksMenu] = useState(false)
+  const [approvalSectionExpanded, setApprovalSectionExpanded] = useState(true)
   const [omnisearchMode, setOmnisearchMode] = useState<'primary-search' | 'primary-assistant'>('primary-search')
   const [aiAssistantMode, setAiAssistantMode] = useState<'Omnisearch' | 'Chat' | 'Off'>('Omnisearch')
   const chatbotUIMode = useDockingStore((s) => s.chatbotUIMode)
@@ -35,13 +48,42 @@ export function Toolbar() {
   const setDropdownTaskListStatusOption = useDockingStore((s) => s.setDropdownTaskListStatusOption)
   const tabsStatusOption = useDockingStore((s) => s.tabsStatusOption)
   const setTabsStatusOption = useDockingStore((s) => s.setTabsStatusOption)
+  const viewportAIInputOpen = useDockingStore((s) => s.viewportAIInputOpen)
+  const widgets = useDockingStore((s) => s.widgets)
+  const aiAssistantBodyCollapsed = useDockingStore((s) => s.aiAssistantBodyCollapsed)
   const aiDismissTimer = useRef<ReturnType<typeof setTimeout>>()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const aiSettingsRef = useRef<HTMLDivElement>(null)
   const aiSettingsDropdownRef = useRef<HTMLDivElement>(null)
+  const tasksMenuRef = useRef<HTMLDivElement>(null)
+  const tasksMenuDropdownRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const backgroundTasks = useBackgroundTaskStore((s) => s.tasks)
+  const backgroundTaskCount = backgroundTasks.length
+  const activePlan = usePlanStore((s) => s.activePlan)
+  const hasPlanPendingApproval = activePlan?.status === 'pending' || activePlan?.status === 'clarifying'
+  const activeConversationId = useConversationStore((s) => s.activeConversationId)
+  const conversations = useConversationStore((s) => s.conversations)
+  const activeConversation = activeConversationId ? conversations[activeConversationId] : null
+  const inProgressCount = useMemo(
+    () => backgroundTasks.filter((t) => t.status === 'running').length,
+    [backgroundTasks]
+  )
+  /** When queue mode is enabled: show drawer icon persistently in toolbar */
+  const drawerIconPersistent = chatbotUIMode === 'queue'
+  const composerCollapsed = !(widgets['ai-assistant'] && !aiAssistantBodyCollapsed)
+  const showDrawerBadge =
+    (chatbotUIMode !== 'queue' &&
+      (inProgressCount > 0 || backgroundTaskCount > 0)) ||
+    (drawerIconPersistent && composerCollapsed && (inProgressCount > 0 || backgroundTaskCount > 0))
+  const drawerAriaLabel =
+    showDrawerBadge && inProgressCount > 0
+      ? `Background processes (${inProgressCount} running)`
+      : showDrawerBadge && backgroundTaskCount > 0
+        ? `Background processes (${backgroundTaskCount} active)`
+        : 'Background processes'
 
   // Keep AI settings dropdown within viewport
   const [aiSettingsDropdownPosition, setAiSettingsDropdownPosition] = useState<{ left: number; top: number } | null>(null)
@@ -60,6 +102,24 @@ export function Toolbar() {
     if (left + width > window.innerWidth - margin) left = window.innerWidth - width - margin
     setAiSettingsDropdownPosition({ left, top })
   }, [showAiSettingsDropdown])
+
+  // Keep tasks menu dropdown within viewport
+  const [tasksMenuPosition, setTasksMenuPosition] = useState<{ left: number; top: number } | null>(null)
+  useLayoutEffect(() => {
+    if (!showTasksMenu || !tasksMenuRef.current || !tasksMenuDropdownRef.current) {
+      setTasksMenuPosition(null)
+      return
+    }
+    const triggerRect = tasksMenuRef.current.getBoundingClientRect()
+    const dropdownEl = tasksMenuDropdownRef.current
+    const width = dropdownEl.offsetWidth || 240
+    const margin = 8
+    const top = triggerRect.bottom + 4
+    let left = triggerRect.left
+    if (left < margin) left = margin
+    if (left + width > window.innerWidth - margin) left = window.innerWidth - width - margin
+    setTasksMenuPosition({ left, top })
+  }, [showTasksMenu, backgroundTasks.length])
 
   // Test dropdown menu items
   const testMenuItems: MenuItem[] = [
@@ -197,7 +257,7 @@ export function Toolbar() {
       submenu: [
         { label: 'Toolbox', onClick: () => console.log('Toolbox') },
         { label: 'Properties', onClick: () => console.log('Properties') },
-        { label: 'Explorer', shortcut: '⌃ X', onClick: () => console.log('Explorer') },
+        { label: 'Explorer', shortcut: '⌃ X', onClick: () => { dockWidget('explorer', 'left'); useDockingStore.getState().setLeftCollapsed(false) } },
         { label: 'Output', onClick: () => console.log('Output') },
         { label: 'Activity History', onClick: () => console.log('Activity History') },
         { label: 'Asset Manager', onClick: () => console.log('Asset Manager') },
@@ -228,19 +288,33 @@ export function Toolbar() {
     stop,
     isPlaying,
     assets,
+    aiGenerating,
   } = useEditorStore()
 
-  const { widgets, dockWidget, undockWidget } = useDockingStore()
-  const aiAssistantBodyCollapsed = useDockingStore((s) => s.aiAssistantBodyCollapsed)
+  const { dockWidget, undockWidget } = useDockingStore()
+  const setAiAssistantBodyCollapsed = useDockingStore((s) => s.setAiAssistantBodyCollapsed)
   const aiPanelVisible = !!widgets['ai-assistant'] && !aiAssistantBodyCollapsed
+  const dismissTask = useBackgroundTaskStore((s) => s.dismissTask)
+  const promoteToConversation = useBackgroundTaskStore((s) => s.promoteToConversation)
 
   const toggleAIPanel = () => {
     if (aiPanelVisible) {
       undockWidget('ai-assistant')
     } else {
       dockWidget('ai-assistant', 'right-top')
+      if (backgroundTaskCount > 0) {
+        setAiAssistantBodyCollapsed(false)
+      }
     }
   }
+
+  // When there are background tasks and the composer is closed, open the panel
+  useEffect(() => {
+    if (backgroundTaskCount > 0 && !aiPanelVisible) {
+      dockWidget('ai-assistant', 'right-top')
+      setAiAssistantBodyCollapsed(false)
+    }
+  }, [backgroundTaskCount, aiPanelVisible, dockWidget, setAiAssistantBodyCollapsed])
 
   // AI chat integration for omnisearch
   const { messages, sendMessage, status: aiStatus } = useAgentChat()
@@ -336,13 +410,16 @@ export function Toolbar() {
       if (aiSettingsRef.current && !aiSettingsRef.current.contains(event.target as Node)) {
         setShowAiSettingsDropdown(false)
       }
+      if (tasksMenuRef.current && !tasksMenuRef.current.contains(event.target as Node)) {
+        setShowTasksMenu(false)
+      }
     }
 
-    if (showTestDropdown || showMenuDropdown || showSearchResults || showAiSettingsDropdown) {
+    if (showTestDropdown || showMenuDropdown || showSearchResults || showAiSettingsDropdown || showTasksMenu) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showTestDropdown, showMenuDropdown, showSearchResults, showAiSettingsDropdown])
+  }, [showTestDropdown, showMenuDropdown, showSearchResults, showAiSettingsDropdown, showTasksMenu])
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -627,11 +704,157 @@ export function Toolbar() {
       <div className={styles.section}>
         <div className={styles.group}>
           <div
-            className={aiPanelVisible ? styles.activeToolbarIcon : ''}
-            onClick={toggleAIPanel}
+            ref={tasksMenuRef}
+            className={`${styles.toolbarIconPair} ${(aiPanelVisible || viewportAIInputOpen) ? styles.toolbarIconPairPressed : ''} ${drawerIconPersistent ? styles.drawerIconRevealed : ''}`}
             style={{ cursor: 'pointer' }}
+            title="Background processes"
+            role="group"
+            aria-label={drawerAriaLabel}
           >
-            <img src={aiAssistantIcon} alt="AI Assistant" width={16} height={16} />
+            <div
+              className={styles.drawerToolbarIcon}
+              onClick={() => setShowTasksMenu((v) => !v)}
+              onKeyDown={(e) => e.key === 'Enter' && setShowTasksMenu((v) => !v)}
+              role="button"
+              tabIndex={0}
+              title="Background processes"
+              aria-label={drawerAriaLabel}
+              aria-expanded={showTasksMenu}
+            >
+              {(() => {
+                const activeCount = inProgressCount + (aiGenerating ? 1 : 0)
+                const showSpinner = activeCount > 0
+                const showBadge = showDrawerBadge || aiGenerating
+                return (
+                  <>
+                    {showSpinner && (
+                      <Loader2 size={16} className={styles.drawerIconSpinner} />
+                    )}
+                    {showBadge && (
+                      <span className={styles.drawerBadge} aria-hidden>
+                        <span className={styles.drawerBadgeCount}>
+                          {activeCount > 99 ? '99+' : activeCount}
+                        </span>
+                      </span>
+                    )}
+                    <img src={drawerIcon} alt="" width={16} height={16} aria-hidden />
+                  </>
+                )
+              })()}
+              {hasPlanPendingApproval && (
+                <span className={styles.drawerApprovalDot} aria-label="Awaiting approval" />
+              )}
+            </div>
+            <div
+              className={`${styles.toolbarIconPairIcon} ${aiPanelVisible ? styles.activeToolbarIcon : ''}`}
+              onClick={toggleAIPanel}
+              onKeyDown={(e) => e.key === 'Enter' && toggleAIPanel()}
+              role="button"
+              tabIndex={0}
+              title="AI Assistant"
+              aria-label="Toggle AI Assistant"
+            >
+              <img src={aiAssistantIcon} alt="AI Assistant" width={16} height={16} />
+            </div>
+            {showTasksMenu && (
+              <div
+                ref={tasksMenuDropdownRef}
+                className={`${styles.aiSettingsDropdown} ${styles.tasksMenuDropdown}`}
+                style={tasksMenuPosition ? { position: 'fixed', left: tasksMenuPosition.left, top: tasksMenuPosition.top, right: 'auto' } : undefined}
+              >
+                <div className={styles.tasksMenuHeader}>Running tasks</div>
+                {hasPlanPendingApproval && (
+                  <button
+                    type="button"
+                    className={styles.tasksMenuApprovalBanner}
+                    onClick={() => setApprovalSectionExpanded((v) => !v)}
+                    aria-expanded={approvalSectionExpanded}
+                    aria-controls="tasks-menu-approval-content"
+                  >
+                    {approvalSectionExpanded ? (
+                      <ChevronDown size={14} className={styles.tasksMenuApprovalBannerChevron} />
+                    ) : (
+                      <ChevronRight size={14} className={styles.tasksMenuApprovalBannerChevron} />
+                    )}
+                    Awaiting Approval
+                  </button>
+                )}
+                {backgroundTasks.length === 0 ? (
+                  hasPlanPendingApproval && activeConversation && approvalSectionExpanded ? (
+                    <div id="tasks-menu-approval-content" className={styles.tasksMenuOpenChatRow}>
+                      <span className={styles.tasksMenuOpenChatTitle} title={activeConversation.title}>
+                        {activeConversation.title}
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.tasksMenuOpenChatAction}
+                        onClick={() => {
+                          dockWidget('ai-assistant', 'right-top')
+                          setAiAssistantBodyCollapsed(false)
+                          setShowTasksMenu(false)
+                        }}
+                      >
+                        Respond
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.tasksMenuEmpty}>No background tasks</div>
+                  )
+                ) : (
+                  <ul className={styles.tasksMenuList} role="list">
+                    {backgroundTasks.map((task) => (
+                      <li key={task.id} className={styles.tasksMenuItem}>
+                        <div className={styles.tasksMenuLabelWrap}>
+                          <span className={styles.tasksMenuLabel} title={stripLeadingBrackets(task.command)}>
+                            {stripLeadingBrackets(task.summary ?? task.command)}
+                          </span>
+                          <span
+                            className={`${styles.tasksMenuStatus} ${task.status === 'error' ? styles.tasksMenuStatusError : ''} ${task.status === 'done' ? styles.tasksMenuStatusDone : ''}`}
+                            title={task.status === 'error' && task.error ? task.error : undefined}
+                          >
+                            {task.status === 'running' && <Loader2 size={12} className={styles.tasksMenuStatusIcon} />}
+                            {task.status === 'pending' && <Clock size={12} className={styles.tasksMenuStatusIcon} />}
+                            {task.status === 'done' && <Check size={12} className={styles.tasksMenuStatusIcon} />}
+                            {task.status === 'error' && <AlertCircle size={12} className={styles.tasksMenuStatusIcon} />}
+                            <span>{task.status}</span>
+                          </span>
+                          {task.status === 'error' && task.error && (
+                            <span className={styles.tasksMenuError} title={task.error}>
+                              {task.error}
+                            </span>
+                          )}
+                        </div>
+                        <div className={styles.tasksMenuActions}>
+                          {(task.status === 'done' || task.status === 'error') && task.messageIds && task.messageIds.length > 0 && (
+                            <button
+                              type="button"
+                              className={styles.tasksMenuActionBtn}
+                              onClick={() => {
+                                promoteToConversation(task.id)
+                                setShowTasksMenu(false)
+                                dockWidget('ai-assistant', 'right-top')
+                              }}
+                            >
+                              Open in Assistant
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={styles.tasksMenuActionBtn}
+                            onClick={() => {
+                              dismissTask(task.id)
+                              if (backgroundTasks.length <= 1) setShowTasksMenu(false)
+                            }}
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
           <div
               className={`${styles.aiSettingsWrap} ${showAiSettingsDropdown ? styles.pressed : ''}`}
@@ -663,7 +886,7 @@ export function Toolbar() {
                 }
               >
                 <div className={styles.aiSettingsPanel}>
-                  <div className={styles.aiSettingsSectionHeader}>Task Drawer</div>
+                  <div className={styles.aiSettingsSectionHeader}>Assistant</div>
                   {/* Tabs: keep this option — conversation switcher shows tabs */}
                   <label className={styles.aiSettingsRadioRow}>
                     <input
@@ -713,6 +936,15 @@ export function Toolbar() {
                       onChange={() => setChatbotUIMode('dropdown')}
                     />
                     Dropdown task list
+                  </label>
+                  <label className={styles.aiSettingsRadioRow}>
+                    <input
+                      type="radio"
+                      name="chatbot-ui"
+                      checked={chatbotUIMode === 'queue'}
+                      onChange={() => setChatbotUIMode('queue')}
+                    />
+                    Queue
                   </label>
                   {chatbotUIMode === 'dropdown' && (
                     <div className={styles.aiSettingsSubOptions}>

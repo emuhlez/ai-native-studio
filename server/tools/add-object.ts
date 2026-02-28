@@ -15,6 +15,14 @@ export const addObjectTool = tool({
       .tuple([z.number(), z.number(), z.number()])
       .optional()
       .describe('World position [x, y, z]. Default is [0, 0, 0].'),
+    rotation: z
+      .tuple([z.number(), z.number(), z.number()])
+      .optional()
+      .describe('Rotation in degrees [x, y, z]. Default is [0, 0, 0].'),
+    scale: z
+      .tuple([z.number(), z.number(), z.number()])
+      .optional()
+      .describe('Scale [x, y, z]. Default is [1, 1, 1]. Use non-uniform scale to shape primitives (e.g., [4, 0.5, 2] makes a flat wide box for a wall).'),
     color: z
       .string()
       .optional()

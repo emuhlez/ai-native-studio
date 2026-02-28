@@ -11,6 +11,8 @@ interface ClassifyAndCompleteData {
 
 interface BackgroundTaskStore {
   tasks: BackgroundTask[]
+  /** Completed/dismissed tasks for history (capped at 50) */
+  taskHistory: BackgroundTask[]
   /** Message IDs from background tasks that should be hidden from the main chat */
   hiddenMessageIds: Set<string>
   enqueueTask: (command: string) => string
@@ -24,10 +26,14 @@ interface BackgroundTaskStore {
   removeTask: (id: string) => void
   getNextPending: () => BackgroundTask | undefined
   addHiddenMessageIds: (ids: string[]) => void
-  /** Remove task from list and un-hide its message IDs */
+  /** Move task to history and remove from active list */
   dismissTask: (id: string) => void
   /** Remove task from drawer, un-hide its messages so they appear in chat */
   promoteToConversation: (id: string) => void
+  /** Cancel a running task (Gap 2) */
+  cancelTask: (id: string) => void
+  /** Clear all task history */
+  clearHistory: () => void
 }
 
 let taskCounter = 0
@@ -35,8 +41,11 @@ let taskCounter = 0
 /** Active auto-dismiss timers keyed by task ID */
 const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
+const HISTORY_CAP = 50
+
 export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => ({
   tasks: [],
+  taskHistory: [],
   hiddenMessageIds: new Set<string>(),
 
   enqueueTask: (command: string) => {
@@ -145,9 +154,13 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
 
     const task = get().tasks.find((t) => t.id === id)
     if (!task) return
-    set((state) => ({
-      tasks: state.tasks.filter((t) => t.id !== id),
-    }))
+    set((state) => {
+      const history = [{ ...task, completedAt: task.completedAt ?? Date.now() }, ...state.taskHistory].slice(0, HISTORY_CAP)
+      return {
+        tasks: state.tasks.filter((t) => t.id !== id),
+        taskHistory: history,
+      }
+    })
   },
 
   promoteToConversation: (id: string) => {
@@ -168,5 +181,26 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set, get) => 
         tasks: state.tasks.filter((t) => t.id !== id),
       }))
     }
+  },
+
+  cancelTask: (id: string) => {
+    // Clear any pending auto-dismiss timer
+    const timer = dismissTimers.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      dismissTimers.delete(id)
+    }
+
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id
+          ? { ...t, status: 'error' as const, error: 'Cancelled by user', completedAt: Date.now() }
+          : t
+      ),
+    }))
+  },
+
+  clearHistory: () => {
+    set({ taskHistory: [] })
   },
 }))

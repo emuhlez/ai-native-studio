@@ -1,8 +1,6 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import type { UIMessage } from '@ai-sdk/react'
-import { usePlanStore } from '../../store/planStore'
 import { MessageBubble } from './MessageBubble'
-import toDoIcon from '../../../prompts/to-do.svg'
 import styles from './AIAssistant.module.css'
 
 interface MessageListProps {
@@ -13,17 +11,19 @@ interface MessageListProps {
 
 export function MessageList({ messages, isLoading, pendingToolCount }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
-  const activePlan = usePlanStore((s) => s.activePlan)
-  const hasAgentTasks =
-    pendingToolCount > 0 ||
-    (activePlan != null &&
-      activePlan.status !== 'rejected' &&
-      activePlan.status !== 'done')
+  const idleStatusPhrases = ['Thinking...', 'Building...', 'Generating...', 'Creating worlds...']
+  const [statusIndex, setStatusIndex] = useState(0)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  // Pick a new friendly status phrase for each idle-thinking run (no active tools)
+  useEffect(() => {
+    if (!isLoading || pendingToolCount > 0) return
+    setStatusIndex((prev) => (prev + 1) % idleStatusPhrases.length)
+  }, [isLoading, pendingToolCount, idleStatusPhrases.length])
 
   const lastMessage = messages[messages.length - 1]
   const lastIsAssistantWithNoText =
@@ -44,30 +44,18 @@ export function MessageList({ messages, isLoading, pendingToolCount }: MessageLi
           isLast && message.role === 'assistant' && lastIsAssistantWithNoText
         return (
           <MessageBubble
-            key={message.id}
+            key={`${message.id}-${index}`}
             message={message}
             isGenerating={isGenerating}
           />
         )
       })}
 
-      {isLoading && (
+      {isLoading && pendingToolCount === 0 && (
         <div className={styles.status}>
-          {hasAgentTasks ? (
-            <img
-              src={toDoIcon}
-              alt=""
-              width={14}
-              height={14}
-              className={styles.statusToDosIcon}
-              aria-hidden
-            />
-          ) : (
-            <span className={styles.statusDot} />
-          )}
-          {pendingToolCount > 0
-            ? `Executing ${pendingToolCount} tool${pendingToolCount > 1 ? 's' : ''}...`
-            : 'Thinking...'}
+          <span className={styles.statusText}>
+            {idleStatusPhrases[statusIndex]}
+          </span>
         </div>
       )}
 

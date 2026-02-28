@@ -1,10 +1,7 @@
 import { useState, useRef, useLayoutEffect, useEffect } from 'react'
-import { ChevronDown, Loader2, Plus } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
 import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import { useConversationStore } from '../../store/conversationStore'
-import { usePlanStore } from '../../store/planStore'
-import { useAgentChat } from '../../ai/use-agent-chat'
-import { useDockingStore } from '../../store/dockingStore'
 import styles from './AIAssistant.module.css'
 
 export function TasksDropdown() {
@@ -12,19 +9,23 @@ export function TasksDropdown() {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const conversations = useConversationStore((s) => s.listConversations())
-  const activeId = useConversationStore((s) => s.activeConversationId)
-  const switchConversation = useConversationStore((s) => s.switchConversation)
-  const createConversation = useConversationStore((s) => s.createConversation)
-  const { status: chatStatus } = useAgentChat()
-  const activePlan = usePlanStore((s) => s.activePlan)
-  const streamingIds = useConversationStore((s) => s.streamingIds)
-  const statusOption = useDockingStore((s) => s.dropdownTaskListStatusOption)
-
-  const isChatLoading = chatStatus === 'streaming' || chatStatus === 'submitted'
-  const isPlanPendingApproval = activePlan?.status === 'pending'
+  const [conversations, setConversations] = useState(() =>
+    useConversationStore.getState().listConversations()
+  )
+  const [activeId, setActiveId] = useState(() =>
+    useConversationStore.getState().activeConversationId
+  )
 
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
+
+  // Subscribe to conversation store changes without using the React hook API
+  useEffect(() => {
+    const unsubscribe = useConversationStore.subscribe((state) => {
+      setConversations(state.listConversations())
+      setActiveId(state.activeConversationId)
+    })
+    return unsubscribe
+  }, [])
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current || !menuRef.current) {
@@ -70,12 +71,12 @@ export function TasksDropdown() {
   }, [open])
 
   const handleSelect = (id: string) => {
-    switchConversation(id)
+    useConversationStore.getState().switchConversation(id)
     setOpen(false)
   }
 
   const handleNewChat = () => {
-    createConversation()
+    useConversationStore.getState().createConversation()
     setOpen(false)
   }
 
@@ -111,22 +112,6 @@ export function TasksDropdown() {
           ) : (
             conversations.map((conv) => {
               const isActive = conv.id === activeId
-              const showSpinner = isActive && isChatLoading
-              const isStreamingInBackground = !isActive && streamingIds.has(conv.id)
-              const showYellowDot = (isActive && isPlanPendingApproval && !showSpinner) || isStreamingInBackground
-              const showBlueDot = !showSpinner && !showYellowDot
-              const statusText =
-                statusOption === 'status'
-                  ? showSpinner
-                    ? 'Loading'
-                    : null
-                  : null
-              const showPendingIcon = (statusOption === 'status' || statusOption === 'none') && showYellowDot
-              const showDoneIcon = statusOption === 'status' && !showSpinner && !showYellowDot
-              const showStatusArea =
-                statusOption === 'color' ||
-                statusOption === 'status' ||
-                (statusOption === 'none' && showYellowDot)
               return (
                 <button
                   key={conv.id}
@@ -136,37 +121,12 @@ export function TasksDropdown() {
                   className={styles.tasksDropdownItem}
                   onClick={() => handleSelect(conv.id)}
                 >
-                  <span className={styles.tasksDropdownItemLabel}>{stripLeadingBrackets(conv.title)}</span>
-                  {showStatusArea && (
-                    <span className={styles.tasksDropdownItemStatus} aria-hidden>
-                      {statusOption === 'color' && showSpinner && (
-                        <Loader2 size={10} className={styles.tasksDropdownItemSpinner} />
-                      )}
-                      {statusOption === 'color' && showYellowDot && (
-                        <span className={styles.tasksDropdownDotPending} />
-                      )}
-                      {statusOption === 'color' && showBlueDot && (
-                        <span className={styles.tasksDropdownDotDone} />
-                      )}
-                      {statusOption === 'status' && statusText && (
-                        <span className={styles.tasksDropdownItemStatusText}>{statusText}</span>
-                      )}
-                      {showPendingIcon && (
-                        <span className={styles.tasksDropdownItemPill} aria-label="Awaiting approval">
-                          Awaiting approval
-                        </span>
-                      )}
-                      {showDoneIcon && (
-                        <img
-                          src="/prompts/completed.svg"
-                          alt="Done"
-                          className={styles.tasksDropdownItemDoneIcon}
-                          width={14}
-                          height={14}
-                        />
-                      )}
-                    </span>
-                  )}
+                  <div className={styles.tasksDropdownItemContent}>
+                    <span className={styles.tasksDropdownItemLabel}>{stripLeadingBrackets(conv.title)}</span>
+                    {conv.summary && (
+                      <span className={styles.tasksDropdownItemSummary}>{conv.summary}</span>
+                    )}
+                  </div>
                 </button>
               )
             })

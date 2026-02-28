@@ -58,7 +58,7 @@ function createConversationFromTask(
 
 export function useBackgroundTaskRunner() {
   const tasks = useBackgroundTaskStore((s) => s.tasks)
-  const { sendMessage, setMessages, status, messages } = useAgentChat({ conversationId: '__background-tasks__' })
+  const { sendMessage, setMessages, status, messages, stop } = useAgentChat({ conversationId: '__background-tasks__' })
 
   const runningTaskIdRef = useRef<string | null>(null)
   const prevStatusRef = useRef(status)
@@ -205,6 +205,18 @@ export function useBackgroundTaskRunner() {
     runningTaskIdRef.current = null
     promotedRef.current = false
   }, [status, messages])
+
+  // Watch for task cancellation (Gap 2): when the running task's status becomes 'error'
+  // with 'Cancelled by user', stop the stream and release the runner
+  useEffect(() => {
+    if (!runningTaskIdRef.current) return
+    const task = tasks.find((t) => t.id === runningTaskIdRef.current)
+    if (task?.status === 'error' && task.error === 'Cancelled by user') {
+      stop()
+      runningTaskIdRef.current = null
+      promotedRef.current = false
+    }
+  }, [tasks, stop])
 
   return {
     isRunning: hasRunning || runningTaskIdRef.current !== null,

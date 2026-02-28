@@ -38,5 +38,9 @@ export function executeTransformObject(args: TransformObjectArgs): { updated: bo
   if (args.scale) changes.push('scale')
   store.log(`AI: Transformed "${obj.name}" (${changes.join(', ')})`, 'info', 'AI Agent')
 
+  // Brief orange working highlight (Gap 3)
+  useEditorStore.getState().addAIWorkingObject(args.id)
+  setTimeout(() => useEditorStore.getState().removeAIWorkingObject(args.id), 2000)
+
   return { updated: true, id: args.id }
 }

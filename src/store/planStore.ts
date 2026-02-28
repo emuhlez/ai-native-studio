@@ -10,22 +10,35 @@ interface ActivePlan {
 
 interface PlanStore {
   activePlan: ActivePlan | null
+  pendingFollowUp: 'todos' | 'execute' | null
   setPlan: (id: string, data: PlanData) => void
   approvePlan: () => void
   rejectPlan: () => void
+  answerQuestions: (answers: string[]) => void
   startExecuting: () => void
+  resumeExecution: () => void
   completePlan: () => void
   toggleTodo: (index: number) => void
   clearPlan: () => void
+  setPendingFollowUp: (type: 'todos' | 'execute' | null) => void
+  // Inline plan editing (Gap 5)
+  updateTodo: (index: number, label: string) => void
+  addTodo: (label: string, category?: string) => void
+  removeTodo: (index: number) => void
+  reorderTodos: (from: number, to: number) => void
 }
 
 export const usePlanStore = create<PlanStore>((set, get) => ({
   activePlan: null,
+  pendingFollowUp: null,
 
-  setPlan: (id, data) =>
+  setPlan: (id, data) => {
+    const hasQuestions = (data.questions?.length ?? 0) > 0
+    const status: PlanStatus = hasQuestions ? 'clarifying' : 'pending'
     set({
-      activePlan: { id, data, status: 'pending', checkedItems: new Set() },
-    }),
+      activePlan: { id, data, status, checkedItems: new Set() },
+    })
+  },
 
   approvePlan: () => {
     const plan = get().activePlan
@@ -35,8 +48,20 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
 
   rejectPlan: () => {
     const plan = get().activePlan
-    if (plan?.status !== 'pending') return
+    if (plan?.status !== 'pending' && plan?.status !== 'clarifying') return
     set({ activePlan: { ...plan, status: 'rejected' } })
+  },
+
+  answerQuestions: (answers: string[]) => {
+    const plan = get().activePlan
+    if (plan?.status !== 'clarifying') return
+    set({
+      activePlan: {
+        ...plan,
+        data: { ...plan.data, answers },
+        status: 'answered',
+      },
+    })
   },
 
   startExecuting: () => {
@@ -45,10 +70,29 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     set({ activePlan: { ...plan, status: 'executing' } })
   },
 
+  resumeExecution: () => {
+    const plan = get().activePlan
+    if (!plan || plan.status !== 'done') return
+    set({ activePlan: { ...plan, status: 'executing' } })
+  },
+
   completePlan: () => {
     const plan = get().activePlan
     if (plan?.status !== 'executing') return
-    set({ activePlan: { ...plan, status: 'done' } })
+
+    const todos = plan.data.todos ?? []
+    const allChecked = new Set<number>()
+    todos.forEach((_, index) => {
+      allChecked.add(index)
+    })
+
+    set({
+      activePlan: {
+        ...plan,
+        status: 'done',
+        checkedItems: allChecked,
+      },
+    })
   },
 
   toggleTodo: (index) => {
@@ -64,4 +108,50 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   },
 
   clearPlan: () => set({ activePlan: null }),
+
+  setPendingFollowUp: (type) => set({ pendingFollowUp: type }),
+
+  // Inline plan editing (Gap 5)
+  updateTodo: (index, label) => {
+    const plan = get().activePlan
+    if (!plan) return
+    const todos = [...(plan.data.todos ?? [])]
+    if (index < 0 || index >= todos.length) return
+    todos[index] = { ...todos[index], label }
+    set({ activePlan: { ...plan, data: { ...plan.data, todos } } })
+  },
+
+  addTodo: (label, category) => {
+    const plan = get().activePlan
+    if (!plan) return
+    const todos = [...(plan.data.todos ?? []), { label, category }]
+    set({ activePlan: { ...plan, data: { ...plan.data, todos } } })
+  },
+
+  removeTodo: (index) => {
+    const plan = get().activePlan
+    if (!plan) return
+    const todos = [...(plan.data.todos ?? [])]
+    if (index < 0 || index >= todos.length) return
+    todos.splice(index, 1)
+    // Adjust checkedItems indices
+    const oldChecked = plan.checkedItems
+    const newChecked = new Set<number>()
+    for (const i of oldChecked) {
+      if (i < index) newChecked.add(i)
+      else if (i > index) newChecked.add(i - 1)
+      // skip i === index (removed)
+    }
+    set({ activePlan: { ...plan, data: { ...plan.data, todos }, checkedItems: newChecked } })
+  },
+
+  reorderTodos: (from, to) => {
+    const plan = get().activePlan
+    if (!plan) return
+    const todos = [...(plan.data.todos ?? [])]
+    if (from < 0 || from >= todos.length || to < 0 || to >= todos.length) return
+    const [item] = todos.splice(from, 1)
+    todos.splice(to, 0, item)
+    set({ activePlan: { ...plan, data: { ...plan.data, todos } } })
+  },
 }))

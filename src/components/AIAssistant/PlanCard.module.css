@@ -1,6 +1,6 @@
 .planCard {
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--bg-surface100);
   overflow: hidden;
 }
@@ -87,12 +87,12 @@
 }
 
 .checkboxChecked {
-  border-color: var(--accent-primary, #3b82f6);
-  background: var(--accent-primary, #3b82f6);
+  border-color: var(--border-default, rgba(255, 255, 255, 0.16));
+  background: var(--content-muted);
 }
 
 .checkIcon {
-  color: white;
+  color: var(--bg-darkest, #121215);
 }
 
 .todoLabel {
@@ -122,7 +122,7 @@
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-md, 6px);
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface200);
   color: var(--content-default);
@@ -171,7 +171,7 @@
 }
 
 .statusExecuting {
-  color: var(--accent-primary, #3b82f6);
+  color: var(--content-default, #d5d7dd);
 }
 
 .statusDone {
@@ -180,4 +180,331 @@
 
 .statusRejected {
   color: var(--content-muted);
+}
+
+.statusAnswered {
+  color: var(--accent-primary, #3b82f6);
+}
+
+/* Question mode: condensed progressive disclosure */
+.questionMode {
+  padding: 8px 10px 10px;
+}
+
+.questionModeHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.questionModeHeading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--content-emphasis, #fff);
+}
+
+/* Accordion */
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.accordionItem {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 4px);
+  overflow: hidden;
+  background: var(--bg-surface100);
+}
+
+.accordionItem + .accordionItem {
+  margin-top: 0;
+}
+
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  color: var(--content-default);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.accordionHeader:hover {
+  background: var(--content-hover);
+}
+
+.accordionTitle {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accordionChevron {
+  flex-shrink: 0;
+  color: var(--content-muted);
+  transition: transform 0.15s;
+}
+
+.accordionChevronOpen {
+  transform: rotate(180deg);
+}
+
+.accordionBody {
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px;
+}
+
+.accordionBody[hidden] {
+  display: none;
+}
+
+.questionCategoryPill {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--content-muted);
+  margin-bottom: 4px;
+}
+
+/* Horizontal category tabs (legacy, kept for reference) */
+.categoryTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.categoryTab {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface100);
+  color: var(--content-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  outline: none;
+}
+
+.categoryTab:hover {
+  background: var(--bg-surface200);
+  color: var(--content-default);
+}
+
+.categoryTabActive {
+  background: var(--bg-surface300, rgba(255, 255, 255, 0.12));
+  color: var(--content-default, #fff);
+  border-color: var(--border-default, rgba(255, 255, 255, 0.16));
+}
+
+/* Question body (content below tabs) */
+.questionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.questionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.questionText {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--content-default);
+  line-height: 1.35;
+}
+/* Option cards — compact */
+.optionCardList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.optionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface100);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  outline: none;
+}
+
+.optionCard:hover:not(:disabled) {
+  background: var(--bg-surface200);
+}
+
+.optionCardSelected {
+  border-color: var(--accent-primary, #3b82f6);
+  background: rgba(51, 95, 255, 0.08);
+}
+
+.optionCard:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.optionCardTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.optionCardShortcut {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface200);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--content-muted);
+  line-height: 1;
+}
+
+.optionCardSelected .optionCardShortcut {
+  border-color: var(--accent-primary, #3b82f6);
+  color: var(--accent-primary, #3b82f6);
+  background: rgba(51, 95, 255, 0.12);
+}
+
+.optionCardLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--content-default);
+  line-height: 1.3;
+}
+
+.optionCardDesc {
+  font-size: 11px;
+  color: var(--content-muted);
+  line-height: 1.3;
+  padding-left: 22px;
+}
+
+/* Free-text input */
+.questionInput {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface100);
+  color: var(--content-default);
+  font-size: 12px;
+  line-height: 1.35;
+  outline: none;
+  font-family: inherit;
+}
+
+.questionInput:focus {
+  border-color: var(--accent-primary, #3b82f6);
+}
+
+.questionInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.questionInput::placeholder {
+  color: var(--content-muted);
+}
+
+/* Inline todo editing (Gap 5) */
+.todoEditInput {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--content-default);
+  background: var(--bg-surface200);
+  border: 1px solid var(--accent-primary, #3b82f6);
+  border-radius: var(--radius-sm, 4px);
+  outline: none;
+  line-height: 1.4;
+}
+
+.todoRemoveButton {
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--content-muted);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.todoRemoveButton:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.todoItem:hover .todoRemoveButton {
+  display: flex;
+}
+
+.addTodoRow {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.addTodoButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  background: none;
+  border: none;
+  color: var(--content-muted);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.addTodoButton:hover {
+  color: var(--content-default);
+  background: rgba(208, 217, 251, 0.08);
+}
+
+/* Right-aligned actions variant */
+.actionsRight {
+  justify-content: flex-end;
+}
+
+.questionMode .actions {
+  padding-top: 6px;
+  gap: 6px;
 }

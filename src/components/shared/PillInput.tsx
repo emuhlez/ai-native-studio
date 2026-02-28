@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react'
-import type { InputSegment, PillInputHandle } from '../../types'
+import type { InputSegment, PillInputHandle, PillKind, MentionQuery } from '../../types'
 import styles from './PillInput.module.css'
 
 interface PillInputProps {
@@ -13,10 +13,29 @@ interface PillInputProps {
   ariaLabel?: string
   onFocus?: () => void
   onBlur?: () => void
+  onMentionQuery?: (mention: MentionQuery | null) => void
 }
 
 /** Box icon SVG string for pill elements (matches lucide-react Box at size 12) */
 const BOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`
+
+/** User icon SVG for collaborator pills (matches lucide-react User at size 12) */
+const USER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+
+/** Wrench icon SVG for tool pills (matches lucide-react Wrench at size 12) */
+const WRENCH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`
+
+/** FileCode icon SVG for scripting pills (matches lucide-react FileCode at size 12) */
+const FILECODE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/></svg>`
+
+const PILL_ICONS: Record<string, string> = {
+  object: BOX_SVG,
+  asset: BOX_SVG,
+  assetType: BOX_SVG,
+  collaborator: USER_SVG,
+  tool: WRENCH_SVG,
+  scripting: FILECODE_SVG,
+}
 
 function parseDOM(el: HTMLDivElement): InputSegment[] {
   const segments: InputSegment[] = []
@@ -29,22 +48,29 @@ function parseDOM(el: HTMLDivElement): InputSegment[] {
       if (elem.tagName === 'BR') {
         segments.push({ type: 'text', text: '\n' })
       } else if (elem.dataset.pillId) {
-        segments.push({ type: 'pill', id: elem.dataset.pillId, label: elem.dataset.pillLabel ?? '' })
+        const kind = (elem.dataset.pillKind as PillKind) ?? 'object'
+        segments.push({
+          type: 'pill',
+          kind,
+          id: elem.dataset.pillId,
+          label: elem.dataset.pillLabel ?? '',
+        })
       }
     }
   }
   return segments
 }
 
-function createPillElement(id: string, label: string): HTMLSpanElement {
+function createPillElement(id: string, label: string, kind: PillKind = 'object'): HTMLSpanElement {
   const span = document.createElement('span')
   span.contentEditable = 'false'
   span.className = styles.pill
   span.dataset.pillId = id
   span.dataset.pillLabel = label
+  span.dataset.pillKind = kind
 
   const iconSpan = document.createElement('span')
-  iconSpan.innerHTML = BOX_SVG
+  iconSpan.innerHTML = PILL_ICONS[kind] ?? BOX_SVG
   iconSpan.style.display = 'inline-flex'
   iconSpan.style.alignItems = 'center'
   span.appendChild(iconSpan)
@@ -67,7 +93,7 @@ function renderSegments(el: HTMLDivElement, segments: InputSegment[]) {
         el.appendChild(document.createTextNode(seg.text))
       }
     } else {
-      el.appendChild(createPillElement(seg.id, seg.label))
+      el.appendChild(createPillElement(seg.id, seg.label, seg.kind))
     }
   }
 }
@@ -81,13 +107,14 @@ export function getTextFromSegments(segments: InputSegment[]): string {
 }
 
 export const PillInput = forwardRef<PillInputHandle, PillInputProps>(function PillInput(
-  { segments, onSegmentsChange, onSubmit, placeholder, disabled = false, autoFocus = false, className, ariaLabel, onFocus, onBlur },
+  { segments, onSegmentsChange, onSubmit, placeholder, disabled = false, autoFocus = false, className, ariaLabel, onFocus, onBlur, onMentionQuery },
   ref,
 ) {
   const editorRef = useRef<HTMLDivElement>(null)
   const isInternalChange = useRef(false)
   const segmentsRef = useRef(segments)
   segmentsRef.current = segments
+  const mentionQueryRef = useRef<MentionQuery | null>(null)
 
   // Expose imperative handle
   useImperativeHandle(ref, () => ({
@@ -104,7 +131,7 @@ export const PillInput = forwardRef<PillInputHandle, PillInputProps>(function Pi
         if (el.contains(range.commonAncestorContainer)) {
           range.collapse(false) // collapse to end of selection
           for (const pill of pills) {
-            const pillEl = createPillElement(pill.id, pill.label)
+            const pillEl = createPillElement(pill.id, pill.label, pill.kind ?? 'object')
             range.insertNode(pillEl)
             // Move cursor after the pill
             range.setStartAfter(pillEl)
@@ -118,7 +145,7 @@ export const PillInput = forwardRef<PillInputHandle, PillInputProps>(function Pi
 
       if (insertAtEnd) {
         for (const pill of pills) {
-          el.appendChild(createPillElement(pill.id, pill.label))
+          el.appendChild(createPillElement(pill.id, pill.label, pill.kind ?? 'object'))
         }
         // Place cursor at end
         const range = document.createRange()
@@ -133,6 +160,56 @@ export const PillInput = forwardRef<PillInputHandle, PillInputProps>(function Pi
       const newSegments = parseDOM(el)
       isInternalChange.current = true
       onSegmentsChange(newSegments)
+    },
+    replaceMentionWithPill(pill) {
+      const el = editorRef.current
+      if (!el) return
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) return
+      const range = sel.getRangeAt(0)
+      let textNode: Node = range.startContainer
+      let cursorPos = range.startOffset
+      // Resolve element-level container to text node
+      if (textNode.nodeType !== Node.TEXT_NODE) {
+        const children = textNode.childNodes
+        if (cursorPos > 0 && children[cursorPos - 1]?.nodeType === Node.TEXT_NODE) {
+          textNode = children[cursorPos - 1]
+          cursorPos = textNode.textContent?.length ?? 0
+        } else if (children[cursorPos]?.nodeType === Node.TEXT_NODE) {
+          textNode = children[cursorPos]
+          cursorPos = 0
+        } else {
+          return
+        }
+      }
+      if (!el.contains(textNode)) return
+      const text = textNode.textContent ?? ''
+      // Find the @ before the cursor
+      const before = text.slice(0, cursorPos)
+      const atIdx = before.lastIndexOf('@')
+      if (atIdx === -1) return
+      // Split: text before @, text after query
+      const beforeAt = text.slice(0, atIdx)
+      const afterQuery = text.slice(cursorPos)
+      const parent = textNode.parentNode!
+      // Remove the text node and insert: beforeText + pill + afterText
+      const pillEl = createPillElement(pill.id, pill.label, pill.kind ?? 'collaborator')
+      if (afterQuery) parent.insertBefore(document.createTextNode(afterQuery), textNode.nextSibling)
+      parent.insertBefore(pillEl, textNode.nextSibling)
+      if (beforeAt) parent.insertBefore(document.createTextNode(beforeAt), pillEl)
+      parent.removeChild(textNode)
+      // Place cursor after the pill
+      const newRange = document.createRange()
+      newRange.setStartAfter(pillEl)
+      newRange.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(newRange)
+      // Sync segments
+      const newSegments = parseDOM(el)
+      isInternalChange.current = true
+      onSegmentsChange(newSegments)
+      mentionQueryRef.current = null
+      onMentionQueryRef.current?.(null)
     },
     focus() {
       editorRef.current?.focus()
@@ -180,6 +257,9 @@ export const PillInput = forwardRef<PillInputHandle, PillInputProps>(function Pi
     }
   }, [autoFocus])
 
+  const onMentionQueryRef = useRef(onMentionQuery)
+  onMentionQueryRef.current = onMentionQuery
+
   const handleInput = useCallback(() => {
     const el = editorRef.current
     if (!el) return
@@ -188,9 +268,87 @@ export const PillInput = forwardRef<PillInputHandle, PillInputProps>(function Pi
     onSegmentsChange(newSegments)
   }, [onSegmentsChange])
 
+  // Detect @ mentions on every keyup / input / mouseup
+  useEffect(() => {
+    const el = editorRef.current
+    if (!el) return
+    const detect = () => {
+      const cb = onMentionQueryRef.current
+      if (!cb) return
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0 || !el.contains(sel.anchorNode)) {
+        if (mentionQueryRef.current) { mentionQueryRef.current = null; cb(null) }
+        return
+      }
+
+      // Resolve the text node at the cursor. In contentEditable divs the
+      // anchorNode can be the element itself (not a text node) — e.g. when the
+      // editor was empty and the user just started typing.
+      let textNode: Node | null = sel.anchorNode
+      let cursorPos = sel.anchorOffset
+      if (textNode && textNode.nodeType !== Node.TEXT_NODE) {
+        const children = textNode.childNodes
+        // anchorOffset on an element = child-index the cursor sits before
+        if (cursorPos > 0 && children[cursorPos - 1]?.nodeType === Node.TEXT_NODE) {
+          textNode = children[cursorPos - 1]
+          cursorPos = textNode.textContent?.length ?? 0
+        } else if (children[cursorPos]?.nodeType === Node.TEXT_NODE) {
+          textNode = children[cursorPos]
+          cursorPos = 0
+        } else {
+          if (mentionQueryRef.current) { mentionQueryRef.current = null; cb(null) }
+          return
+        }
+      }
+
+      if (!textNode) {
+        if (mentionQueryRef.current) { mentionQueryRef.current = null; cb(null) }
+        return
+      }
+
+      const text = textNode.textContent ?? ''
+      const before = text.slice(0, cursorPos)
+      const match = before.match(/(^|[\s])@([^\s]*)$/)
+      if (!match) {
+        if (mentionQueryRef.current) { mentionQueryRef.current = null; cb(null) }
+        return
+      }
+      const query = match[2]
+      const atOffset = before.lastIndexOf('@')
+      const range = document.createRange()
+      range.setStart(textNode, atOffset)
+      range.setEnd(textNode, cursorPos)
+      const rect = range.getBoundingClientRect()
+      const finalRect = (rect.width === 0 && rect.height === 0)
+        ? new DOMRect(el.getBoundingClientRect().left, el.getBoundingClientRect().top, 1, 20)
+        : rect
+      mentionQueryRef.current = { query, rect: finalRect }
+      cb({ query, rect: finalRect })
+    }
+
+    // For input events the selection may not be settled yet; defer one frame.
+    const detectDeferred = () => { requestAnimationFrame(detect) }
+
+    el.addEventListener('keyup', detect)
+    el.addEventListener('input', detectDeferred)
+    el.addEventListener('mouseup', detect)
+    return () => {
+      el.removeEventListener('keyup', detect)
+      el.removeEventListener('input', detectDeferred)
+      el.removeEventListener('mouseup', detect)
+    }
+  }, [])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' && mentionQueryRef.current) {
+      mentionQueryRef.current = null
+      onMentionQueryRef.current?.(null)
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      mentionQueryRef.current = null
+      onMentionQueryRef.current?.(null)
       onSubmit?.()
     }
   }, [onSubmit])
