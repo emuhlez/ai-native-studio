@@ -10,7 +10,6 @@ import styles from './DockablePanel.module.css'
 
 const STICKY_PANEL_MIN_WIDTH = 280
 const STICKY_PANEL_MIN_HEIGHT = 160
-const STICKY_PANEL_WIDTH = 320
 
 interface DockablePanelProps {
   widgetId: string
@@ -57,7 +56,7 @@ export function DockablePanel({
   const panelRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 })
-  const [targetZone, setTargetZone] = useState<DockZone | null>(null)
+  const [_targetZone, setTargetZone] = useState<DockZone | null>(null)
   const [hoveredZone, setHoveredZone] = useState<DockZone | null>(null)
   const dockWidget = useDockingStore((state) => state.dockWidget)
   const setWidgetPosition = useDockingStore((state) => state.setWidgetPosition)

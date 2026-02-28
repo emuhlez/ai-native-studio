@@ -162,10 +162,10 @@ export function useAgentChat(options?: UseAgentChatOptions) {
           toolCall.toolCallId
         )
         console.log('[useAgentChat] tool result:', toolCall.toolName, result)
-        return result
+        return result as void
       } catch (err) {
         console.error('[useAgentChat] tool execution error:', toolCall.toolName, err)
-        return { error: String(err) }
+        return undefined as void
       }
     },
     onFinish: ({ message }) => {

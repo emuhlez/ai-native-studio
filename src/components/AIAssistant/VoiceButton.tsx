@@ -17,7 +17,7 @@ interface VoiceButtonProps {
   useCollapsedStyle?: boolean
 }
 
-export function VoiceButton({ onTranscript, hasText = false, onSendClick, onListeningTranscript, size = 'default', useCollapsedStyle = false }: VoiceButtonProps) {
+export function VoiceButton({ onTranscript: _onTranscript, hasText = false, onSendClick, onListeningTranscript, size = 'default', useCollapsedStyle = false }: VoiceButtonProps) {
   const [accumulatedFinal, setAccumulatedFinal] = useState('')
 
   const {

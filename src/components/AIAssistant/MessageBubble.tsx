@@ -42,17 +42,6 @@ function extractToolData(part: unknown): ToolPartData {
   }
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  addObject: 'Add Object',
-  removeObject: 'Remove Object',
-  transformObject: 'Transform Object',
-  setMaterial: 'Set Material',
-}
-
-function getToolLabel(toolName: string): string {
-  return TOOL_LABELS[toolName] || toolName
-}
-
 /** Summary format: "Add (4) Objects", "Transform (1) Object" */
 const TOOL_SUMMARY: Record<string, { verb: string; noun: string }> = {
   addObject: { verb: 'Add', noun: 'Object' },

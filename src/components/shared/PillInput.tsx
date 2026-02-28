@@ -369,7 +369,7 @@ export const PillInput = forwardRef<PillInputHandle, PillInputProps>(function Pi
   }, [handleInput])
 
   const handleFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement>) => {
+    (_e: React.FocusEvent<HTMLDivElement>) => {
       const el = editorRef.current
       if (el && el.firstChild?.nodeType === Node.ELEMENT_NODE && (el.firstChild as HTMLElement).dataset?.pillId) {
         const sel = window.getSelection()

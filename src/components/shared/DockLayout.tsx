@@ -143,11 +143,6 @@ export function DockLayout({ leftZone, centerTopZone, centerBottomZone, rightTop
     (dy: number) => setPanelSize('centerBottomHeight', panelSizes.centerBottomHeight + dy),
     [panelSizes.centerBottomHeight, setPanelSize]
   )
-  const onResizeRightBottom = useCallback(
-    (dy: number) => setPanelSize('rightBottomHeight', panelSizes.rightBottomHeight + dy),
-    [panelSizes.rightBottomHeight, setPanelSize]
-  )
-
   return (
     <div className={styles.dockLayout}>
       <div

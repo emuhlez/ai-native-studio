@@ -344,7 +344,7 @@ export function MentionDropdown({ mention, items, pillInputRef, onClose }: Menti
               onMouseEnter={clearCloseSubMenuTimeout}
               onMouseLeave={scheduleCloseSubMenu}
             >
-              {group.items.map((item, i) => (
+              {group.items.map((item, _i) => (
                 <div
                   key={item.id}
                   className={styles.option}

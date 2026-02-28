@@ -21,7 +21,7 @@ export function TabbedPanel({ tabs, tabContents, zone, title, className }: Tabbe
   const [activeTabId, setActiveTabId] = useState(tabs[0]?.id || '')
   const [isDragging, setIsDragging] = useState(false)
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 })
-  const [targetZone, setTargetZone] = useState<DockZone | null>(null)
+  const [_targetZone, setTargetZone] = useState<DockZone | null>(null)
   const [hoveredZone, setHoveredZone] = useState<DockZone | null>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)

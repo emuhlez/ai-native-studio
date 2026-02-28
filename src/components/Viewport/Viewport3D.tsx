@@ -60,8 +60,6 @@ function findRootWithAssetName(obj: THREE.Object3D, modelsGroup: THREE.Group): T
   return null
 }
 
-const AVATAR_TARGET_HEIGHT = 1.6
-
 function createAvatarPlaceholder(): THREE.Group {
   const group = new THREE.Group()
   const bodyGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.9, 8)
@@ -729,8 +727,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     // Load models in batches with controlled concurrency
     let loadedCount = 0
     let activeLoads = 0
-    const MAX_CONCURRENT_LOADS = 4 // Increased from 3 for better parallelism
-    
+
     const loadNextModel = (index: number) => {
       if (index >= THREE_SPACE_ASSETS.length) return
       

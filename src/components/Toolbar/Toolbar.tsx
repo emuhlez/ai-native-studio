@@ -41,7 +41,7 @@ export function Toolbar() {
   const [showTasksMenu, setShowTasksMenu] = useState(false)
   const [approvalSectionExpanded, setApprovalSectionExpanded] = useState(true)
   const [omnisearchMode, setOmnisearchMode] = useState<'primary-search' | 'primary-assistant'>('primary-search')
-  const [aiAssistantMode, setAiAssistantMode] = useState<'Omnisearch' | 'Chat' | 'Off'>('Omnisearch')
+  const [aiAssistantMode, _setAiAssistantMode] = useState<'Omnisearch' | 'Chat' | 'Off'>('Omnisearch')
   const chatbotUIMode = useDockingStore((s) => s.chatbotUIMode)
   const setChatbotUIMode = useDockingStore((s) => s.setChatbotUIMode)
   const dropdownTaskListStatusOption = useDockingStore((s) => s.dropdownTaskListStatusOption)
