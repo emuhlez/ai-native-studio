@@ -654,19 +654,24 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
     fillLight.position.set(-20, 15, 10)
     scene.add(fillLight)
 
-    // Floor grid with custom texture (XZ plane at y=0). Fallback material if texture 404s.
+    // Floor: plane for shadows + line grid for reference (always visible, no texture required)
     const gridSize = 72
+    const gridDivisions = 36 // lines per axis (1 unit spacing at 72/36 = 2)
     const floorGeometry = new THREE.PlaneGeometry(gridSize, gridSize)
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a1b1e,
-      roughness: 0.8,
-      metalness: 0.1,
+      color: 0x3c3e44,
+      roughness: 0.9,
+      metalness: 0.05,
     })
     const floor = new THREE.Mesh(floorGeometry, floorMaterial)
     floor.rotation.x = -Math.PI / 2
     floor.position.y = 0
     floor.receiveShadow = true
     scene.add(floor)
+
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x9a9ca6, 0x6c6e78)
+    gridHelper.position.y = 0.01 // Slightly above floor to avoid z-fight
+    scene.add(gridHelper)
 
     const textureLoader = new THREE.TextureLoader()
     const gridTextureUrl = `${publicUrl('textures/grid-floor.png')}?v=${Date.now()}`
@@ -682,7 +687,7 @@ export const Viewport3D = memo(function Viewport3D({ containerRef }: { container
       },
       undefined,
       () => {
-        // Texture failed (404 or missing); floor already has fallback color
+        // Texture failed; floor + GridHelper still give a clear reference grid
       }
     )
 
