@@ -5,6 +5,7 @@ import { useConversationStore } from '../../store/conversationStore'
 import { usePlanStore } from '../../store/planStore'
 import { useAgentChat } from '../../ai/use-agent-chat'
 import { useDockingStore } from '../../store/dockingStore'
+import { publicUrl } from '../../utils/assetUrl'
 import styles from './AIAssistant.module.css'
 
 interface ConversationSwitcherProps {
@@ -165,7 +166,7 @@ export function ConversationSwitcher({ onSwitch }: ConversationSwitcherProps) {
                         )}
                         {tabsStatusOption === 'status' && !showSpinner && !showYellowDot && (
                           <img
-                            src="/prompts/completed.svg"
+                            src={publicUrl('prompts/completed.svg')}
                             alt="Done"
                             className={styles.tasksDropdownItemDoneIcon}
                             width={14}

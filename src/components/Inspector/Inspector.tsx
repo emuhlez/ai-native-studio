@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Settings } from 'lucide-react'
+import { publicUrl } from '../../utils/assetUrl'
 
 function toNumericId(seed: string, length: number): string {
   let hash = 0
@@ -428,7 +429,7 @@ export function Inspector() {
                   title="Select mesh file"
                   aria-label="Select mesh file"
                 >
-                  <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
+                  <img src={publicUrl('icons/QuickOpen.svg')} alt="" width={16} height={16} className={styles.sourceIcon} />
                 </button>
               </div>
               <div className={styles.transformRow}>
@@ -456,7 +457,7 @@ export function Inspector() {
                   title="Select texture file"
                   aria-label="Select texture file"
                 >
-                  <img src="/icons/QuickOpen.svg" alt="" width={16} height={16} className={styles.sourceIcon} />
+                  <img src={publicUrl('icons/QuickOpen.svg')} alt="" width={16} height={16} className={styles.sourceIcon} />
                 </button>
               </div>
               <div className={`${styles.transformRow} ${styles.renderFidelityRow}`} ref={compactDropdownRef}>

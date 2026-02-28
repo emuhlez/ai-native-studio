@@ -16,9 +16,16 @@ import { DockLayout } from './components/shared/DockLayout'
 import { DockZoneRenderer } from './components/shared/DockZoneRenderer'
 import { DockablePanel } from './components/shared/DockablePanel'
 import { Monitor } from 'lucide-react'
+import { publicUrl } from './utils/assetUrl'
 import styles from './App.module.css'
 
 function App() {
+  // Set base-aware asset URLs for CSS (e.g. Inspector checkboxes) so icons load on deployed paths
+  useEffect(() => {
+    document.documentElement.style.setProperty('--url-checkbox-off', `url(${publicUrl('icons/checkbox-off.svg')})`)
+    document.documentElement.style.setProperty('--url-checkbox-on', `url(${publicUrl('icons/checkbox-on.svg')})`)
+  }, [])
+
   // Global hotkeys - capture phase so we handle them before browser/other listeners
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

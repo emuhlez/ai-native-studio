@@ -20,6 +20,7 @@ import { PillInput } from '../shared/PillInput'
 import { MentionDropdown, type MentionItem } from '../shared/MentionDropdown'
 import { MENTION_TOOLS, MENTION_SCRIPTING } from '../Viewport/mentionItems'
 import type { InputSegment, PillInputHandle, MentionQuery } from '../../types'
+import { publicUrl } from '../../utils/assetUrl'
 import styles from './AIAssistant.module.css'
 
 export function AIAssistant() {
@@ -341,7 +342,7 @@ export function AIAssistant() {
             }
           >
             <img
-              src={hasText ? '/icons/send.svg' : '/icons/microphone.svg'}
+              src={publicUrl(hasText ? 'icons/send.svg' : 'icons/microphone.svg')}
               alt=""
               width={24}
               height={24}
@@ -410,7 +411,7 @@ export function AIAssistant() {
                 title="Expand AI Assistant"
                 aria-label="Expand AI Assistant"
               >
-                <img src="/icons/Expand.svg" alt="" width={14} height={14} />
+                <img src={publicUrl('icons/Expand.svg')} alt="" width={14} height={14} />
               </button>
             )}
           </div>

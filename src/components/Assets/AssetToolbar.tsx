@@ -1,6 +1,7 @@
 import { useRef, useState, memo } from 'react'
 import { IconButton } from '../shared/IconButton'
 import { FilterMenu, type ActiveFilters } from './FilterMenu'
+import { publicUrl } from '../../utils/assetUrl'
 import styles from './Assets.module.css'
 
 interface AssetToolbarProps {
@@ -46,13 +47,13 @@ export const AssetToolbar = memo(function AssetToolbar({
       <div className={styles.contentRowSpacer} aria-hidden />
       <div className={styles.contentRowActions}>
         <IconButton 
-          icon={<img src="/icons/refresh.svg" alt="Import Asset" width={16} height={16} />} 
+          icon={<img src={publicUrl('icons/refresh.svg')} alt="Import Asset" width={16} height={16} />} 
           size="xs" 
           tooltip="Import Asset" 
         />
         <IconButton
           ref={filterButtonRef}
-          icon={<img src="/icons/filter.svg" alt="Filter" width={16} height={16} />}
+          icon={<img src={publicUrl('icons/filter.svg')} alt="Filter" width={16} height={16} />}
           size="xs"
           tooltip="Filter"
           onClick={handleFilterClick}
@@ -61,9 +62,9 @@ export const AssetToolbar = memo(function AssetToolbar({
         <IconButton
           icon={
             assetViewMode === 'grid' ? (
-              <img src="/icons/grid-view.svg" alt="Grid view" width={16} height={16} />
+              <img src={publicUrl('icons/grid-view.svg')} alt="Grid view" width={16} height={16} />
             ) : (
-              <img src="/icons/list-view.svg" alt="List view" width={16} height={16} />
+              <img src={publicUrl('icons/list-view.svg')} alt="List view" width={16} height={16} />
             )
           }
           size="xs"

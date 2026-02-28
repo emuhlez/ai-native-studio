@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { Asset } from '../../types'
+import { publicUrl } from '../../utils/assetUrl'
 import styles from './MoveDialog.module.css'
 
 export interface MoveDialogProps {
@@ -40,7 +41,7 @@ export function MoveDialog({ isOpen, assetCount, folders, onMove, onCancel }: Mo
                 onClick={() => setSelectedFolderId(folder.id)}
               >
                 <div className={styles.folderIcon}>
-                  <img src="/icons/folder.svg" alt="" width={20} height={20} />
+                  <img src={publicUrl('icons/folder.svg')} alt="" width={20} height={20} />
                 </div>
                 <span className={styles.folderName}>{displayName}</span>
                 <ChevronRight size={16} className={styles.folderChevron} />

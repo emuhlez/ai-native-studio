@@ -3,6 +3,7 @@ import { Loader2, X, Square, ChevronDown } from 'lucide-react'
 import { useBackgroundTaskStore } from '../../store/backgroundTaskStore'
 import { stripLeadingBrackets } from '../../ai/strip-brackets'
 import type { BackgroundTask, BackgroundTaskStatus } from '../../types'
+import { publicUrl } from '../../utils/assetUrl'
 import styles from './BackgroundTaskDrawer.module.css'
 
 const statusClass: Record<BackgroundTaskStatus, string> = {
@@ -30,7 +31,7 @@ function TaskItem({ task }: { task: BackgroundTask }) {
           <Loader2 size={12} className={styles.spinner} />
         ) : task.status === 'error' ? (
           <img
-            src="/prompts/stop.svg"
+            src={publicUrl('prompts/stop.svg')}
             alt="Failed"
             className={styles.taskStatusStopIcon}
             width={12}
